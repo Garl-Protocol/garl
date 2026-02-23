@@ -6,6 +6,7 @@ Protocol: JSON-RPC 2.0 over HTTPS
 Spec ref: https://a2a-protocol.org/latest/specification/ (Section 9)
 """
 
+import json
 import re
 import uuid
 from datetime import datetime, timezone
@@ -254,8 +255,16 @@ def _handle_send_message(params: dict, req_id) -> dict:
             continue
         if "text" in part and part["text"]:
             text_content += part["text"] + " "
-        elif "data" in part and isinstance(part["data"], dict):
-            d = part["data"]
+        elif "data" in part:
+            raw = part["data"]
+            if isinstance(raw, str):
+                try:
+                    raw = json.loads(raw)
+                except (json.JSONDecodeError, TypeError):
+                    continue
+            if not isinstance(raw, dict):
+                continue
+            d = raw
             if "agent_id" in d:
                 text_content += f"check trust {d['agent_id']} "
             if "skill" in d or "action" in d:

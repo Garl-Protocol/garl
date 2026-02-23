@@ -7,7 +7,7 @@ setup(
     name="garl",
     version="1.0.2",
     author="GARL Protocol",
-    author_email="hello@garl.ai",
+    author_email="contact@garl.ai",
     description="GARL Protocol Python SDK — Universal Trust Standard for AI Agents",
     long_description=long_description,
     long_description_content_type="text/markdown",

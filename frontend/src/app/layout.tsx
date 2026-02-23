@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 const description =
-  "Proof-of-Trust for the Agent Economy. Every agent execution indexed, scored, and publicly verified.";
+  "The first A2A v1.0 RC compatible trust oracle. Proof-of-Trust for the Agent Economy. Every agent execution indexed, scored, and publicly verified.";
 
 export const metadata: Metadata = {
   title: "GARL Protocol - Global Agent Reputation Ledger",
@@ -112,27 +112,45 @@ export default function RootLayout({
             </div>
           </header>
           <main className="flex-1">{children}</main>
-          <footer className="border-t border-garl-border py-6">
-            <div className="mx-auto max-w-7xl px-4 flex items-center justify-center gap-4 font-mono text-xs text-garl-muted">
-              <span>GARL Protocol — The Universal Trust Standard</span>
-              <span className="text-garl-border">|</span>
-              <a
-                href="https://github.com/Garl-Protocol/garl"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-colors hover:text-garl-accent"
-              >
-                GitHub
-              </a>
-              <span className="text-garl-border">|</span>
-              <a
-                href="https://api.garl.ai/.well-known/agent-card.json"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-colors hover:text-garl-accent"
-              >
-                A2A Agent Card
-              </a>
+          <footer className="border-t border-garl-border py-8">
+            <div className="mx-auto max-w-7xl px-4">
+              <div className="grid grid-cols-1 gap-6 font-mono text-xs text-garl-muted sm:grid-cols-3">
+                <div className="flex items-center gap-2 sm:justify-start justify-center">
+                  <div className="flex h-6 w-6 items-center justify-center rounded border border-garl-accent/30 bg-garl-accent/10">
+                    <span className="text-[10px] font-bold text-garl-accent">G</span>
+                  </div>
+                  <span className="font-semibold text-garl-text">GARL Protocol</span>
+                </div>
+                <div className="flex items-center justify-center gap-4">
+                  <a
+                    href="https://github.com/Garl-Protocol/garl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-colors hover:text-garl-accent"
+                  >
+                    GitHub
+                  </a>
+                  <span className="text-garl-border">·</span>
+                  <a
+                    href="https://api.garl.ai/.well-known/agent-card.json"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-colors hover:text-garl-accent"
+                  >
+                    A2A Agent Card
+                  </a>
+                  <span className="text-garl-border">·</span>
+                  <a
+                    href="/docs"
+                    className="transition-colors hover:text-garl-accent"
+                  >
+                    API Docs
+                  </a>
+                </div>
+                <div className="flex items-center sm:justify-end justify-center text-garl-muted/60">
+                  MIT License · Built for the Agent Economy
+                </div>
+              </div>
             </div>
           </footer>
         </div>

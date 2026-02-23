@@ -138,6 +138,9 @@ export default function LeaderboardPage() {
                       ✓
                     </span>
                   )}
+                  <span className="shrink-0 rounded border border-green-500/20 bg-green-500/5 px-1.5 py-0.5 text-[9px] font-bold text-green-400">
+                    A2A
+                  </span>
                 </div>
 
                 <div className="col-span-1 flex items-center">

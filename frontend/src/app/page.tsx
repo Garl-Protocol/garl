@@ -37,6 +37,151 @@ interface LiveStats {
   top_agent: { name: string; trust_score: number } | null;
 }
 
+function TryItLive({ apiBase }: { apiBase: string }) {
+  const [agentId, setAgentId] = useState("");
+  const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [placeholder, setPlaceholder] = useState("Enter any agent UUID");
+
+  useEffect(() => {
+    fetch(`${apiBase}/leaderboard?limit=1`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data) && data[0]?.id) {
+          setPlaceholder(data[0].id);
+        }
+      })
+      .catch(() => {});
+  }, [apiBase]);
+
+  const checkTrust = async () => {
+    const id = agentId.trim() || placeholder;
+    if (!id || id === "Enter any agent UUID") return;
+    setLoading(true);
+    setError("");
+    setResult(null);
+    try {
+      const res = await fetch(`${apiBase}/trust/verify?agent_id=${id}`);
+      if (!res.ok) throw new Error(`Agent not found (${res.status})`);
+      setResult(await res.json());
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to check trust");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const tierColor: Record<string, string> = {
+    enterprise: "text-purple-400 bg-purple-400/10 border-purple-400/30",
+    gold: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30",
+    silver: "text-gray-300 bg-gray-300/10 border-gray-300/30",
+    bronze: "text-orange-400 bg-orange-400/10 border-orange-400/30",
+  };
+
+  const r = result as Record<string, unknown> | null;
+  const dims = (r?.dimensions || {}) as Record<string, number>;
+
+  return (
+    <section className="border-t border-garl-border bg-garl-surface/50 py-20">
+      <div className="mx-auto max-w-3xl px-4">
+        <div className="mb-8 text-center">
+          <h2 className="mb-3 font-mono text-2xl font-bold text-garl-text">
+            Try It Live
+          </h2>
+          <p className="text-garl-muted">
+            Query any agent&apos;s trust score in real time
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={agentId}
+            onChange={(e) => setAgentId(e.target.value)}
+            placeholder={placeholder}
+            onKeyDown={(e) => e.key === "Enter" && checkTrust()}
+            className="flex-1 rounded-lg border border-garl-border bg-garl-bg px-4 py-3 font-mono text-sm text-garl-text placeholder:text-garl-muted/40 focus:border-garl-accent/50 focus:outline-none focus:ring-1 focus:ring-garl-accent/20"
+          />
+          <button
+            onClick={checkTrust}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-lg bg-garl-accent px-6 py-3 font-mono text-sm font-semibold text-garl-bg transition-all hover:glow-green-strong disabled:opacity-50"
+          >
+            <Shield className="h-4 w-4" />
+            {loading ? "Checking..." : "Check Trust"}
+          </button>
+        </div>
+
+        {error && (
+          <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3 font-mono text-xs text-red-400">
+            {error}
+          </div>
+        )}
+
+        {r && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 rounded-xl border border-garl-border bg-garl-surface p-6"
+          >
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <div className="font-mono text-4xl font-bold text-garl-accent">
+                  {typeof r.trust_score === "number"
+                    ? (r.trust_score as number).toFixed(1)
+                    : "—"}
+                </div>
+                <div className="mt-1 font-mono text-xs uppercase tracking-wider text-garl-muted">
+                  Trust Score
+                </div>
+              </div>
+              <div className="text-right">
+                <div
+                  className={`inline-block rounded-full border px-3 py-1 font-mono text-xs font-bold uppercase ${
+                    tierColor[r.certification_tier as string] ||
+                    "text-garl-muted bg-garl-bg border-garl-border"
+                  }`}
+                >
+                  {(r.certification_tier as string) || "—"}
+                </div>
+                <div className="mt-2 font-mono text-xs text-garl-muted">
+                  {(r.recommendation as string)?.replace(/_/g, " ") || "—"}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {[
+                { key: "reliability", color: "bg-green-400", label: "Reliability" },
+                { key: "security", color: "bg-red-400", label: "Security" },
+                { key: "speed", color: "bg-blue-400", label: "Speed" },
+                { key: "cost_efficiency", color: "bg-yellow-400", label: "Cost Eff." },
+                { key: "consistency", color: "bg-purple-400", label: "Consistency" },
+              ].map((dim_item) => (
+                <div key={dim_item.key}>
+                  <div className="mb-1 flex items-center justify-between font-mono text-xs">
+                    <span className="text-garl-muted">{dim_item.label}</span>
+                    <span className="text-garl-text">
+                      {dims[dim_item.key]?.toFixed(1) ?? "—"}
+                    </span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-garl-border">
+                    <div
+                      className={`h-full rounded-full ${dim_item.color} transition-all duration-500`}
+                      style={{ width: `${dims[dim_item.key] || 0}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function HomePage() {
   const [stats, setStats] = useState<LiveStats | null>(null);
 
@@ -135,11 +280,14 @@ export default function HomePage() {
               View Leaderboard
             </a>
             <a
-              href="/dashboard"
+              href="https://api.garl.ai/.well-known/agent-card.json"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border border-garl-border px-6 py-3 font-mono text-sm text-garl-text transition-all hover:border-garl-accent/40"
             >
-              <Activity className="h-4 w-4" />
-              Live Feed
+              <Globe className="h-4 w-4" />
+              A2A Agent Card
+              <ArrowRight className="h-3 w-3" />
             </a>
           </motion.div>
         </motion.div>
@@ -561,21 +709,25 @@ export default function HomePage() {
             {[
               {
                 title: "Python SDK",
+                install: "pip install garl",
                 code: "from garl import GarlClient",
                 desc: "Sync + async clients, one-liner API, auto-retry with exponential backoff",
               },
               {
                 title: "JavaScript SDK",
-                code: "import { GarlClient } from './garl.js'",
+                install: "npm install garl",
+                code: "import { GarlClient } from 'garl'",
                 desc: "ESM module with retry, background logging, OpenClaw adapter",
               },
               {
                 title: "REST API",
+                install: "",
                 code: "POST /api/v1/verify",
                 desc: "30+ endpoints — traces, trust checks, smart routing, endorsements, GDPR compliance, CISO reports, webhook CRUD, badges",
               },
               {
                 title: "OpenClaw Bridge",
+                install: "",
                 code: "POST /api/v1/ingest/openclaw",
                 desc: "Webhook endpoint converts OpenClaw events to GARL traces automatically",
               },
@@ -592,6 +744,11 @@ export default function HomePage() {
                 <h3 className="mb-2 font-mono text-sm font-semibold text-garl-text">
                   {item.title}
                 </h3>
+                {item.install && (
+                  <div className="mb-2 rounded-md bg-garl-border/30 px-3 py-1.5 font-mono text-xs text-garl-muted">
+                    $ {item.install}
+                  </div>
+                )}
                 <div className="mb-3 rounded-md bg-garl-bg px-3 py-1.5 font-mono text-xs text-garl-accent">
                   {item.code}
                 </div>
@@ -600,6 +757,77 @@ export default function HomePage() {
                 </p>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Google A2A Protocol Native */}
+      <section className="border-t border-garl-border py-20">
+        <div className="mx-auto max-w-5xl px-4">
+          <div className="mb-12 text-center">
+            <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-garl-accent/20 bg-garl-accent/5 px-4 py-1.5">
+              <Globe className="h-3.5 w-3.5 text-garl-accent" />
+              <span className="font-mono text-xs tracking-wider text-garl-accent">
+                A2A v1.0 RC COMPLIANT
+              </span>
+            </div>
+            <h2 className="mb-3 font-mono text-2xl font-bold text-garl-text">
+              Google A2A Protocol Native
+            </h2>
+            <p className="mx-auto max-w-2xl text-garl-muted">
+              The first fully functional A2A v1.0 RC compatible trust oracle.
+              Any A2A-compatible agent can discover, query, and interact with GARL.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="rounded-xl border border-garl-border bg-garl-surface p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <Search className="h-4 w-4 text-garl-accent" />
+                <span className="font-mono text-sm font-semibold text-garl-text">
+                  Agent Card Discovery
+                </span>
+              </div>
+              <div className="mb-2 rounded-md bg-garl-bg px-3 py-1.5 font-mono text-xs text-garl-accent">
+                curl https://api.garl.ai/.well-known/agent-card.json
+              </div>
+              <p className="text-xs leading-relaxed text-garl-muted">
+                Auto-discoverable by any A2A client. Returns capabilities,
+                skills, and security schemes.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-garl-border bg-garl-surface p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <Zap className="h-4 w-4 text-garl-accent" />
+                <span className="font-mono text-sm font-semibold text-garl-text">
+                  JSON-RPC 2.0 Endpoint
+                </span>
+              </div>
+              <div className="mb-2 rounded-md bg-garl-bg px-3 py-1.5 font-mono text-xs text-garl-accent">
+                POST https://api.garl.ai/a2a
+              </div>
+              <p className="text-xs leading-relaxed text-garl-muted">
+                SendMessage, GetTask — standard A2A methods. 5 skills:
+                trust_check, verify_trace, route_agent, compare_agents,
+                register_agent.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-center justify-center gap-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-garl-accent/30 bg-garl-accent/10 px-4 py-1.5 font-mono text-xs text-garl-accent">
+              <span className="text-green-400">✓</span> Verified A2A v1.0 RC Compliant
+            </div>
+            <a
+              href="https://api.garl.ai/.well-known/agent-card.json"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-garl-border px-5 py-2.5 font-mono text-xs text-garl-muted transition-all hover:border-garl-accent/40 hover:text-garl-text"
+            >
+              <Globe className="h-3.5 w-3.5" />
+              View Agent Card
+            </a>
           </div>
         </div>
       </section>
@@ -662,6 +890,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Try It Live */}
+      <TryItLive apiBase={apiBase} />
 
       {/* Agent-to-Agent Trust */}
       <section className="border-t border-garl-border bg-garl-surface/50 py-20">
@@ -748,121 +979,6 @@ export default function HomePage() {
                 </code>
               </pre>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* A2A v1.0 Compliance */}
-      <section className="border-t border-garl-border py-20">
-        <div className="mx-auto max-w-5xl px-4">
-          <div className="mb-12 text-center">
-            <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-garl-accent/20 bg-garl-accent/5 px-4 py-1.5">
-              <Globe className="h-3.5 w-3.5 text-garl-accent" />
-              <span className="font-mono text-xs tracking-wider text-garl-accent">
-                A2A v1.0 RC COMPLIANT
-              </span>
-            </div>
-            <h2 className="mb-3 font-mono text-2xl font-bold text-garl-text">
-              Google A2A Protocol Native
-            </h2>
-            <p className="mx-auto max-w-2xl text-garl-muted">
-              GARL implements the{" "}
-              <a
-                href="https://a2a-protocol.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-garl-accent underline underline-offset-2 hover:text-garl-accent/80"
-              >
-                Google Agent-to-Agent Protocol v1.0 RC
-              </a>
-              . Any A2A-compatible agent can discover GARL, check trust, and register
-              — via the standard JSON-RPC 2.0 binding.
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="rounded-xl border border-garl-border bg-garl-surface p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <Search className="h-4 w-4 text-garl-accent" />
-                <span className="font-mono text-sm font-semibold text-garl-text">
-                  Agent Card Discovery
-                </span>
-              </div>
-              <div className="mb-2 font-mono text-xs text-garl-muted">
-                GET /.well-known/agent-card.json
-              </div>
-              <pre className="overflow-x-auto rounded-lg bg-garl-bg p-4 font-mono text-[11px] leading-relaxed">
-                <code className="text-garl-text">
-                  {`{
-  "name": "GARL Protocol",
-  "description": "Universal Trust Standard",
-  "supportedInterfaces": [{
-    "url": "https://api.garl.ai/a2a",
-    "protocolBinding": "JSONRPC"
-  }],
-  "capabilities": {
-    "streaming": false,
-    "pushNotifications": false
-  },
-  "skills": [
-    { "id": "trust_check", ... },
-    { "id": "route_agent", ... }
-  ]
-}`}
-                </code>
-              </pre>
-            </div>
-
-            <div className="rounded-xl border border-garl-border bg-garl-surface p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <Zap className="h-4 w-4 text-garl-accent" />
-                <span className="font-mono text-sm font-semibold text-garl-text">
-                  JSON-RPC 2.0 Endpoint
-                </span>
-              </div>
-              <div className="mb-2 font-mono text-xs text-garl-muted">
-                POST /a2a &middot; Header: A2A-Version: 1.0
-              </div>
-              <pre className="overflow-x-auto rounded-lg bg-garl-bg p-4 font-mono text-[11px] leading-relaxed">
-                <code className="text-garl-text">
-                  {`{
-  "jsonrpc": "2.0",
-  "method": "SendMessage",
-  "id": "1",
-  "params": {
-    "message": {
-      "role": "ROLE_USER",
-      "parts": [{
-        "text": "Is agent abc trusted?"
-      }],
-      "messageId": "msg-1"
-    }
-  }
-}`}
-                </code>
-              </pre>
-            </div>
-          </div>
-
-          <div className="mt-6 flex justify-center gap-4">
-            <a
-              href="https://api.garl.ai/.well-known/agent-card.json"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-garl-accent/30 bg-garl-accent/5 px-5 py-2.5 font-mono text-xs text-garl-accent transition-all hover:bg-garl-accent/10"
-            >
-              <Globe className="h-3.5 w-3.5" />
-              View Agent Card
-            </a>
-            <a
-              href="https://a2a-protocol.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-garl-border px-5 py-2.5 font-mono text-xs text-garl-muted transition-all hover:border-garl-accent/40 hover:text-garl-text"
-            >
-              A2A Specification
-              <ArrowRight className="h-3 w-3" />
-            </a>
           </div>
         </div>
       </section>

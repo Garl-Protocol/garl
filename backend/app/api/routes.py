@@ -89,7 +89,20 @@ def _check_rate_limit(key: str, tier: str = "default"):
 
         _rate_store[bucket] = [t for t in _rate_store[bucket] if now - t < window]
         if len(_rate_store[bucket]) >= limit:
-            raise HTTPException(status_code=429, detail=f"Rate limit exceeded. Max {limit} requests per {window}s for this operation.")
+            remaining = 0
+            oldest = min(_rate_store[bucket]) if _rate_store[bucket] else now
+            retry_after = int(oldest + window - now) + 1
+            reset_at = int(oldest + window)
+            raise HTTPException(
+                status_code=429,
+                detail=f"Rate limit exceeded. Max {limit} requests per {window}s for this operation.",
+                headers={
+                    "Retry-After": str(retry_after),
+                    "X-RateLimit-Limit": str(limit),
+                    "X-RateLimit-Remaining": str(remaining),
+                    "X-RateLimit-Reset": str(reset_at),
+                },
+            )
         _rate_store[bucket].append(now)
 
 

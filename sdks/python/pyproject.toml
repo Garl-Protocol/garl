@@ -9,7 +9,7 @@ description = "GARL Protocol Python SDK — Universal Trust Standard for AI Agen
 requires-python = ">=3.10"
 license = "MIT"
 authors = [
-    { name = "GARL Protocol", email = "hello@garl.ai" }
+    { name = "GARL Protocol", email = "contact@garl.ai" }
 ]
 dependencies = [
     "httpx>=0.24.0",
