@@ -46,6 +46,10 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
         raise ValueError("Agent not found")
 
     agent = agent_res.data[0]
+
+    if agent.get("is_deleted"):
+        raise PermissionError("Agent has been deactivated")
+
     api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()
     if agent.get("api_key_hash") != api_key_hash:
         raise PermissionError("Invalid API key for this agent")

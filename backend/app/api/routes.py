@@ -112,6 +112,16 @@ def _sanitize_agent_name(name: str) -> str:
     return clean
 
 
+def _strip_html(text: str, max_length: int = 2000) -> str:
+    """Strip HTML tags from free-text fields and enforce max length."""
+    if not text:
+        return text
+    clean = re.sub(r"<[^>]+>", "", text).strip()
+    if len(clean) > max_length:
+        clean = clean[:max_length]
+    return clean
+
+
 def _get_client_ip(request: Request) -> str:
     """Extract real client IP behind Cloudflare/proxy."""
     return (
@@ -245,6 +255,11 @@ async def read_agent_card(agent_id: str):
 @router.post("/verify", response_model=TraceResponse)
 async def verify_trace(request: Request, req: TraceSubmitRequest, x_api_key: str = Header(...)):
     _check_rate_limit(x_api_key[:16], "write")
+    req.task_description = _strip_html(req.task_description, 1000)
+    if hasattr(req, "input_summary") and req.input_summary:
+        req.input_summary = _strip_html(req.input_summary, 2000)
+    if hasattr(req, "output_summary") and req.output_summary:
+        req.output_summary = _strip_html(req.output_summary, 2000)
     try:
         result = submit_trace(req, x_api_key)
         return result
@@ -267,6 +282,11 @@ async def verify_batch(request: Request, req: BatchTraceRequest, x_api_key: str 
     results = []
     failed = 0
     for trace in req.traces:
+        trace.task_description = _strip_html(trace.task_description, 1000)
+        if hasattr(trace, "input_summary") and trace.input_summary:
+            trace.input_summary = _strip_html(trace.input_summary, 2000)
+        if hasattr(trace, "output_summary") and trace.output_summary:
+            trace.output_summary = _strip_html(trace.output_summary, 2000)
         try:
             result = submit_trace(trace, x_api_key)
             results.append({"id": result["id"], "status": "ok", "trust_delta": result["trust_delta"]})
