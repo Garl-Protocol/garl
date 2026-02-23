@@ -98,6 +98,12 @@ export default function RootLayout({
                 >
                   Docs
                 </a>
+                <a
+                  href="mailto:contact@garl.ai"
+                  className="font-mono text-xs uppercase tracking-wider text-garl-muted transition-colors hover:text-garl-accent"
+                >
+                  Contact
+                </a>
                 <div className="h-4 w-px bg-garl-border" />
                 <a
                   href="/dashboard"
@@ -114,7 +120,7 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <footer className="border-t border-garl-border py-8">
             <div className="mx-auto max-w-7xl px-4">
-              <div className="grid grid-cols-1 gap-6 font-mono text-xs text-garl-muted sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 font-mono text-xs text-garl-muted sm:grid-cols-4">
                 <div className="flex items-center gap-2 sm:justify-start justify-center">
                   <div className="flex h-6 w-6 items-center justify-center rounded border border-garl-accent/30 bg-garl-accent/10">
                     <span className="text-[10px] font-bold text-garl-accent">G</span>
@@ -145,6 +151,14 @@ export default function RootLayout({
                     className="transition-colors hover:text-garl-accent"
                   >
                     API Docs
+                  </a>
+                </div>
+                <div className="flex items-center justify-center">
+                  <a
+                    href="mailto:contact@garl.ai"
+                    className="transition-colors hover:text-garl-accent"
+                  >
+                    contact@garl.ai
                   </a>
                 </div>
                 <div className="flex items-center sm:justify-end justify-center text-garl-muted/60">

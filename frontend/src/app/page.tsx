@@ -17,6 +17,7 @@ import {
   Bell,
   Search,
   Layers,
+  Mail,
   TrendingUp,
   Users,
   Trophy,
@@ -1010,6 +1011,13 @@ export default function HomePage() {
             >
               <Layers className="h-4 w-4" />
               A2A Agent Card
+            </a>
+            <a
+              href="mailto:contact@garl.ai"
+              className="inline-flex items-center gap-2 rounded-lg border border-garl-border px-6 py-3 font-mono text-sm text-garl-text transition-all hover:border-garl-accent/40"
+            >
+              <Mail className="h-4 w-4" />
+              Contact Us
             </a>
           </div>
         </div>
