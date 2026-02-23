@@ -120,7 +120,7 @@ class TestRootEndpoint:
         assert resp.status_code == 200
         data = resp.json()
         assert data["protocol"] == "GARL"
-        assert data["version"] == "1.0.1"
+        assert data["version"] == "1.0.2"
         assert "docs" in data
 
 
