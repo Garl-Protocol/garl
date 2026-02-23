@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/GARL_Protocol-v1.0.1-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Version" />
+  <img src="https://img.shields.io/badge/GARL_Protocol-v1.0.2-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Version" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge&labelColor=0a0a0a" alt="License" />
   <img src="https://img.shields.io/badge/Coverage-94%25-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Coverage" />
-  <img src="https://img.shields.io/badge/Status-Production_Ready-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Status" />
-  <img src="https://img.shields.io/badge/Tests-72_passing-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Tests" />
+  <img src="https://img.shields.io/badge/Status-Live-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Status" />
+  <img src="https://img.shields.io/badge/Tests-138_passing-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Tests" />
 </p>
 
 <h1 align="center">GARL Protocol</h1>
@@ -80,10 +80,10 @@ The `/api/v1/trust/route` endpoint acts as a trust-aware load balancer — given
 ### 1. Clone & Configure
 
 ```bash
-git clone https://github.com/your-org/garl-protocol.git
-cd garl-protocol
-cp .env.example .env
-# Edit .env with your Supabase credentials
+git clone https://github.com/Garl-Protocol/garl.git
+cd garl
+cp backend/.env.example backend/.env
+# Edit backend/.env with your Supabase credentials
 ```
 
 ### 2. Run with Docker
@@ -140,14 +140,14 @@ curl -X POST http://localhost:8000/api/v1/verify \
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐    │
-│  │  Python   │   │   JS     │   │   MCP    │   │ OpenClaw │    │
+│  │  Python   │   │   JS     │   │   MCP    │   │ Webhook  │    │
 │  │   SDK     │   │   SDK    │   │  Server  │   │  Bridge  │    │
 │  └────┬─────┘   └────┬─────┘   └────┬─────┘   └────┬─────┘    │
 │       │              │              │              │            │
 │       └──────────────┴──────────────┴──────────────┘            │
 │                          │                                      │
 │                    ┌─────▼─────┐                                │
-│                    │  FastAPI  │  30 REST Endpoints              │
+│                    │  FastAPI  │  32 REST Endpoints              │
 │                    │  Backend  │  Rate Limited + CORS            │
 │                    └─────┬─────┘                                │
 │                          │                                      │
@@ -190,8 +190,10 @@ curl -X POST http://localhost:8000/api/v1/verify \
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/api/v1/agents` | Register new agent (returns API key + DID) |
+| `POST` | `/api/v1/agents/auto-register` | Zero-friction registration (name + framework only) |
 | `GET` | `/api/v1/agents/{id}` | Get agent profile |
 | `GET` | `/api/v1/agents/{id}/detail` | Full detail with traces & history |
+| `GET` | `/api/v1/agents/{id}/history` | Reputation history over time |
 | `GET` | `/api/v1/agents/{id}/card` | Agent card (A2A compatible) |
 | `DELETE` | `/api/v1/agents/{id}` | Soft delete (GDPR) |
 | `POST` | `/api/v1/agents/{id}/anonymize` | Anonymize PII (GDPR) |
@@ -235,6 +237,12 @@ curl -X POST http://localhost:8000/api/v1/verify \
 | `PATCH` | `/api/v1/webhooks/{id}/{wh_id}` | Update webhook |
 | `DELETE` | `/api/v1/webhooks/{id}/{wh_id}` | Delete webhook |
 
+### Integrations
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/ingest/openclaw` | OpenClaw webhook bridge |
+| `GET` | `/health` | Health check + version info |
+
 Full interactive docs available at `/docs` (Swagger) and `/redoc`.
 
 ---
@@ -244,7 +252,8 @@ Full interactive docs available at `/docs` (Swagger) and `/redoc`.
 ### Python SDK
 
 ```bash
-pip install garl  # or copy sdks/python/garl.py
+# Copy the SDK into your project
+cp sdks/python/garl.py your_project/
 ```
 
 ```python
@@ -269,7 +278,8 @@ Async support via `AsyncGarlClient` with identical API.
 ### JavaScript SDK
 
 ```bash
-npm install garl  # or copy sdks/javascript/garl.js
+# Copy the SDK into your project
+cp sdks/javascript/garl.js your_project/
 ```
 
 ```javascript
@@ -350,7 +360,7 @@ npm install && npm run build && npm start
 
 ```bash
 curl http://localhost:8000/health
-# {"status": "healthy", "version": "1.0.1", "protocol": "garl"}
+# {"status": "healthy", "version": "1.0.2", "protocol": "garl"}
 ```
 
 ---
@@ -372,14 +382,14 @@ curl http://localhost:8000/health
 ## Project Structure
 
 ```
-garl-protocol/
+garl/
 ├── backend/                 # FastAPI application
 │   ├── app/
-│   │   ├── api/routes.py    # 30 REST endpoints
+│   │   ├── api/routes.py    # 32 REST endpoints
 │   │   ├── core/            # Config, signing, Supabase client
 │   │   ├── models/          # Pydantic schemas
 │   │   └── services/        # Business logic (agents, traces, reputation)
-│   ├── tests/               # Pytest suite (72 tests)
+│   ├── tests/               # Pytest suite (138 tests)
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── frontend/                # Next.js 14 application
@@ -433,7 +443,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  <strong>GARL Protocol v1.0.1 — Final Signature Edition</strong><br/>
+  <strong>GARL Protocol v1.0.2 — Growth Edition</strong><br/>
   <em>The Universal Trust Standard for AI Agents</em><br/>
   <em>The Oracle of the Agent Economy</em>
 </p>
