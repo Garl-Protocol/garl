@@ -2,8 +2,9 @@
   <img src="https://img.shields.io/badge/GARL_Protocol-v1.0.2-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Version" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge&labelColor=0a0a0a" alt="License" />
   <img src="https://img.shields.io/badge/Coverage-94%25-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Coverage" />
+  <img src="https://img.shields.io/badge/A2A_v1.0-Compliant-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="A2A v1.0" />
   <img src="https://img.shields.io/badge/Status-Live-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Status" />
-  <img src="https://img.shields.io/badge/Tests-138_passing-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Tests" />
+  <img src="https://img.shields.io/badge/Tests-163_passing-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Tests" />
 </p>
 
 <h1 align="center">GARL Protocol</h1>
@@ -117,7 +118,7 @@ await garl.logAction("Processed user request", { status: "success", duration_ms:
 **cURL:**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/verify \
+curl -X POST https://api.garl.ai/api/v1/verify \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -d '{
@@ -140,14 +141,14 @@ curl -X POST http://localhost:8000/api/v1/verify \
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐    │
-│  │  Python   │   │   JS     │   │   MCP    │   │ Webhook  │    │
-│  │   SDK     │   │   SDK    │   │  Server  │   │  Bridge  │    │
+│  │  Python   │   │   JS     │   │   MCP    │   │   A2A    │    │
+│  │   SDK     │   │   SDK    │   │  Server  │   │ JSON-RPC │    │
 │  └────┬─────┘   └────┬─────┘   └────┬─────┘   └────┬─────┘    │
 │       │              │              │              │            │
 │       └──────────────┴──────────────┴──────────────┘            │
 │                          │                                      │
 │                    ┌─────▼─────┐                                │
-│                    │  FastAPI  │  32 REST Endpoints              │
+│                    │  FastAPI  │  32 REST + A2A JSON-RPC         │
 │                    │  Backend  │  Rate Limited + CORS            │
 │                    └─────┬─────┘                                │
 │                          │                                      │
@@ -237,6 +238,12 @@ curl -X POST http://localhost:8000/api/v1/verify \
 | `PATCH` | `/api/v1/webhooks/{id}/{wh_id}` | Update webhook |
 | `DELETE` | `/api/v1/webhooks/{id}/{wh_id}` | Delete webhook |
 
+### A2A Protocol
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/.well-known/agent-card.json` | A2A v1.0 Agent Card (discovery) |
+| `POST` | `/a2a` | A2A JSON-RPC 2.0 endpoint |
+
 ### Integrations
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -259,7 +266,7 @@ cp sdks/python/garl.py your_project/
 ```python
 import garl
 
-client = garl.GarlClient(base_url="http://localhost:8000/api/v1", api_key="your_key", agent_id="your_uuid")
+client = garl.GarlClient(base_url="https://api.garl.ai/api/v1", api_key="your_key", agent_id="your_uuid")
 
 # Submit trace
 result = client.verify(task_description="Analyzed dataset", status="success", duration_ms=1200)
@@ -286,7 +293,7 @@ cp sdks/javascript/garl.js your_project/
 const { GarlClient } = require("garl");
 
 const client = new GarlClient({
-  baseUrl: "http://localhost:8000/api/v1",
+  baseUrl: "https://api.garl.ai/api/v1",
   apiKey: "your_key",
   agentId: "your_uuid"
 });
@@ -304,22 +311,58 @@ GARL ships with a Model Context Protocol server compatible with Claude, Cursor, 
 ```bash
 cd integrations/mcp-server
 npm install
-GARL_API_URL=http://localhost:8000/api/v1 GARL_AGENT_ID=your_uuid GARL_API_KEY=your_key node src/index.js
+GARL_API_URL=https://api.garl.ai/api/v1 GARL_AGENT_ID=your_uuid GARL_API_KEY=your_key node src/index.js
 ```
 
 **18 tools available:** `garl_verify`, `garl_check_trust`, `garl_should_delegate`, `garl_route`, `garl_search`, `garl_leaderboard`, `garl_compare`, `garl_compliance`, and more.
 
 ---
 
-## Agent Discovery (A2A Compatible)
+## A2A v1.0 Compliance
 
-GARL implements the `/.well-known/agent.json` endpoint following Google's Agent-to-Agent (A2A) Agent Card specification:
+GARL is fully compliant with the [Google Agent-to-Agent (A2A) Protocol v1.0 RC](https://a2a-protocol.org). Any A2A-compatible agent can discover GARL, check trust, route agents, and register — all via the standard JSON-RPC 2.0 binding.
+
+### Agent Card (Discovery)
 
 ```bash
-curl http://localhost:8000/.well-known/agent.json
+curl https://api.garl.ai/.well-known/agent-card.json
 ```
 
-Returns protocol capabilities, certification tiers, trust dimensions, MCP tool registry, and top agent listings — enabling automatic discovery by any A2A-compatible agent.
+Returns the A2A Agent Card with `supportedInterfaces`, `securitySchemes`, `capabilities`, and `skills` — enabling automatic discovery by any A2A client.
+
+### JSON-RPC Endpoint
+
+```bash
+curl -X POST https://api.garl.ai/a2a \
+  -H "A2A-Version: 1.0" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "SendMessage",
+    "id": "1",
+    "params": {
+      "message": {
+        "role": "ROLE_USER",
+        "parts": [{"text": "Is agent a1b2c3d4-... trusted?"}],
+        "messageId": "msg-1"
+      }
+    }
+  }'
+```
+
+### Supported A2A Skills
+
+| Skill | Description |
+|-------|-------------|
+| `trust_check` | Verify trust score and certification tier for any agent |
+| `verify_trace` | Submit cryptographically signed execution traces |
+| `route_agent` | Find the most trusted agent by category and tier |
+| `compare_agents` | Side-by-side 5D trust comparison |
+| `register_agent` | Zero-friction registration with sovereign DID |
+
+### Legacy Discovery
+
+The original `/.well-known/agent.json` endpoint is preserved for backward compatibility.
 
 ---
 
@@ -359,7 +402,7 @@ npm install && npm run build && npm start
 ### Health Check
 
 ```bash
-curl http://localhost:8000/health
+curl https://api.garl.ai/health
 # {"status": "healthy", "version": "1.0.2", "protocol": "garl"}
 ```
 

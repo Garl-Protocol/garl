@@ -752,6 +752,121 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* A2A v1.0 Compliance */}
+      <section className="border-t border-garl-border py-20">
+        <div className="mx-auto max-w-5xl px-4">
+          <div className="mb-12 text-center">
+            <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-garl-accent/20 bg-garl-accent/5 px-4 py-1.5">
+              <Globe className="h-3.5 w-3.5 text-garl-accent" />
+              <span className="font-mono text-xs tracking-wider text-garl-accent">
+                A2A v1.0 RC COMPLIANT
+              </span>
+            </div>
+            <h2 className="mb-3 font-mono text-2xl font-bold text-garl-text">
+              Google A2A Protocol Native
+            </h2>
+            <p className="mx-auto max-w-2xl text-garl-muted">
+              GARL implements the{" "}
+              <a
+                href="https://a2a-protocol.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-garl-accent underline underline-offset-2 hover:text-garl-accent/80"
+              >
+                Google Agent-to-Agent Protocol v1.0 RC
+              </a>
+              . Any A2A-compatible agent can discover GARL, check trust, and register
+              — via the standard JSON-RPC 2.0 binding.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="rounded-xl border border-garl-border bg-garl-surface p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <Search className="h-4 w-4 text-garl-accent" />
+                <span className="font-mono text-sm font-semibold text-garl-text">
+                  Agent Card Discovery
+                </span>
+              </div>
+              <div className="mb-2 font-mono text-xs text-garl-muted">
+                GET /.well-known/agent-card.json
+              </div>
+              <pre className="overflow-x-auto rounded-lg bg-garl-bg p-4 font-mono text-[11px] leading-relaxed">
+                <code className="text-garl-text">
+                  {`{
+  "name": "GARL Protocol",
+  "description": "Universal Trust Standard",
+  "supportedInterfaces": [{
+    "url": "https://api.garl.ai/a2a",
+    "protocolBinding": "JSONRPC"
+  }],
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false
+  },
+  "skills": [
+    { "id": "trust_check", ... },
+    { "id": "route_agent", ... }
+  ]
+}`}
+                </code>
+              </pre>
+            </div>
+
+            <div className="rounded-xl border border-garl-border bg-garl-surface p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <Zap className="h-4 w-4 text-garl-accent" />
+                <span className="font-mono text-sm font-semibold text-garl-text">
+                  JSON-RPC 2.0 Endpoint
+                </span>
+              </div>
+              <div className="mb-2 font-mono text-xs text-garl-muted">
+                POST /a2a &middot; Header: A2A-Version: 1.0
+              </div>
+              <pre className="overflow-x-auto rounded-lg bg-garl-bg p-4 font-mono text-[11px] leading-relaxed">
+                <code className="text-garl-text">
+                  {`{
+  "jsonrpc": "2.0",
+  "method": "SendMessage",
+  "id": "1",
+  "params": {
+    "message": {
+      "role": "ROLE_USER",
+      "parts": [{
+        "text": "Is agent abc trusted?"
+      }],
+      "messageId": "msg-1"
+    }
+  }
+}`}
+                </code>
+              </pre>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-center gap-4">
+            <a
+              href="https://api.garl.ai/.well-known/agent-card.json"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-garl-accent/30 bg-garl-accent/5 px-5 py-2.5 font-mono text-xs text-garl-accent transition-all hover:bg-garl-accent/10"
+            >
+              <Globe className="h-3.5 w-3.5" />
+              View Agent Card
+            </a>
+            <a
+              href="https://a2a-protocol.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-garl-border px-5 py-2.5 font-mono text-xs text-garl-muted transition-all hover:border-garl-accent/40 hover:text-garl-text"
+            >
+              A2A Specification
+              <ArrowRight className="h-3 w-3" />
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="border-t border-garl-border py-20">
         <div className="mx-auto max-w-2xl px-4 text-center">
@@ -773,12 +888,12 @@ export default function HomePage() {
               <ArrowRight className="h-4 w-4" />
             </a>
             <a
-              href={`${apiBase.replace("/api/v1", "")}/.well-known/agent.json`}
+              href={`${apiBase.replace("/api/v1", "")}/.well-known/agent-card.json`}
               target="_blank"
               className="inline-flex items-center gap-2 rounded-lg border border-garl-border px-6 py-3 font-mono text-sm text-garl-text transition-all hover:border-garl-accent/40"
             >
               <Layers className="h-4 w-4" />
-              Agent Discovery
+              A2A Agent Card
             </a>
           </div>
         </div>

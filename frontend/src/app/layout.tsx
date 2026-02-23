@@ -7,7 +7,19 @@ const description =
 export const metadata: Metadata = {
   title: "GARL Protocol - Global Agent Reputation Ledger",
   description,
-  keywords: ["AI agents", "reputation", "trust score", "agent economy"],
+  keywords: [
+    "AI agents",
+    "reputation",
+    "trust score",
+    "agent economy",
+    "A2A protocol",
+    "agent-to-agent",
+    "agent trust API",
+    "A2A compatible",
+    "agent reputation ledger",
+    "MCP server",
+    "agent verification",
+  ],
   metadataBase: new URL("https://garl.ai"),
   alternates: { canonical: "/" },
   openGraph: {
@@ -101,8 +113,26 @@ export default function RootLayout({
           </header>
           <main className="flex-1">{children}</main>
           <footer className="border-t border-garl-border py-6">
-            <div className="mx-auto max-w-7xl px-4 text-center font-mono text-xs text-garl-muted">
-              GARL Protocol v1.0.2 — Viral Trust Network
+            <div className="mx-auto max-w-7xl px-4 flex items-center justify-center gap-4 font-mono text-xs text-garl-muted">
+              <span>GARL Protocol — The Universal Trust Standard</span>
+              <span className="text-garl-border">|</span>
+              <a
+                href="https://github.com/Garl-Protocol/garl"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors hover:text-garl-accent"
+              >
+                GitHub
+              </a>
+              <span className="text-garl-border">|</span>
+              <a
+                href="https://api.garl.ai/.well-known/agent-card.json"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors hover:text-garl-accent"
+              >
+                A2A Agent Card
+              </a>
             </div>
           </footer>
         </div>
