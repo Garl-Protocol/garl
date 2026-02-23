@@ -250,9 +250,11 @@ def _handle_send_message(params: dict, req_id) -> dict:
 
     text_content = ""
     for part in parts:
+        if not isinstance(part, dict):
+            continue
         if "text" in part and part["text"]:
             text_content += part["text"] + " "
-        elif "data" in part and part["data"]:
+        elif "data" in part and isinstance(part["data"], dict):
             if "agent_id" in part["data"]:
                 text_content += f"check trust {part['data']['agent_id']} "
 
