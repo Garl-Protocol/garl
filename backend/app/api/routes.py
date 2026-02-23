@@ -1,3 +1,4 @@
+import re
 import time
 import hashlib
 import threading
@@ -92,6 +93,34 @@ def _check_rate_limit(key: str, tier: str = "default"):
         _rate_store[bucket].append(now)
 
 
+_AGENT_NAME_PATTERN = re.compile(r"^[\w\s\-\.]+$")
+
+
+def _sanitize_agent_name(name: str) -> str:
+    """Validate and sanitize agent name: strip HTML, enforce length and charset."""
+    import re as _re
+    clean = _re.sub(r"<[^>]+>", "", name).strip()
+    if not clean:
+        raise HTTPException(status_code=400, detail="Agent name must not be empty or contain only HTML tags.")
+    if len(clean) > 100:
+        clean = clean[:100]
+    if not _AGENT_NAME_PATTERN.match(clean):
+        raise HTTPException(
+            status_code=400,
+            detail="Agent name may only contain letters, numbers, spaces, hyphens, underscores, and dots.",
+        )
+    return clean
+
+
+def _get_client_ip(request: Request) -> str:
+    """Extract real client IP behind Cloudflare/proxy."""
+    return (
+        request.headers.get("CF-Connecting-IP")
+        or request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+        or (request.client.host if request.client else "unknown")
+    )
+
+
 def _verify_agent_ownership(agent_id: str, api_key: str) -> dict:
     """API key ownership verification."""
     db = _get_supabase()
@@ -119,7 +148,8 @@ def _require_read_auth(x_api_key: str | None):
 
 @router.post("/agents", response_model=AgentResponse)
 async def create_agent(request: Request, req: AgentRegisterRequest):
-    _check_rate_limit(request.client.host if request.client else "unknown", "register")
+    _check_rate_limit(_get_client_ip(request), "register")
+    req.name = _sanitize_agent_name(req.name)
     try:
         agent = register_agent(req)
         return agent
@@ -130,8 +160,8 @@ async def create_agent(request: Request, req: AgentRegisterRequest):
 @router.post("/agents/auto-register")
 async def auto_register_agent(request: Request, req: AutoRegisterRequest):
     """Otonom ajanlar için sadeleştirilmiş kayıt: minimum alan, makine-okunabilir talimatlar."""
-    client_ip = request.client.host if request.client else "unknown"
-    _check_rate_limit(client_ip, "auto_register")
+    _check_rate_limit(_get_client_ip(request), "auto_register")
+    req.name = _sanitize_agent_name(req.name)
 
     full_req = AgentRegisterRequest(
         name=req.name,
@@ -260,12 +290,12 @@ async def check_certificate(certificate: dict):
 
 @router.get("/leaderboard")
 async def leaderboard(category: str | None = None, limit: int = 50, offset: int = 0):
-    return get_leaderboard(category, min(limit, 100), offset)
+    return get_leaderboard(category, max(1, min(limit, 100)), max(0, offset))
 
 
 @router.get("/feed")
 async def activity_feed(limit: int = 20):
-    return get_recent_traces(min(limit, 100))
+    return get_recent_traces(max(1, min(limit, 100)))
 
 
 @router.get("/stats")
@@ -308,7 +338,7 @@ async def trust_route(category: str, min_tier: str = "silver", limit: int = 3):
     valid_tiers = ["bronze", "silver", "gold", "enterprise"]
     if min_tier not in valid_tiers:
         raise HTTPException(status_code=400, detail=f"Invalid tier. Must be one of: {valid_tiers}")
-    return route_agents(category, min_tier, min(limit, 10))
+    return route_agents(category, min_tier, max(1, min(limit, 10)))
 
 
 # --- Trust History ---
@@ -323,7 +353,7 @@ async def read_agent_history(agent_id: str, limit: int = 50):
         .select("trust_score, event_type, trust_delta, score_reliability, score_speed, score_cost_efficiency, score_consistency, score_security, created_at")
         .eq("agent_id", agent_id)
         .order("created_at", desc=True)
-        .limit(min(limit, 200))
+        .limit(max(1, min(limit, 200)))
         .execute()
     )
     return res.data or []
@@ -599,4 +629,4 @@ async def ingest_openclaw(request: Request, payload: OpenClawIngestPayload, x_ap
 
 @router.get("/search")
 async def search_agents_endpoint(q: str = "", category: str | None = None, limit: int = 10):
-    return search_agents(q, category, min(limit, 50))
+    return search_agents(q, category, max(1, min(limit, 50)))

@@ -28,7 +28,7 @@ app.add_middleware(
 
 
 _A2A_SUPPORTED_VERSIONS = {"1.0"}
-_A2A_PATHS = {"/a2a", "/.well-known/agent-card.json"}
+_A2A_PATHS = {"/a2a"}
 
 
 @app.middleware("http")
@@ -193,6 +193,7 @@ async def well_known_agent(agent_id: str = Query(default=None)):
             "url": "https://garl.ai",
         },
         "interoperability_standards": ["garl/v1", "a2a/v1", "mcp/v1"],
+        "a2a_agent_card": "/.well-known/agent-card.json",
         "api": {
             "type": "rest",
             "base_url": f"{base_url}/api/v1",

@@ -39,7 +39,7 @@ def _jsonrpc_error(req_id, code: int, message: str, data: dict | None = None) ->
     err: dict = {"code": code, "message": message}
     if data:
         err["data"] = data
-    return JSONRPCResponse(jsonrpc="2.0", error=err, id=req_id).model_dump()
+    return JSONRPCResponse(jsonrpc="2.0", error=err, id=req_id).model_dump(exclude_none=True)
 
 
 def _extract_agent_id(text: str) -> str | None:
@@ -145,7 +145,7 @@ def _build_trust_check_result(agent_id: str) -> SendMessageResponse:
             ],
         )
 
-    _task_store[task_id] = task.model_dump()
+    _task_store[task_id] = task.model_dump(exclude_none=True)
     return SendMessageResponse(task=task)
 
 
@@ -168,7 +168,7 @@ def _build_route_result(category: str) -> SendMessageResponse:
             )
         ],
     )
-    _task_store[task_id] = task.model_dump()
+    _task_store[task_id] = task.model_dump(exclude_none=True)
     return SendMessageResponse(task=task)
 
 
@@ -207,7 +207,7 @@ def _build_compare_result(agent_ids: list[str]) -> SendMessageResponse:
             ],
         )
 
-    _task_store[task_id] = task.model_dump()
+    _task_store[task_id] = task.model_dump(exclude_none=True)
     return SendMessageResponse(task=task)
 
 

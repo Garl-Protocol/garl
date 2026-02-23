@@ -130,27 +130,28 @@ class TestAgentCard:
 class TestA2AVersionMiddleware:
     """A2A-Version header validation tests."""
 
-    def test_missing_version_rejected(self, client):
+    def test_agent_card_accessible_without_version_header(self, client):
+        """Agent Card is a discovery endpoint -- must be accessible without A2A-Version."""
         resp = client.get("/.well-known/agent-card.json")
-        assert resp.status_code == 400
-        data = resp.json()
-        assert data["error"]["message"] == "VersionNotSupported"
+        assert resp.status_code == 200
 
-    def test_unsupported_version_rejected(self, client):
+    def test_agent_card_accessible_with_any_version(self, client):
         resp = client.get(
             "/.well-known/agent-card.json",
             headers={"A2A-Version": "0.2"},
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 200
 
-    def test_empty_version_defaults_to_03_rejected(self, client):
-        resp = client.get(
-            "/.well-known/agent-card.json",
-            headers={"A2A-Version": ""},
+    def test_a2a_endpoint_rejects_missing_version(self, client):
+        """The /a2a JSON-RPC endpoint still requires valid A2A-Version."""
+        resp = client.post(
+            "/a2a",
+            content="{}",
+            headers={"Content-Type": "application/json"},
         )
         assert resp.status_code == 400
         data = resp.json()
-        assert data["error"]["data"]["requested"] == "0.3"
+        assert data["error"]["message"] == "VersionNotSupported"
 
     def test_valid_version_accepted(self, client):
         resp = client.get(

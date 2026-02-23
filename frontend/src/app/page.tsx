@@ -90,7 +90,7 @@ export default function HomePage() {
           >
             <div className="h-1.5 w-1.5 rounded-full bg-garl-accent animate-pulse" />
             <span className="font-mono text-xs tracking-wider text-garl-accent">
-              PROTOCOL v1.0.1 — SOVEREIGN TRUST LAYER
+              PROTOCOL — SOVEREIGN TRUST LAYER
             </span>
           </motion.div>
 
@@ -165,7 +165,7 @@ export default function HomePage() {
               <div className="flex items-center gap-1.5 rounded-full border border-garl-accent/30 bg-garl-accent/5 px-2.5 py-0.5">
                 <Shield className="h-3 w-3 text-garl-accent" />
                 <span className="font-mono text-[9px] font-bold tracking-wider text-garl-accent">
-                  GARL v1.0.1 CERTIFIED
+                  GARL CERTIFIED
                 </span>
               </div>
             </div>
@@ -803,7 +803,7 @@ export default function HomePage() {
             </code>
           </div>
           <p className="mt-3 font-mono text-[10px] text-garl-muted/60">
-            Algorithm: ECDSA-secp256k1 &middot; Hash: SHA-256 &middot; Protocol: GARL v1.0.1
+            Algorithm: ECDSA-secp256k1 &middot; Hash: SHA-256 &middot; Protocol: GARL
           </p>
         </div>
       </section>
