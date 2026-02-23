@@ -1,5 +1,8 @@
-from pydantic import BaseModel, Field
+import re
+from pydantic import BaseModel, Field, field_validator
 from enum import Enum
+
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
 
 
 class TaskCategory(str, Enum):
@@ -91,6 +94,13 @@ class TraceSubmitRequest(BaseModel):
     duration_ms: int = Field(..., ge=0)
     input_summary: str = Field(default="", max_length=500)
     output_summary: str = Field(default="", max_length=500)
+
+    @field_validator("task_description", "input_summary", "output_summary", mode="before")
+    @classmethod
+    def strip_html_tags(cls, v: str) -> str:
+        if isinstance(v, str) and v:
+            return _HTML_TAG_RE.sub("", v).strip()
+        return v
     category: TaskCategory = TaskCategory.other
     metadata: dict | None = None
     runtime_env: str = Field(default="", max_length=100)

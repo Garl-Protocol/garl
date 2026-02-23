@@ -255,8 +255,16 @@ def _handle_send_message(params: dict, req_id) -> dict:
         if "text" in part and part["text"]:
             text_content += part["text"] + " "
         elif "data" in part and isinstance(part["data"], dict):
-            if "agent_id" in part["data"]:
-                text_content += f"check trust {part['data']['agent_id']} "
+            d = part["data"]
+            if "agent_id" in d:
+                text_content += f"check trust {d['agent_id']} "
+            if "skill" in d or "action" in d:
+                skill = d.get("skill") or d.get("action", "")
+                text_content += f"{skill} "
+            if "category" in d:
+                text_content += f"{d['category']} "
+            if "agent_ids" in d and isinstance(d["agent_ids"], list):
+                text_content += "compare " + " ".join(str(i) for i in d["agent_ids"]) + " "
 
     text_content = text_content.strip()
     if not text_content:
