@@ -1,0 +1,39 @@
+{
+  "name": "@garl/sdk",
+  "version": "1.0.2",
+  "description": "GARL Protocol JavaScript/TypeScript SDK — Universal Trust Standard for AI Agents",
+  "type": "module",
+  "main": "garl.js",
+  "exports": {
+    ".": "./garl.js"
+  },
+  "files": [
+    "garl.js",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "echo 'Tests pending'"
+  },
+  "keywords": [
+    "garl",
+    "trust",
+    "reputation",
+    "ai",
+    "agent",
+    "a2a",
+    "did",
+    "ecdsa",
+    "mcp",
+    "model-context-protocol"
+  ],
+  "author": "garl-protocol",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/garl-protocol/garl"
+  },
+  "homepage": "https://garl.ai",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

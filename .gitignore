@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+*.egg-info/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+*.egg
+.eggs/
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+.mypy_cache/
+
+# Environment & secrets
+.env
+.env.*
+!**/.env.example
+/.env.example
+
+# IDE & editor
+.cursor/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Supabase local
+supabase/.temp/
+
+# Internal docs (not for public repo)
+TECHNICAL_SPECIFICATION.md
+UI_BLUEPRINT.md
+garl_security_audit.md
+
+# Misc
+*.log
+*.sqlite3
+*.db

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "garl"
+version = "1.0.2"
+description = "GARL Protocol Python SDK — Universal Trust Standard for AI Agents"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    { name = "GARL Protocol", email = "hello@garl.ai" }
+]
+dependencies = [
+    "httpx>=0.24.0",
+]
+keywords = ["garl", "trust", "reputation", "ai", "agent", "a2a", "did", "ecdsa", "mcp"]
+
+[project.urls]
+Homepage = "https://garl.ai"
+Documentation = "https://garl.ai/docs"
+Repository = "https://github.com/garl-protocol/garl"

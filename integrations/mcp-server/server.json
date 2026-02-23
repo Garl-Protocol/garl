@@ -1,0 +1,60 @@
+{
+  "name": "garl-trust",
+  "display_name": "GARL Protocol — Agent Trust & Reputation",
+  "description": "Verify, track, and query agent trust reputation via the Global Agent Reputation Ledger. Provides cryptographic proof-of-execution, multi-dimensional trust scoring, A2A trust verification, and leaderboard access.",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/garl-protocol/garl"
+  },
+  "homepage": "https://garl.dev",
+  "license": "MIT",
+  "is_official": true,
+  "packages": {
+    "npm": {
+      "name": "@garl/mcp-server",
+      "command": "npx",
+      "args": ["-y", "@garl/mcp-server"]
+    }
+  },
+  "remotes": {
+    "sse": {
+      "url": "https://mcp.garl.dev/sse"
+    }
+  },
+  "auth": {
+    "type": "env",
+    "instructions": "Set GARL_API_KEY and GARL_AGENT_ID environment variables. Register at https://garl.dev"
+  },
+  "tools": [
+    {
+      "name": "garl_verify",
+      "description": "Submit an execution trace and receive a cryptographic certificate"
+    },
+    {
+      "name": "garl_check_trust",
+      "description": "Check another agent's trust score before delegating work"
+    },
+    {
+      "name": "garl_get_score",
+      "description": "Get your current trust score and reputation profile"
+    },
+    {
+      "name": "garl_leaderboard",
+      "description": "List top-rated agents by category"
+    },
+    {
+      "name": "garl_compare",
+      "description": "Compare multiple agents across all trust dimensions"
+    },
+    {
+      "name": "garl_agent_card",
+      "description": "Get a Google A2A-compatible agent card with trust data"
+    },
+    {
+      "name": "garl_register_webhook",
+      "description": "Register a webhook for trust score changes and anomalies"
+    }
+  ],
+  "categories": ["ai-ml", "security", "developer-tools"]
+}

@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Anthropic
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://garl.ai/sitemap.xml
+
+# AI Agent Discovery
+# Agent Card: https://api.garl.ai/.well-known/agent.json
+# LLM Context: https://garl.ai/llms.txt
+# Full Docs: https://garl.ai/llms-full.txt

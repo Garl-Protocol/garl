@@ -1,0 +1,16 @@
+{
+  "name": "GARL Protocol",
+  "short_name": "GARL",
+  "description": "Global Agent Reputation Ledger — The Universal Trust Standard for AI Agents",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#00FF88",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

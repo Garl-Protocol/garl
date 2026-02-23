@@ -1,0 +1,43 @@
+{
+  "name": "@garl/mcp-server",
+  "version": "1.0.2",
+  "description": "GARL Protocol MCP Server — 18 trust reputation tools for AI agents. Verify trust, submit traces, check delegation safety, smart routing, endorsements, and compliance reports.",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "garl-mcp": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "garl",
+    "trust",
+    "reputation",
+    "agent",
+    "a2a",
+    "model-context-protocol",
+    "ai-agents",
+    "trust-score",
+    "certification",
+    "ecdsa",
+    "did",
+    "agent-economy"
+  ],
+  "author": "garl-protocol",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/garl-protocol/garl"
+  },
+  "homepage": "https://garl.ai",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}
