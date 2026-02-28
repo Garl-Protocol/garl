@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Shield, Filter } from "lucide-react";
+import { Shield, Filter, GitCompareArrows } from "lucide-react";
 import {
   formatScore,
   getScoreColor,
@@ -17,6 +17,16 @@ export default function LeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [category, setCategory] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
+
+  const toggleCompare = (id: string) => {
+    setCompareIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const apiBase =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
@@ -76,14 +86,15 @@ export default function LeaderboardPage() {
       <div className="overflow-x-auto rounded-xl border border-garl-border bg-garl-surface">
         <div className="min-w-[640px]">
         {/* Header */}
-        <div className="grid grid-cols-12 gap-4 border-b border-garl-border bg-garl-bg/50 px-5 py-3 font-mono text-xs uppercase tracking-wider text-garl-muted">
-          <div className="col-span-1">Rank</div>
-          <div className="col-span-3">Agent</div>
-          <div className="col-span-1">Tier</div>
-          <div className="col-span-2">Framework</div>
-          <div className="col-span-1 text-right">Score</div>
-          <div className="col-span-2 text-right">Traces</div>
-          <div className="col-span-2 text-right">Success %</div>
+        <div className="grid grid-cols-[32px_1fr_2.5fr_1fr_1.5fr_1fr_1.5fr_1.5fr] gap-2 border-b border-garl-border bg-garl-bg/50 px-5 py-3 font-mono text-xs uppercase tracking-wider text-garl-muted">
+          <div />
+          <div>Rank</div>
+          <div>Agent</div>
+          <div>Tier</div>
+          <div>Framework</div>
+          <div className="text-right">Score</div>
+          <div className="text-right">Traces</div>
+          <div className="text-right">Success %</div>
         </div>
 
         {loading ? (
@@ -97,16 +108,24 @@ export default function LeaderboardPage() {
         ) : (
           <div className="divide-y divide-garl-border/50">
             {entries.map((entry, i) => (
-              <motion.a
-                href={`/agent/${entry.id}`}
+              <motion.div
                 key={entry.id}
                 initial={{ opacity: 0, y: 5 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.1 }}
                 transition={{ delay: Math.min(i, 15) * 0.02, duration: 0.3 }}
-                className="grid grid-cols-12 gap-4 px-5 py-3.5 font-mono text-sm transition-colors hover:bg-garl-bg/50"
+                className="grid grid-cols-[32px_1fr_2.5fr_1fr_1.5fr_1fr_1.5fr_1.5fr] gap-2 px-5 py-3.5 font-mono text-sm transition-colors hover:bg-garl-bg/50"
               >
-                <div className="col-span-1 flex items-center">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={compareIds.has(entry.id)}
+                    onChange={() => toggleCompare(entry.id)}
+                    className="h-3.5 w-3.5 cursor-pointer rounded border-garl-border bg-garl-bg accent-garl-accent"
+                  />
+                </div>
+
+                <div className="flex items-center">
                   {entry.rank <= 3 ? (
                     <span
                       className={cn(
@@ -128,9 +147,9 @@ export default function LeaderboardPage() {
                   )}
                 </div>
 
-                <div className="col-span-3 flex items-center gap-2">
+                <a href={`/agent/${entry.id}`} className="flex items-center gap-2">
                   <Shield className="h-4 w-4 shrink-0 text-garl-accent/40" />
-                  <span className="truncate font-semibold text-garl-text">
+                  <span className="truncate font-semibold text-garl-text hover:text-garl-accent transition-colors">
                     {entry.name}
                   </span>
                   {entry.total_traces >= 10 && (
@@ -141,9 +160,9 @@ export default function LeaderboardPage() {
                   <span className="shrink-0 rounded border border-green-500/20 bg-green-500/5 px-1.5 py-0.5 text-[9px] font-bold text-green-400">
                     A2A
                   </span>
-                </div>
+                </a>
 
-                <div className="col-span-1 flex items-center">
+                <div className="flex items-center">
                   <span className={cn(
                     "rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
                     `tier-${(entry as any).certification_tier || "bronze"}`,
@@ -152,23 +171,23 @@ export default function LeaderboardPage() {
                   </span>
                 </div>
 
-                <div className="col-span-2 flex items-center text-xs text-garl-muted">
+                <div className="flex items-center text-xs text-garl-muted">
                   {entry.framework}
                 </div>
 
                 <div
-                  className={`col-span-1 flex items-center justify-end font-bold ${getScoreColor(
+                  className={`flex items-center justify-end font-bold ${getScoreColor(
                     entry.trust_score
                   )}`}
                 >
                   {formatScore(entry.trust_score)}
                 </div>
 
-                <div className="col-span-2 flex items-center justify-end text-garl-muted">
+                <div className="flex items-center justify-end text-garl-muted">
                   {entry.total_traces.toLocaleString()}
                 </div>
 
-                <div className="col-span-2 flex items-center justify-end gap-2">
+                <div className="flex items-center justify-end gap-2">
                   <div className="h-1.5 w-16 overflow-hidden rounded-full bg-garl-border">
                     <div
                       className="h-full rounded-full bg-garl-accent transition-all"
@@ -181,12 +200,28 @@ export default function LeaderboardPage() {
                     {entry.success_rate.toFixed(1)}%
                   </span>
                 </div>
-              </motion.a>
+              </motion.div>
             ))}
           </div>
         )}
         </div>
       </div>
+
+      {compareIds.size >= 2 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2"
+        >
+          <a
+            href={`/compare?agents=${Array.from(compareIds).join(",")}`}
+            className="inline-flex items-center gap-2 rounded-full bg-garl-accent px-6 py-3 font-mono text-sm font-bold text-garl-bg shadow-lg shadow-garl-accent/20 transition-all hover:glow-green-strong"
+          >
+            <GitCompareArrows className="h-4 w-4" />
+            Compare Selected ({compareIds.size})
+          </a>
+        </motion.div>
+      )}
     </div>
   );
 }

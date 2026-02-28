@@ -86,51 +86,59 @@ function LiveTrustFeed({ apiBase }: { apiBase: string }) {
         </div>
         <div className="space-y-2">
           {feed.map((entry, i) => (
-            <motion.div
-              key={entry.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="flex items-center justify-between rounded border border-garl-border bg-garl-surface/50 px-4 py-2.5 font-mono text-xs"
-            >
-              <div className="flex items-center gap-3 overflow-hidden">
-                <span
-                  className={`h-2 w-2 shrink-0 rounded-full ${
-                    entry.status === "success"
-                      ? "bg-green-400"
-                      : entry.status === "failure"
-                        ? "bg-red-400"
-                        : "bg-yellow-400"
-                  }`}
-                />
-                <span className="truncate text-garl-text">
-                  {entry.agent_name || entry.agent_id.slice(0, 8)}
-                </span>
-                <span className="hidden truncate text-garl-muted sm:inline">
-                  {entry.task_description?.slice(0, 50)}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <span
-                  className={
-                    entry.trust_delta > 0
-                      ? "text-green-400"
-                      : entry.trust_delta < 0
-                        ? "text-red-400"
-                        : "text-garl-muted"
-                  }
-                >
-                  {entry.trust_delta > 0 ? "+" : ""}
-                  {(entry.trust_delta ?? 0).toFixed(2)}
-                </span>
-                <span className="text-garl-muted/60">{timeAgo(entry.created_at)}</span>
-              </div>
-            </motion.div>
+            <a key={entry.id} href={`/agent/${entry.agent_id}`}>
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="flex items-center justify-between rounded border border-garl-border bg-garl-surface/50 px-4 py-2.5 font-mono text-xs transition-colors hover:border-garl-accent/30 hover:bg-garl-surface cursor-pointer"
+              >
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      entry.status === "success"
+                        ? "bg-green-400"
+                        : entry.status === "failure"
+                          ? "bg-red-400"
+                          : "bg-yellow-400"
+                    }`}
+                  />
+                  <span className="truncate text-garl-text">
+                    {entry.agent_name || entry.agent_id.slice(0, 8)}
+                  </span>
+                  <span className="hidden truncate text-garl-muted sm:inline">
+                    {entry.task_description?.slice(0, 50)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span
+                    className={
+                      entry.trust_delta > 0
+                        ? "text-green-400"
+                        : entry.trust_delta < 0
+                          ? "text-red-400"
+                          : "text-garl-muted"
+                    }
+                  >
+                    {entry.trust_delta > 0 ? "+" : ""}
+                    {(entry.trust_delta ?? 0).toFixed(2)}
+                  </span>
+                  <span className="text-garl-muted/60">{timeAgo(entry.created_at)}</span>
+                  <ArrowRight className="h-3 w-3 text-garl-muted/40" />
+                </div>
+              </motion.div>
+            </a>
           ))}
         </div>
       </div>
     </section>
   );
+}
+
+interface TopAgent {
+  id: string;
+  name: string;
+  trust_score: number;
 }
 
 function TryItLive({ apiBase }: { apiBase: string }) {
@@ -139,13 +147,16 @@ function TryItLive({ apiBase }: { apiBase: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [placeholder, setPlaceholder] = useState("Enter any agent UUID");
+  const [topAgents, setTopAgents] = useState<TopAgent[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
-    fetch(`${apiBase}/leaderboard?limit=1`)
+    fetch(`${apiBase}/leaderboard?limit=10`)
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data) && data[0]?.id) {
-          setPlaceholder(data[0].id);
+        if (Array.isArray(data) && data.length > 0) {
+          setTopAgents(data.map((a: Record<string, unknown>) => ({ id: a.id as string, name: a.name as string, trust_score: a.trust_score as number })));
+          if (data[0]?.id) setPlaceholder(data[0].id);
         }
       })
       .catch(() => {});
@@ -190,23 +201,51 @@ function TryItLive({ apiBase }: { apiBase: string }) {
           </p>
         </div>
 
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={agentId}
-            onChange={(e) => setAgentId(e.target.value)}
-            placeholder={placeholder}
-            onKeyDown={(e) => e.key === "Enter" && checkTrust()}
-            className="flex-1 rounded-lg border border-garl-border bg-garl-bg px-4 py-3 font-mono text-sm text-garl-text placeholder:text-garl-muted/40 focus:border-garl-accent/50 focus:outline-none focus:ring-1 focus:ring-garl-accent/20"
-          />
-          <button
-            onClick={checkTrust}
-            disabled={loading}
-            className="inline-flex items-center gap-2 rounded-lg bg-garl-accent px-6 py-3 font-mono text-sm font-semibold text-garl-bg transition-all hover:glow-green-strong disabled:opacity-50"
-          >
-            <Shield className="h-4 w-4" />
-            {loading ? "Checking..." : "Check Trust"}
-          </button>
+        <div className="relative">
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={agentId}
+                onChange={(e) => setAgentId(e.target.value)}
+                onFocus={() => topAgents.length > 0 && !agentId && setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                placeholder={placeholder}
+                onKeyDown={(e) => e.key === "Enter" && checkTrust()}
+                className="w-full rounded-lg border border-garl-border bg-garl-bg px-4 py-3 font-mono text-sm text-garl-text placeholder:text-garl-muted/40 focus:border-garl-accent/50 focus:outline-none focus:ring-1 focus:ring-garl-accent/20"
+              />
+              {showDropdown && topAgents.length > 0 && (
+                <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-garl-border bg-garl-surface shadow-xl">
+                  <div className="px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-garl-muted">
+                    Top Agents
+                  </div>
+                  {topAgents.map((agent) => (
+                    <button
+                      key={agent.id}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setAgentId(agent.id);
+                        setShowDropdown(false);
+                      }}
+                      className="flex w-full items-center justify-between px-3 py-2 text-left font-mono text-xs transition-colors hover:bg-garl-accent/10"
+                    >
+                      <span className="truncate text-garl-text">{agent.name}</span>
+                      <span className="ml-2 shrink-0 text-garl-accent">{agent.trust_score.toFixed(1)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={checkTrust}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg bg-garl-accent px-6 py-3 font-mono text-sm font-semibold text-garl-bg transition-all hover:glow-green-strong disabled:opacity-50"
+            >
+              <Shield className="h-4 w-4" />
+              {loading ? "Checking..." : "Check Trust"}
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -270,6 +309,16 @@ function TryItLive({ apiBase }: { apiBase: string }) {
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <a
+                href={`/agent/${agentId.trim() || placeholder}`}
+                className="inline-flex items-center gap-1.5 font-mono text-xs text-garl-accent transition-colors hover:text-garl-accent/80"
+              >
+                View Full Report
+                <ArrowRight className="h-3 w-3" />
+              </a>
             </div>
           </motion.div>
         )}

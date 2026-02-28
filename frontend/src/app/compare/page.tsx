@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { GitCompareArrows, Search, Shield, Zap, DollarSign, Clock, Plus, X, Lock } from "lucide-react";
 import { formatScore, formatDuration, formatCost, getScoreColor } from "@/lib/utils";
@@ -23,6 +24,9 @@ export default function ComparePage() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searching, setSearching] = useState(false);
+  const autoLoaded = useRef(false);
+
+  const searchParams = useSearchParams();
 
   const apiBase =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
@@ -39,6 +43,27 @@ export default function ComparePage() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery, apiBase]);
+
+  useEffect(() => {
+    if (autoLoaded.current) return;
+    const urlAgents = searchParams.get("agents");
+    if (urlAgents) {
+      const ids = urlAgents.split(",").map((s) => s.trim()).filter(Boolean);
+      if (ids.length >= 2) {
+        autoLoaded.current = true;
+        setSelectedIds(ids);
+        (async () => {
+          setLoading(true);
+          try {
+            const res = await fetch(`${apiBase}/compare?agents=${ids.join(",")}`);
+            if (res.ok) setAgents(await res.json());
+            else setError("Failed to fetch agents");
+          } catch { setError("API not available"); }
+          finally { setLoading(false); }
+        })();
+      }
+    }
+  }, [searchParams, apiBase]);
 
   const addAgent = (id: string) => {
     if (!selectedIds.includes(id)) setSelectedIds([...selectedIds, id]);
