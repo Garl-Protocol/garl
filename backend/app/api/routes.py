@@ -279,7 +279,7 @@ async def read_agent_traces(agent_id: str, limit: int = 20, offset: int = 0):
     db = get_supabase()
     res = (
         db.table("traces")
-        .select("id,agent_id,task_description,status,duration_ms,category,trust_delta,certification_tier,created_at")
+        .select("id,agent_id,task_description,status,duration_ms,category,trust_delta,created_at")
         .eq("agent_id", agent_id)
         .order("created_at", desc=True)
         .range(offset, offset + limit - 1)
