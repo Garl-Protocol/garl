@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { GitCompareArrows, Search, Shield, Zap, DollarSign, Clock, Plus, X, Lock } from "lucide-react";
@@ -16,6 +16,14 @@ interface SearchResult {
 }
 
 export default function ComparePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="h-6 w-6 animate-spin rounded-full border-2 border-garl-accent border-t-transparent" /></div>}>
+      <ComparePageInner />
+    </Suspense>
+  );
+}
+
+function ComparePageInner() {
   const [input, setInput] = useState("");
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(false);
