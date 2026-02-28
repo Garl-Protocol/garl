@@ -154,6 +154,19 @@ async def well_known_agent_card():
                 "tags": ["registration", "identity", "onboarding"],
             },
         ],
+        "extensions": {
+            "registration": {
+                "url": "https://api.garl.ai/api/v1/agents/auto-register",
+                "method": "POST",
+                "required_fields": ["name"],
+                "instructions": (
+                    "Send POST with {\"name\":\"your-name\",\"framework\":\"your-framework\"} "
+                    "to instantly receive a DID identity and API key. "
+                    "Then submit execution traces via POST /api/v1/verify to build trust."
+                ),
+            },
+            "llms_txt": "https://garl.ai/llms.txt",
+        },
     }
 
 

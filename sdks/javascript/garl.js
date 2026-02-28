@@ -519,6 +519,31 @@ export class OpenClawAdapter {
   async findBestAgent(category, minTier = "silver") {
     return this.client.findBestAgent(category, minTier);
   }
+
+  /**
+   * Start a background heartbeat that sends periodic 'alive' traces.
+   * @param {number} intervalMs - milliseconds between heartbeats (default 300000 = 5 min)
+   * @param {string} category - task category for heartbeat traces
+   * @returns {number} interval ID (use clearInterval to stop)
+   */
+  heartbeat(intervalMs = 300000, category = "other") {
+    const send = async () => {
+      try {
+        await this.client.verify("success", "heartbeat", 0, category);
+      } catch { /* ignore */ }
+    };
+    send();
+    this._heartbeatId = setInterval(send, intervalMs);
+    return this._heartbeatId;
+  }
+
+  /** Stop the heartbeat. */
+  stopHeartbeat() {
+    if (this._heartbeatId) {
+      clearInterval(this._heartbeatId);
+      this._heartbeatId = null;
+    }
+  }
 }
 
 export default { init, logAction, GarlClient, OpenClawAdapter };

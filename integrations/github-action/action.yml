@@ -1,0 +1,81 @@
+name: 'GARL Trust Gate'
+description: 'Check AI agent trust score on GARL Protocol before deployment'
+branding:
+  icon: 'shield'
+  color: 'green'
+
+inputs:
+  agent-id:
+    description: 'GARL Agent UUID to check'
+    required: true
+  api-key:
+    description: 'GARL API key for the agent'
+    required: true
+  min-score:
+    description: 'Minimum trust score to pass the gate (0-100)'
+    required: false
+    default: '60'
+  min-tier:
+    description: 'Minimum certification tier (bronze, silver, gold, enterprise)'
+    required: false
+    default: 'silver'
+  api-url:
+    description: 'GARL API base URL'
+    required: false
+    default: 'https://api.garl.ai/api/v1'
+
+outputs:
+  trust-score:
+    description: 'Current trust score'
+  tier:
+    description: 'Current certification tier'
+  passed:
+    description: 'Whether the trust gate passed (true/false)'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check GARL Trust Score
+      shell: bash
+      id: check
+      run: |
+        RESPONSE=$(curl -sf "${{ inputs.api-url }}/trust/verify?agent_id=${{ inputs.agent-id }}" \
+          -H "x-api-key: ${{ inputs.api-key }}" 2>&1) || {
+          echo "::error::Failed to reach GARL API"
+          exit 1
+        }
+
+        SCORE=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('trust_score',0))")
+        TIER=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('certification_tier','none'))")
+        RECOMMENDATION=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('recommendation','unknown'))")
+
+        echo "trust-score=$SCORE" >> $GITHUB_OUTPUT
+        echo "tier=$TIER" >> $GITHUB_OUTPUT
+
+        echo "## GARL Trust Gate Results" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Trust Score | **$SCORE** |" >> $GITHUB_STEP_SUMMARY
+        echo "| Tier | **$TIER** |" >> $GITHUB_STEP_SUMMARY
+        echo "| Recommendation | $RECOMMENDATION |" >> $GITHUB_STEP_SUMMARY
+        echo "| Min Score | ${{ inputs.min-score }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Min Tier | ${{ inputs.min-tier }} |" >> $GITHUB_STEP_SUMMARY
+
+        TIER_ORDER="none bronze silver gold enterprise"
+        TIER_IDX=$(echo $TIER_ORDER | tr ' ' '\n' | grep -n "^${TIER}$" | cut -d: -f1)
+        MIN_TIER_IDX=$(echo $TIER_ORDER | tr ' ' '\n' | grep -n "^${{ inputs.min-tier }}$" | cut -d: -f1)
+
+        SCORE_INT=$(echo "$SCORE" | python3 -c "import sys; print(int(float(sys.stdin.read().strip())))")
+        MIN_SCORE=${{ inputs.min-score }}
+
+        if [ "$SCORE_INT" -lt "$MIN_SCORE" ] || [ "${TIER_IDX:-0}" -lt "${MIN_TIER_IDX:-0}" ]; then
+          echo "passed=false" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> ❌ **Trust gate FAILED** — agent does not meet minimum requirements" >> $GITHUB_STEP_SUMMARY
+          echo "::error::GARL Trust Gate failed: score=$SCORE (min=$MIN_SCORE), tier=$TIER (min=${{ inputs.min-tier }})"
+          exit 1
+        fi
+
+        echo "passed=true" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "> ✅ **Trust gate PASSED**" >> $GITHUB_STEP_SUMMARY

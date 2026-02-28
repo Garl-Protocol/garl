@@ -545,10 +545,49 @@ class GarlClient:
         """HTTP istemcisini kapatır."""
         self._client.close()
 
+    def heartbeat(
+        self,
+        interval_seconds: int = 300,
+        category: str = "other",
+    ) -> threading.Thread:
+        """Start a background heartbeat that sends periodic 'alive' traces.
+
+        Args:
+            interval_seconds: seconds between heartbeats (default 300 = 5 min)
+            category: task category for heartbeat traces
+
+        Returns:
+            The background daemon thread (stops when main process exits).
+        """
+        self._heartbeat_active = True
+
+        def _loop():
+            while getattr(self, "_heartbeat_active", False):
+                try:
+                    self.verify(
+                        status="success",
+                        task="heartbeat",
+                        duration_ms=0,
+                        category=category,
+                    )
+                except Exception:
+                    pass
+                time.sleep(interval_seconds)
+
+        t = threading.Thread(target=_loop, daemon=True)
+        t.start()
+        logger.info("GARL heartbeat started (interval=%ds)", interval_seconds)
+        return t
+
+    def stop_heartbeat(self):
+        """Stop the background heartbeat loop."""
+        self._heartbeat_active = False
+
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
+        self.stop_heartbeat()
         self.close()
 
 

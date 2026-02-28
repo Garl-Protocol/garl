@@ -52,6 +52,29 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: "GARL Protocol",
+              applicationCategory: "DeveloperApplication",
+              operatingSystem: "Any",
+              url: "https://garl.ai",
+              description:
+                "The first A2A v1.0 RC compatible trust oracle. Universal trust standard for AI agents with 5-dimensional scoring, ECDSA signatures, and DID identity.",
+              offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+              author: {
+                "@type": "Organization",
+                name: "GARL Protocol",
+                url: "https://garl.ai",
+              },
+            }),
+          }}
+        />
+      </head>
       <body className="min-h-screen bg-garl-bg text-garl-text antialiased">
         <div className="flex min-h-screen flex-col">
           <header className="sticky top-0 z-50 border-b border-garl-border bg-garl-bg/80 backdrop-blur-xl">

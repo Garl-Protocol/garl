@@ -230,6 +230,22 @@ async def auto_register_agent(request: Request, req: AutoRegisterRequest):
             "Build your reputation to join the agent economy."
         ),
         "dashboard": f"https://garl.ai/agent/{agent['id']}",
+        "badge_embed": {
+            "markdown": f"[![GARL Trust]({base_url}/api/v1/badge/svg/{agent['id']})](https://garl.ai/agent/{agent['id']})",
+            "html": f'<a href="https://garl.ai/agent/{agent["id"]}"><img src="{base_url}/api/v1/badge/svg/{agent["id"]}" alt="GARL Trust Badge"></a>',
+            "hint": "Embed this badge in your README or responses to show your trust score.",
+        },
+        "heartbeat": {
+            "hint": "Send periodic heartbeat traces to maintain your trust score and show activity.",
+            "endpoint": f"POST {base_url}/api/v1/verify",
+            "example_body": {
+                "agent_id": agent["id"],
+                "task_description": "heartbeat",
+                "status": "success",
+                "duration_ms": 0,
+                "category": req.category.value,
+            },
+        },
     }
     return agent
 
@@ -244,14 +260,32 @@ async def read_agent(agent_id: str):
 
 
 @router.get("/agents/{agent_id}/detail")
-async def read_agent_detail(agent_id: str, x_api_key: str | None = Header(default=None)):
-    """Agent detail — requires API key if read_auth is enabled."""
+async def read_agent_detail(agent_id: str):
+    """Agent detail — public profile with traces, history, and decay projection."""
     _validate_uuid(agent_id, "agent_id")
-    _require_read_auth(x_api_key)
     detail = get_agent_detail(agent_id)
     if not detail:
         raise HTTPException(status_code=404, detail="Agent not found")
     return detail
+
+
+@router.get("/agents/{agent_id}/traces")
+async def read_agent_traces(agent_id: str, limit: int = 20, offset: int = 0):
+    """Public endpoint: recent traces for a specific agent."""
+    _validate_uuid(agent_id, "agent_id")
+    limit = max(1, min(limit, 100))
+    offset = max(0, offset)
+    from app.core.supabase_client import get_supabase
+    db = get_supabase()
+    res = (
+        db.table("traces")
+        .select("id,agent_id,task_description,status,duration_ms,category,trust_delta,certification_tier,created_at")
+        .eq("agent_id", agent_id)
+        .order("created_at", desc=True)
+        .range(offset, offset + limit - 1)
+        .execute()
+    )
+    return res.data or []
 
 
 @router.get("/agents/{agent_id}/card")
@@ -455,6 +489,34 @@ async def badge_svg(agent_id: str):
     return Response(
         content=svg,
         media_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
+@router.get("/badge/widget.js")
+async def badge_widget_js():
+    """Embeddable JS widget: <script src="https://api.garl.ai/api/v1/badge/widget.js" data-agent-id="UUID"></script>"""
+    js = '''(function(){
+  var s=document.currentScript;
+  if(!s) return;
+  var id=s.getAttribute("data-agent-id");
+  if(!id) return;
+  var base=s.getAttribute("data-api-url")||"https://api.garl.ai/api/v1";
+  var el=document.createElement("a");
+  el.href="https://garl.ai/agent/"+id;
+  el.target="_blank";
+  el.rel="noopener";
+  el.style.display="inline-block";
+  var img=document.createElement("img");
+  img.src=base+"/badge/svg/"+id;
+  img.alt="GARL Trust Badge";
+  img.style.height="20px";
+  el.appendChild(img);
+  s.parentNode.insertBefore(el,s.nextSibling);
+})();'''
+    return Response(
+        content=js,
+        media_type="application/javascript",
         headers={"Cache-Control": "public, max-age=300"},
     )
 

@@ -38,6 +38,101 @@ interface LiveStats {
   top_agent: { name: string; trust_score: number } | null;
 }
 
+interface FeedEntry {
+  id: string;
+  agent_id: string;
+  agent_name?: string;
+  task_description: string;
+  status: string;
+  trust_delta: number;
+  created_at: string;
+}
+
+function LiveTrustFeed({ apiBase }: { apiBase: string }) {
+  const [feed, setFeed] = useState<FeedEntry[]>([]);
+
+  const fetchFeed = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiBase}/feed?limit=8`);
+      if (res.ok) setFeed(await res.json());
+    } catch { /* silent */ }
+  }, [apiBase]);
+
+  useEffect(() => {
+    fetchFeed();
+    const iv = setInterval(fetchFeed, 10000);
+    return () => clearInterval(iv);
+  }, [fetchFeed]);
+
+  if (!feed.length) return null;
+
+  const timeAgo = (ts: string) => {
+    const diff = Math.max(0, (Date.now() - new Date(ts).getTime()) / 1000);
+    if (diff < 60) return `${Math.floor(diff)}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    return `${Math.floor(diff / 3600)}h ago`;
+  };
+
+  return (
+    <section className="border-t border-garl-border py-16">
+      <div className="mx-auto max-w-4xl px-4">
+        <div className="mb-8 text-center">
+          <h2 className="mb-2 font-mono text-xl font-bold text-garl-text">
+            Live Trust Feed
+          </h2>
+          <p className="text-sm text-garl-muted">
+            Real-time verifications happening across the network
+          </p>
+        </div>
+        <div className="space-y-2">
+          {feed.map((entry, i) => (
+            <motion.div
+              key={entry.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="flex items-center justify-between rounded border border-garl-border bg-garl-surface/50 px-4 py-2.5 font-mono text-xs"
+            >
+              <div className="flex items-center gap-3 overflow-hidden">
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${
+                    entry.status === "success"
+                      ? "bg-green-400"
+                      : entry.status === "failure"
+                        ? "bg-red-400"
+                        : "bg-yellow-400"
+                  }`}
+                />
+                <span className="truncate text-garl-text">
+                  {entry.agent_name || entry.agent_id.slice(0, 8)}
+                </span>
+                <span className="hidden truncate text-garl-muted sm:inline">
+                  {entry.task_description?.slice(0, 50)}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <span
+                  className={
+                    entry.trust_delta > 0
+                      ? "text-green-400"
+                      : entry.trust_delta < 0
+                        ? "text-red-400"
+                        : "text-garl-muted"
+                  }
+                >
+                  {entry.trust_delta > 0 ? "+" : ""}
+                  {(entry.trust_delta ?? 0).toFixed(2)}
+                </span>
+                <span className="text-garl-muted/60">{timeAgo(entry.created_at)}</span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function TryItLive({ apiBase }: { apiBase: string }) {
   const [agentId, setAgentId] = useState("");
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
@@ -445,6 +540,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Live Trust Feed */}
+      <LiveTrustFeed apiBase={apiBase} />
 
       {/* How It Works */}
       <section className="border-t border-garl-border py-20">
