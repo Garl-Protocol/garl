@@ -32,6 +32,16 @@ _A2A_PATHS = {"/a2a"}
 
 
 @app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
+
+@app.middleware("http")
 async def a2a_version_middleware(request: Request, call_next):
     if request.url.path in _A2A_PATHS:
         version = request.headers.get("A2A-Version", "").strip()

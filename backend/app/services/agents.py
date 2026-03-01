@@ -73,6 +73,11 @@ def _apply_lazy_decay(agent: dict, db) -> dict:
 def register_agent(req: AgentRegisterRequest, developer_id: str | None = None) -> dict:
     """New agent registration: DID assignment, security dimension initialization."""
     db = get_supabase()
+
+    existing = db.table("agents").select("id").eq("name", req.name).eq("is_deleted", False).execute()
+    if existing.data:
+        raise ValueError(f"Agent name '{req.name}' is already taken. Choose a different name.")
+
     agent_id = str(uuid.uuid4())
     api_key = f"garl_{secrets.token_urlsafe(32)}"
     api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()

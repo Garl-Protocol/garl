@@ -173,9 +173,14 @@ def _require_read_auth(x_api_key: str | None):
 async def create_agent(request: Request, req: AgentRegisterRequest):
     _check_rate_limit(_get_client_ip(request), "register")
     req.name = _sanitize_agent_name(req.name)
+    if req.description:
+        req.description = _strip_html(req.description, 500)
     try:
         agent = register_agent(req)
         return agent
+    except ValueError as e:
+        code = 409 if "already taken" in str(e) else 400
+        raise HTTPException(status_code=code, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -185,6 +190,8 @@ async def auto_register_agent(request: Request, req: AutoRegisterRequest):
     """Otonom ajanlar için sadeleştirilmiş kayıt: minimum alan, makine-okunabilir talimatlar."""
     _check_rate_limit(_get_client_ip(request), "auto_register")
     req.name = _sanitize_agent_name(req.name)
+    if req.description:
+        req.description = _strip_html(req.description, 500)
 
     full_req = AgentRegisterRequest(
         name=req.name,
@@ -194,6 +201,9 @@ async def auto_register_agent(request: Request, req: AutoRegisterRequest):
     )
     try:
         agent = register_agent(full_req)
+    except ValueError as e:
+        code = 409 if "already taken" in str(e) else 400
+        raise HTTPException(status_code=code, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

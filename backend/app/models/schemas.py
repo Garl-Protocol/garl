@@ -42,9 +42,15 @@ class AgentRegisterRequest(BaseModel):
         description="List of permissions the agent declares it uses (e.g. file_read, web_request)"
     )
 
+    @field_validator("description", "framework", mode="before")
+    @classmethod
+    def strip_html(cls, v: str) -> str:
+        if isinstance(v, str) and v:
+            return _HTML_TAG_RE.sub("", v).strip()
+        return v
+
 
 class AutoRegisterRequest(BaseModel):
-    """Otonom ajanlar için sadeleştirilmiş kayıt şeması."""
     name: str = Field(..., min_length=1, max_length=100)
     framework: str = Field(default="custom", max_length=50)
     category: TaskCategory = TaskCategory.other
@@ -54,6 +60,13 @@ class AutoRegisterRequest(BaseModel):
         max_length=256,
         description="Optional runtime proof token to verify agent is a real runtime"
     )
+
+    @field_validator("description", "framework", mode="before")
+    @classmethod
+    def strip_html(cls, v: str) -> str:
+        if isinstance(v, str) and v:
+            return _HTML_TAG_RE.sub("", v).strip()
+        return v
 
 
 class AgentResponse(BaseModel):
