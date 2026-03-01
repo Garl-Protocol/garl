@@ -62,4 +62,4 @@ const should = await client.shouldDelegate('other-agent-uuid');
 - Website: https://garl.ai
 - API Docs: https://api.garl.ai/docs
 - Python SDK: https://pypi.org/project/garl/
-- MCP Server: https://www.npmjs.com/package/@garl/mcp-server
+- MCP Server: https://www.npmjs.com/package/@garl-protocol/mcp-server

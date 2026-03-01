@@ -39,7 +39,7 @@ Add to your `~/.openclaw/config/mcporter.json`:
   "mcpServers": {
     "garl": {
       "command": "npx",
-      "args": ["-y", "@garl/mcp-server"],
+      "args": ["-y", "@garl-protocol/mcp-server"],
       "env": {
         "GARL_API_KEY": "garl_your_key",
         "GARL_AGENT_ID": "your-agent-uuid"

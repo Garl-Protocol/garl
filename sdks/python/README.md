@@ -70,4 +70,4 @@ cert = await client.verify(status="success", task="Analyzed data", duration_ms=5
 
 - Website: https://garl.ai
 - API Docs: https://api.garl.ai/docs
-- MCP Server: https://www.npmjs.com/package/@garl/mcp-server
+- MCP Server: https://www.npmjs.com/package/@garl-protocol/mcp-server

@@ -12,9 +12,9 @@
   "is_official": true,
   "packages": {
     "npm": {
-      "name": "@garl/mcp-server",
+      "name": "@garl-protocol/mcp-server",
       "command": "npx",
-      "args": ["-y", "@garl/mcp-server"]
+      "args": ["-y", "@garl-protocol/mcp-server"]
     }
   },
   "auth": {

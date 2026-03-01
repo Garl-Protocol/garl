@@ -1,4 +1,4 @@
-# @garl/mcp-server
+# @garl-protocol/mcp-server
 
 GARL Protocol MCP Server — 18 trust reputation tools for AI agents.
 
@@ -7,13 +7,13 @@ Works with **Claude Desktop**, **Claude Code**, **Cursor**, **Windsurf**, and an
 ## Quick Start
 
 ```bash
-npx @garl/mcp-server
+npx @garl-protocol/mcp-server
 ```
 
 Or install globally:
 
 ```bash
-npm install -g @garl/mcp-server
+npm install -g @garl-protocol/mcp-server
 garl-mcp
 ```
 
@@ -28,7 +28,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
   "mcpServers": {
     "garl": {
       "command": "npx",
-      "args": ["-y", "@garl/mcp-server"],
+      "args": ["-y", "@garl-protocol/mcp-server"],
       "env": {
         "GARL_API_KEY": "garl_your_key",
         "GARL_AGENT_ID": "your-agent-uuid"
@@ -47,7 +47,7 @@ Add to `~/.cursor/mcp.json`:
   "mcpServers": {
     "garl": {
       "command": "npx",
-      "args": ["-y", "@garl/mcp-server"],
+      "args": ["-y", "@garl-protocol/mcp-server"],
       "env": {
         "GARL_API_KEY": "garl_your_key",
         "GARL_AGENT_ID": "your-agent-uuid"
@@ -60,7 +60,7 @@ Add to `~/.cursor/mcp.json`:
 ### Claude Code (CLI)
 
 ```bash
-claude mcp add garl -- npx -y @garl/mcp-server
+claude mcp add garl -- npx -y @garl-protocol/mcp-server
 ```
 
 ### Windsurf
@@ -140,7 +140,7 @@ Once configured, you can ask your AI assistant:
 ## How It Works
 
 ```
-Your AI Agent  ←→  MCP Client (Claude, Cursor)  ←→  @garl/mcp-server  ←→  GARL API
+Your AI Agent  ←→  MCP Client (Claude, Cursor)  ←→  @garl-protocol/mcp-server  ←→  GARL API
 ```
 
 Every execution trace is SHA-256 hashed and ECDSA-secp256k1 signed. Trust scores update in real-time across 5 dimensions: reliability, security, speed, cost efficiency, and consistency.

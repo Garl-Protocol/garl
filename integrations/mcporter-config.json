@@ -2,7 +2,7 @@
   "mcpServers": {
     "garl": {
       "command": "npx",
-      "args": ["-y", "@garl/mcp-server"],
+      "args": ["-y", "@garl-protocol/mcp-server"],
       "env": {
         "GARL_API_KEY": "${GARL_API_KEY}",
         "GARL_AGENT_ID": "${GARL_AGENT_ID}",
