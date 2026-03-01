@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import get_settings
 from app.api.routes import router
 from app.api.a2a import a2a_router
+from app.api.mcp import mcp_router
 from app.services.agents import get_agent_card, get_leaderboard
 from app.core.signing import get_public_key_hex
 
@@ -33,21 +34,29 @@ _A2A_PATHS = {"/a2a"}
 
 @app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
+    from app.api.routes import rate_limit_info
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    rl = getattr(request.state, "rate_limit_headers", None) or rate_limit_info.get(None)
+    if rl:
+        for k, v in rl.items():
+            response.headers[k] = v
+        rate_limit_info.set(None)
     return response
 
 
 @app.middleware("http")
 async def a2a_version_middleware(request: Request, call_next):
     if request.url.path in _A2A_PATHS:
-        version = request.headers.get("A2A-Version", "").strip()
-        if not version:
-            version = "0.3"
-        if version not in _A2A_SUPPORTED_VERSIONS:
+        version = (
+            request.headers.get("A2A-Version", "").strip()
+            or request.headers.get("A2A-Protocol-Version", "").strip()
+        )
+        if version and version not in _A2A_SUPPORTED_VERSIONS:
             return JSONResponse(
                 status_code=400,
                 content={
@@ -68,6 +77,7 @@ async def a2a_version_middleware(request: Request, call_next):
 
 app.include_router(router)
 app.include_router(a2a_router)
+app.include_router(mcp_router)
 
 
 @app.get("/")
@@ -105,7 +115,12 @@ async def well_known_agent_card():
                 "url": "https://api.garl.ai/a2a",
                 "protocolBinding": "JSONRPC",
                 "protocolVersion": "1.0",
-            }
+            },
+            {
+                "url": "https://api.garl.ai/mcp",
+                "protocolBinding": "MCP",
+                "protocolVersion": "2024-11-05",
+            },
         ],
         "provider": {
             "organization": "Garl Protocol",
@@ -174,6 +189,11 @@ async def well_known_agent_card():
                     "to instantly receive a DID identity and API key. "
                     "Then submit execution traces via POST /api/v1/verify to build trust."
                 ),
+            },
+            "mcp": {
+                "remote_endpoint": "https://api.garl.ai/mcp",
+                "transport": "streamable-http",
+                "npm_package": "@garl-protocol/mcp-server",
             },
             "llms_txt": "https://garl.ai/llms.txt",
         },
@@ -307,7 +327,11 @@ async def well_known_agent(agent_id: str = Query(default=None)):
             "ema_alpha": 0.3,
         },
         "mcp": {
-            "server_name": "garl-mcp-server",
+            "server_name": "garl-protocol",
+            "remote_endpoint": "https://api.garl.ai/mcp",
+            "transport": "streamable-http",
+            "protocol_version": "2024-11-05",
+            "npm_package": "@garl-protocol/mcp-server",
             "tools": [
                 "garl_verify", "garl_verify_batch", "garl_check_trust",
                 "garl_should_delegate", "garl_route",
@@ -316,6 +340,7 @@ async def well_known_agent(agent_id: str = Query(default=None)):
                 "garl_agent_card", "garl_endorse",
                 "garl_register_webhook", "garl_search",
                 "garl_compliance", "garl_soft_delete", "garl_anonymize",
+                "garl_register_agent", "garl_get_feed",
             ],
         },
         "openclaw": {

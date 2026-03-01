@@ -52,6 +52,10 @@ UI_BLUEPRINT.md
 garl_security_audit.md
 PITCH_DECK.md
 
+# MCP Registry tokens & CLI
+.mcpregistry_*
+mcp-publisher
+
 # Misc
 *.log
 *.sqlite3

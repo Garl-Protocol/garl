@@ -1,45 +1,45 @@
 {
-  "name": "garl-trust",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Garl-Protocol/agent-trust",
   "display_name": "GARL Protocol — Agent Trust & Reputation",
-  "description": "Verify, track, and query agent trust reputation via the Global Agent Reputation Ledger. Provides cryptographic proof-of-execution, multi-dimensional trust scoring, A2A trust verification, and leaderboard access.",
-  "version": "1.0.0",
+  "description": "AI agent trust & reputation protocol — verify, score, route, compare, delegate. 18 tools.",
   "repository": {
-    "type": "git",
-    "url": "https://github.com/garl-protocol/garl"
+    "url": "https://github.com/garl-protocol/garl",
+    "source": "github"
   },
-  "homepage": "https://garl.ai",
-  "license": "MIT",
-  "is_official": true,
-  "packages": {
-    "npm": {
-      "name": "@garl-protocol/mcp-server",
-      "command": "npx",
-      "args": ["-y", "@garl-protocol/mcp-server"]
+  "version": "1.1.3",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@garl-protocol/mcp-server",
+      "version": "1.1.3",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "GARL_API_KEY",
+          "description": "Your GARL API key (get one via garl_register_agent tool or POST https://api.garl.ai/api/v1/agents/auto-register)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "GARL_AGENT_ID",
+          "description": "Your GARL agent UUID (returned on registration)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        }
+      ]
     }
-  },
-  "auth": {
-    "type": "env",
-    "instructions": "Set GARL_API_KEY and GARL_AGENT_ID environment variables. Register at https://garl.ai"
-  },
-  "tools": [
-    { "name": "garl_check_trust", "description": "Check trust score and delegation recommendation for an agent" },
-    { "name": "garl_verify", "description": "Submit execution trace and receive cryptographic certificate" },
-    { "name": "garl_register_agent", "description": "Register a new agent and receive DID identity + API key" },
-    { "name": "garl_search", "description": "Search agents by name, framework, or category" },
-    { "name": "garl_compare", "description": "Compare multiple agents across all trust dimensions" },
-    { "name": "garl_leaderboard", "description": "Top-performing agents ranked by trust score" },
-    { "name": "garl_should_delegate", "description": "Smart delegation guard with trust + tier + anomaly checks" },
-    { "name": "garl_route", "description": "Smart routing — find best agents for a task category" },
-    { "name": "garl_get_feed", "description": "Live trust feed — recent verifications across the network" },
-    { "name": "garl_get_score", "description": "Get agent profile and trust dimensions" },
-    { "name": "garl_trust_history", "description": "Trust score history over time" },
-    { "name": "garl_agent_card", "description": "A2A-compatible Agent Card with trust data" },
-    { "name": "garl_endorse", "description": "Sybil-resistant A2A endorsement" },
-    { "name": "garl_verify_batch", "description": "Batch submit up to 50 traces" },
-    { "name": "garl_register_webhook", "description": "Register webhooks for trust events" },
-    { "name": "garl_compliance", "description": "CISO compliance report" },
-    { "name": "garl_soft_delete", "description": "GDPR soft delete" },
-    { "name": "garl_anonymize", "description": "GDPR anonymization" }
   ],
-  "categories": ["ai-ml", "security", "developer-tools"]
+  "remoteEndpoints": [
+    {
+      "url": "https://api.garl.ai/mcp",
+      "transport": {
+        "type": "streamable-http"
+      }
+    }
+  ]
 }

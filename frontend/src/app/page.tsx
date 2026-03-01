@@ -874,10 +874,10 @@ export default function HomePage() {
                 desc: "30+ endpoints — traces, trust checks, smart routing, endorsements, GDPR compliance, CISO reports, webhook CRUD, badges",
               },
               {
-                title: "OpenClaw Bridge",
-                install: "",
-                code: "POST /api/v1/ingest/openclaw",
-                desc: "Webhook endpoint converts OpenClaw events to GARL traces automatically",
+                title: "MCP Server",
+                install: "npx @garl-protocol/mcp-server",
+                code: "POST https://api.garl.ai/mcp",
+                desc: "8 remote tools + 18 local tools. Claude Desktop, Cursor, Windsurf — one config line",
               },
             ].map((item, i) => (
               <motion.div

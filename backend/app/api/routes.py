@@ -2,6 +2,7 @@ import re
 import time
 import hashlib
 import threading
+import contextvars
 from collections import defaultdict
 from html import escape as html_escape
 
@@ -65,6 +66,7 @@ _rate_store: dict[str, list[float]] = defaultdict(list)
 _rate_lock = threading.Lock()
 _rate_last_cleanup = time.time()
 _CLEANUP_INTERVAL = 300
+rate_limit_info: contextvars.ContextVar[dict | None] = contextvars.ContextVar("rate_limit_info", default=None)
 
 RATE_LIMITS = {
     "default": (120, 60),
@@ -75,7 +77,7 @@ RATE_LIMITS = {
 }
 
 
-def _check_rate_limit(key: str, tier: str = "default"):
+def _check_rate_limit(key: str, tier: str = "default", request: Request | None = None):
     global _rate_last_cleanup
     limit, window = RATE_LIMITS.get(tier, RATE_LIMITS["default"])
     now = time.time()
@@ -88,7 +90,8 @@ def _check_rate_limit(key: str, tier: str = "default"):
             _rate_last_cleanup = now
 
         _rate_store[bucket] = [t for t in _rate_store[bucket] if now - t < window]
-        if len(_rate_store[bucket]) >= limit:
+        current_count = len(_rate_store[bucket])
+        if current_count >= limit:
             remaining = 0
             oldest = min(_rate_store[bucket]) if _rate_store[bucket] else now
             retry_after = int(oldest + window - now) + 1
@@ -104,6 +107,17 @@ def _check_rate_limit(key: str, tier: str = "default"):
                 },
             )
         _rate_store[bucket].append(now)
+        remaining = limit - current_count - 1
+        oldest = min(_rate_store[bucket]) if _rate_store[bucket] else now
+        reset_at = int(oldest + window)
+        rl_headers = {
+            "X-RateLimit-Limit": str(limit),
+            "X-RateLimit-Remaining": str(max(remaining, 0)),
+            "X-RateLimit-Reset": str(reset_at),
+        }
+        rate_limit_info.set(rl_headers)
+        if request is not None:
+            request.state.rate_limit_headers = rl_headers
 
 
 _AGENT_NAME_PATTERN = re.compile(r"^[\w\s\-\.]+$")
@@ -171,7 +185,7 @@ def _require_read_auth(x_api_key: str | None):
 
 @router.post("/agents", response_model=AgentResponse)
 async def create_agent(request: Request, req: AgentRegisterRequest):
-    _check_rate_limit(_get_client_ip(request), "register")
+    _check_rate_limit(_get_client_ip(request), "register", request)
     req.name = _sanitize_agent_name(req.name)
     if req.description:
         req.description = _strip_html(req.description, 500)
@@ -188,7 +202,7 @@ async def create_agent(request: Request, req: AgentRegisterRequest):
 @router.post("/agents/auto-register")
 async def auto_register_agent(request: Request, req: AutoRegisterRequest):
     """Otonom ajanlar için sadeleştirilmiş kayıt: minimum alan, makine-okunabilir talimatlar."""
-    _check_rate_limit(_get_client_ip(request), "auto_register")
+    _check_rate_limit(_get_client_ip(request), "auto_register", request)
     req.name = _sanitize_agent_name(req.name)
     if req.description:
         req.description = _strip_html(req.description, 500)
@@ -311,7 +325,7 @@ async def read_agent_card(agent_id: str):
 
 @router.post("/verify", response_model=TraceResponse)
 async def verify_trace(request: Request, req: TraceSubmitRequest, x_api_key: str = Header(...)):
-    _check_rate_limit(x_api_key[:16], "write")
+    _check_rate_limit(x_api_key[:16], "write", request)
     req.task_description = _strip_html(req.task_description, 1000)
     if hasattr(req, "input_summary") and req.input_summary:
         req.input_summary = _strip_html(req.input_summary, 2000)
@@ -330,7 +344,7 @@ async def verify_trace(request: Request, req: TraceSubmitRequest, x_api_key: str
 
 @router.post("/verify/batch")
 async def verify_batch(request: Request, req: BatchTraceRequest, x_api_key: str = Header(...)):
-    _check_rate_limit(x_api_key[:16], "batch")
+    _check_rate_limit(x_api_key[:16], "batch", request)
 
     agent_ids = {t.agent_id for t in req.traces}
     if len(agent_ids) > 1:
@@ -366,13 +380,21 @@ async def check_certificate(certificate: dict):
 # --- Discovery & Ranking ---
 
 @router.get("/leaderboard")
-async def leaderboard(category: str | None = None, limit: int = 50, offset: int = 0):
-    return get_leaderboard(category, max(1, min(limit, 100)), max(0, offset))
+async def leaderboard(request: Request, category: str | None = None, limit: int = 50, offset: int = 0):
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    if limit < 1 or limit > 100:
+        raise HTTPException(status_code=422, detail="limit must be between 1 and 100")
+    if offset < 0:
+        raise HTTPException(status_code=422, detail="offset must be >= 0")
+    return get_leaderboard(category, limit, offset)
 
 
 @router.get("/feed")
-async def activity_feed(limit: int = 20):
-    return get_recent_traces(max(1, min(limit, 100)))
+async def activity_feed(request: Request, limit: int = 20):
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    if limit < 1 or limit > 100:
+        raise HTTPException(status_code=422, detail="limit must be between 1 and 100")
+    return get_recent_traces(limit)
 
 
 @router.get("/stats")
@@ -591,8 +613,8 @@ async def remove_webhook(agent_id: str, webhook_id: str, x_api_key: str = Header
 # --- Endorsement (Sybil-Resistant) ---
 
 @router.post("/endorse")
-async def endorse_agent(req: EndorsementRequest, x_api_key: str = Header(...)):
-    _check_rate_limit(x_api_key[:16])
+async def endorse_agent(request: Request, req: EndorsementRequest, x_api_key: str = Header(...)):
+    _check_rate_limit(x_api_key[:16], "default", request)
     _validate_uuid(req.target_agent_id, "target_agent_id")
 
     db = _get_supabase()
@@ -683,7 +705,7 @@ def _infer_category(message: str) -> str:
 
 @router.post("/ingest/openclaw")
 async def ingest_openclaw(request: Request, payload: OpenClawIngestPayload, x_api_key: str = Header(...)):
-    _check_rate_limit(x_api_key[:16])
+    _check_rate_limit(x_api_key[:16], "default", request)
 
     status = "failure" if payload.error else payload.status
     if status not in ("success", "failure", "partial"):

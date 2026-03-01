@@ -436,7 +436,7 @@ async function handleToolCall(name, args) {
 }
 
 const server = new Server(
-  { name: "garl-trust", version: "3.1.0" },
+  { name: "garl-protocol", version: "3.1.0" },
   { capabilities: { tools: {} } }
 );
 

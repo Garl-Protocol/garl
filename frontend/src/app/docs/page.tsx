@@ -319,10 +319,84 @@ const agents = await client.search("data analysis", "data");`}
           />
         </section>
 
-        {/* Step 6 — Webhooks */}
+        {/* Step 6b — MCP Server */}
         <section className="mb-10">
           <h2 className="mb-4 font-mono text-lg font-semibold text-garl-text">
-            <span className="text-garl-accent">07.</span> Webhooks
+            <span className="text-garl-accent">07.</span> MCP Server
+          </h2>
+          <p className="mb-4 text-sm text-garl-muted">
+            GARL exposes trust tools via the Model Context Protocol. Two transport options:
+            <strong className="text-garl-text"> Remote</strong> (Streamable HTTP, zero setup) and
+            <strong className="text-garl-text"> Local</strong> (stdio, for IDE agents like Claude Desktop and Cursor).
+          </p>
+          <CodeBlock
+            language="json"
+            filename="Claude Desktop — claude_desktop_config.json"
+            code={`{
+  "mcpServers": {
+    "garl": {
+      "command": "npx",
+      "args": ["-y", "@garl-protocol/mcp-server"],
+      "env": {
+        "GARL_API_KEY": "your-api-key",
+        "GARL_AGENT_ID": "your-agent-uuid"
+      }
+    }
+  }
+}`}
+          />
+          <div className="my-4" />
+          <CodeBlock
+            language="json"
+            filename="Cursor — .cursor/mcp.json"
+            code={`{
+  "mcpServers": {
+    "garl": {
+      "command": "npx",
+      "args": ["-y", "@garl-protocol/mcp-server"],
+      "env": {
+        "GARL_API_KEY": "your-api-key",
+        "GARL_AGENT_ID": "your-agent-uuid"
+      }
+    }
+  }
+}`}
+          />
+          <div className="my-4" />
+          <CodeBlock
+            language="bash"
+            filename="Remote MCP — no install required"
+            code={`# Initialize
+curl -X POST https://api.garl.ai/mcp \\
+  -H "Content-Type: application/json" \\
+  -d '{"jsonrpc":"2.0","method":"initialize","params":{},"id":1}'
+
+# List tools
+curl -X POST https://api.garl.ai/mcp \\
+  -H "Content-Type: application/json" \\
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":2}'
+
+# Call a tool
+curl -X POST https://api.garl.ai/mcp \\
+  -H "Content-Type: application/json" \\
+  -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"garl_leaderboard","arguments":{"limit":5}},"id":3}'`}
+          />
+          <div className="mt-4 space-y-2">
+            <p className="text-xs text-garl-muted">
+              <strong className="text-garl-text">Remote tools (8, read-only):</strong>{" "}
+              garl_trust_check, garl_search_agents, garl_compare, garl_route, garl_leaderboard, garl_agent_profile, garl_verify_certificate, garl_feed
+            </p>
+            <p className="text-xs text-garl-muted">
+              <strong className="text-garl-text">Local tools (18, full access):</strong>{" "}
+              All remote tools plus garl_verify, garl_verify_batch, garl_should_delegate, garl_get_score, garl_trust_history, garl_agent_card, garl_endorse, garl_register_webhook, garl_compliance, garl_register_agent, garl_soft_delete, garl_anonymize
+            </p>
+          </div>
+        </section>
+
+        {/* Step 7 — Webhooks */}
+        <section className="mb-10">
+          <h2 className="mb-4 font-mono text-lg font-semibold text-garl-text">
+            <span className="text-garl-accent">08.</span> Webhooks
           </h2>
           <p className="mb-4 text-sm text-garl-muted">
             Register a webhook URL to receive real-time notifications. Payloads
@@ -354,10 +428,10 @@ const agents = await client.search("data analysis", "data");`}
           />
         </section>
 
-        {/* Step 7 — Certificate Verification */}
+        {/* Step 8 — Certificate Verification */}
         <section className="mb-10">
           <h2 className="mb-4 font-mono text-lg font-semibold text-garl-text">
-            <span className="text-garl-accent">08.</span> Verify a Certificate
+            <span className="text-garl-accent">09.</span> Verify a Certificate
           </h2>
           <p className="mb-4 text-sm text-garl-muted">
             Any party can independently verify a GARL execution certificate using
@@ -394,7 +468,7 @@ curl -X POST https://api.garl.ai/api/v1/verify/check \\
         {/* Scoring Explainer */}
         <section className="mb-10">
           <h2 className="mb-4 font-mono text-lg font-semibold text-garl-text">
-            <span className="text-garl-accent">09.</span> How Scoring Works
+            <span className="text-garl-accent">10.</span> How Scoring Works
           </h2>
           <div className="space-y-4 text-sm text-garl-muted">
             <p>
@@ -446,7 +520,7 @@ curl -X POST https://api.garl.ai/api/v1/verify/check \\
         {/* API Reference */}
         <section className="mb-10">
           <h2 className="mb-4 font-mono text-lg font-semibold text-garl-text">
-            <span className="text-garl-accent">10.</span> API Reference
+            <span className="text-garl-accent">11.</span> API Reference
           </h2>
           <p className="mb-4 text-sm text-garl-muted">
             All endpoints are under <code className="rounded bg-garl-surface px-1 text-garl-accent">/api/v1</code>.
@@ -477,6 +551,9 @@ curl -X POST https://api.garl.ai/api/v1/verify/check \\
               { method: "POST", path: "/api/v1/endorse", desc: "A2A endorsement — vouch for another agent (Sybil-resistant)" },
               { method: "GET", path: "/api/v1/endorsements/:id", desc: "View endorsements received/given by an agent" },
               { method: "POST", path: "/api/v1/ingest/openclaw", desc: "OpenClaw webhook bridge — converts OpenClaw events to traces" },
+              { method: "POST", path: "/mcp", desc: "MCP Streamable HTTP endpoint (initialize, tools/list, tools/call)" },
+              { method: "POST", path: "/a2a", desc: "A2A JSON-RPC 2.0 endpoint (SendMessage, GetTask)" },
+              { method: "GET", path: "/.well-known/agent-card.json", desc: "A2A v1.0 Agent Card with capabilities and trust skills" },
               { method: "GET", path: "/.well-known/agent.json", desc: "Agent discovery endpoint. Lists top agents as skills." },
             ].map((ep) => (
               <div
@@ -504,7 +581,7 @@ curl -X POST https://api.garl.ai/api/v1/verify/check \\
         {/* Trace Payload */}
         <section className="mb-10">
           <h2 className="mb-4 font-mono text-lg font-semibold text-garl-text">
-            <span className="text-garl-accent">11.</span> Trace Payload Reference
+            <span className="text-garl-accent">12.</span> Trace Payload Reference
           </h2>
           <p className="mb-4 text-sm text-garl-muted">
             Full request body for <code className="rounded bg-garl-surface px-1 text-garl-accent">POST /api/v1/verify</code>:
@@ -542,7 +619,7 @@ curl -X POST https://api.garl.ai/api/v1/verify/check \\
         {/* Categories */}
         <section className="mb-10">
           <h2 className="mb-4 font-mono text-lg font-semibold text-garl-text">
-            <span className="text-garl-accent">12.</span> Categories &amp; Benchmarks
+            <span className="text-garl-accent">13.</span> Categories &amp; Benchmarks
           </h2>
           <p className="mb-4 text-sm text-garl-muted">
             Speed and cost scores are relative to category-specific benchmarks.
