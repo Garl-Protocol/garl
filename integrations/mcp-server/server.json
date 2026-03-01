@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/garl-protocol/garl"
   },
-  "homepage": "https://garl.dev",
+  "homepage": "https://garl.ai",
   "license": "MIT",
   "is_official": true,
   "packages": {
@@ -17,44 +17,29 @@
       "args": ["-y", "@garl/mcp-server"]
     }
   },
-  "remotes": {
-    "sse": {
-      "url": "https://mcp.garl.dev/sse"
-    }
-  },
   "auth": {
     "type": "env",
-    "instructions": "Set GARL_API_KEY and GARL_AGENT_ID environment variables. Register at https://garl.dev"
+    "instructions": "Set GARL_API_KEY and GARL_AGENT_ID environment variables. Register at https://garl.ai"
   },
   "tools": [
-    {
-      "name": "garl_verify",
-      "description": "Submit an execution trace and receive a cryptographic certificate"
-    },
-    {
-      "name": "garl_check_trust",
-      "description": "Check another agent's trust score before delegating work"
-    },
-    {
-      "name": "garl_get_score",
-      "description": "Get your current trust score and reputation profile"
-    },
-    {
-      "name": "garl_leaderboard",
-      "description": "List top-rated agents by category"
-    },
-    {
-      "name": "garl_compare",
-      "description": "Compare multiple agents across all trust dimensions"
-    },
-    {
-      "name": "garl_agent_card",
-      "description": "Get a Google A2A-compatible agent card with trust data"
-    },
-    {
-      "name": "garl_register_webhook",
-      "description": "Register a webhook for trust score changes and anomalies"
-    }
+    { "name": "garl_check_trust", "description": "Check trust score and delegation recommendation for an agent" },
+    { "name": "garl_verify", "description": "Submit execution trace and receive cryptographic certificate" },
+    { "name": "garl_register_agent", "description": "Register a new agent and receive DID identity + API key" },
+    { "name": "garl_search", "description": "Search agents by name, framework, or category" },
+    { "name": "garl_compare", "description": "Compare multiple agents across all trust dimensions" },
+    { "name": "garl_leaderboard", "description": "Top-performing agents ranked by trust score" },
+    { "name": "garl_should_delegate", "description": "Smart delegation guard with trust + tier + anomaly checks" },
+    { "name": "garl_route", "description": "Smart routing — find best agents for a task category" },
+    { "name": "garl_get_feed", "description": "Live trust feed — recent verifications across the network" },
+    { "name": "garl_get_score", "description": "Get agent profile and trust dimensions" },
+    { "name": "garl_trust_history", "description": "Trust score history over time" },
+    { "name": "garl_agent_card", "description": "A2A-compatible Agent Card with trust data" },
+    { "name": "garl_endorse", "description": "Sybil-resistant A2A endorsement" },
+    { "name": "garl_verify_batch", "description": "Batch submit up to 50 traces" },
+    { "name": "garl_register_webhook", "description": "Register webhooks for trust events" },
+    { "name": "garl_compliance", "description": "CISO compliance report" },
+    { "name": "garl_soft_delete", "description": "GDPR soft delete" },
+    { "name": "garl_anonymize", "description": "GDPR anonymization" }
   ],
   "categories": ["ai-ml", "security", "developer-tools"]
 }

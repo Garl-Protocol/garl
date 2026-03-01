@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * GARL Protocol v1.0.1 "Sovereign Trust Layer" MCP Server v3.0.0
+ * GARL Protocol MCP Server v3.1.0
  *
- * Anthropic MCP standardına %100 uyumlu güven araçları sunucusu.
- * Cursor, Windsurf, Claude Desktop, OpenClaw ve tüm MCP istemcileriyle çalışır.
+ * 18 trust reputation tools for AI agents.
+ * Works with Claude Desktop, Cursor, Windsurf, and all MCP-compatible clients.
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -202,6 +202,32 @@ const TOOLS = [
     },
   },
   {
+    name: "garl_register_agent",
+    description:
+      "Register a new AI agent on GARL Protocol. Returns a DID identity, API key, and initial trust score. " +
+      "Use this when an agent wants to join the trust network.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Agent name (unique)" },
+        framework: { type: "string", description: "Framework the agent uses (e.g., langchain, crewai, autogpt, custom)" },
+        description: { type: "string", description: "Short description of the agent's purpose" },
+        category: { type: "string", enum: ["coding", "research", "sales", "data", "automation", "other"], description: "Primary task category", default: "other" },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "garl_get_feed",
+    description: "Get the live trust feed — recent verification events across the GARL network.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Number of feed entries (default: 10, max: 50)", default: 10 },
+      },
+    },
+  },
+  {
     name: "garl_soft_delete",
     description: "GDPR soft delete. Deactivates agent data (recoverable). x-api-key required.",
     inputSchema: {
@@ -357,6 +383,39 @@ async function handleToolCall(name, args) {
       return { content: [{ type: "text", text: typeof result === "object" ? JSON.stringify(result, null, 2) : String(result) }] };
     }
 
+    case "garl_register_agent": {
+      if (!args.name) throw new Error("name is required.");
+      const regBody = { name: args.name };
+      if (args.framework) regBody.framework = args.framework;
+      if (args.description) regBody.description = args.description;
+      if (args.category) regBody.category = args.category;
+      const regResult = await garlFetch("/agents/auto-register", { method: "POST", body: JSON.stringify(regBody) });
+      return { content: [{ type: "text", text: [
+        `Agent registered successfully!`,
+        `Name: ${regResult.name}`,
+        `Agent ID: ${regResult.id}`,
+        `DID: ${regResult.sovereign_id}`,
+        `API Key: ${regResult.api_key}`,
+        `Trust Score: ${regResult.trust_score}`,
+        ``,
+        `Save the API Key — it is shown only once.`,
+        `Set GARL_API_KEY="${regResult.api_key}" and GARL_AGENT_ID="${regResult.id}" to start submitting traces.`,
+      ].join("\n") }] };
+    }
+
+    case "garl_get_feed": {
+      const feedLimit = Math.min(Math.max(args.limit || 10, 1), 50);
+      const feedResult = await garlFetch(`/feed?limit=${feedLimit}`);
+      if (!Array.isArray(feedResult) || feedResult.length === 0) {
+        return { content: [{ type: "text", text: "No recent feed entries." }] };
+      }
+      const feedRows = feedResult.map(e => {
+        const delta = e.trust_delta > 0 ? `+${e.trust_delta.toFixed(2)}` : e.trust_delta.toFixed(2);
+        return `${e.status === "success" ? "✓" : "✗"} ${e.agent_name || e.agent_id?.slice(0, 8)} — ${e.task_description?.slice(0, 60)} (${delta})`;
+      }).join("\n");
+      return { content: [{ type: "text", text: `Live Trust Feed:\n\n${feedRows}` }] };
+    }
+
     case "garl_soft_delete": {
       if (!args.agent_id) throw new Error("agent_id is required.");
       if (!API_KEY) throw new Error("GARL_API_KEY not configured. Required for GDPR deletion.");
@@ -377,7 +436,7 @@ async function handleToolCall(name, args) {
 }
 
 const server = new Server(
-  { name: "garl-trust", version: "3.0.0" },
+  { name: "garl-trust", version: "3.1.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -394,7 +453,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 async function main() {
   if (!API_KEY) {
-    console.error("Warning: GARL_API_KEY not set. Write operations will fail. Register at https://garl.dev or run the setup script.");
+    console.error("Warning: GARL_API_KEY not set. Write operations will fail. Register at https://garl.ai or use garl_register_agent tool.");
   }
   if (!AGENT_ID) {
     console.error("Warning: GARL_AGENT_ID not set. Trace submissions will fail.");
