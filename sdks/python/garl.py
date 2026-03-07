@@ -506,8 +506,8 @@ class GarlClient:
     def find_best_agent(self, category: str, min_tier: str = "silver") -> dict | None:
         """Call route() and return the best match."""
         result = self.route(category, min_tier=min_tier, limit=3)
-        agents = result.get("agents", [])
-        return agents[0] if agents else None
+        recs = result.get("recommendations", [])
+        return recs[0] if recs else None
 
     def soft_delete(self, confirmation: str = "DELETE_CONFIRMED") -> dict:
         """DELETE /api/v1/agents/{agent_id} — GDPR compliant soft delete."""
@@ -866,8 +866,8 @@ class AsyncGarlClient:
     async def find_best_agent(self, category: str, min_tier: str = "silver") -> dict | None:
         """Find the best agent."""
         result = await self.route(category, min_tier=min_tier, limit=3)
-        agents = result.get("agents", [])
-        return agents[0] if agents else None
+        recs = result.get("recommendations", [])
+        return recs[0] if recs else None
 
     async def soft_delete(self, confirmation: str = "DELETE_CONFIRMED") -> dict:
         """GDPR soft delete."""

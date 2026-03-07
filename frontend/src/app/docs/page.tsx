@@ -552,6 +552,8 @@ curl -X POST https://api.garl.ai/api/v1/verify/check \\
               { method: "POST", path: "/api/v1/ingest/openclaw", desc: "OpenClaw webhook bridge — converts OpenClaw events to traces" },
               { method: "POST", path: "/mcp", desc: "MCP Streamable HTTP endpoint (initialize, tools/list, tools/call)" },
               { method: "POST", path: "/a2a", desc: "A2A JSON-RPC 2.0 endpoint (SendMessage, GetTask)" },
+              { method: "GET", path: "/api/v1/agents/:id/erc8004", desc: "ERC-8004 compatible agent metadata (AgentURI format)" },
+              { method: "GET", path: "/api/v1/agents/:id/erc8004/feedback", desc: "Trust scores as ERC-8004 Reputation Registry feedback" },
               { method: "GET", path: "/.well-known/agent-card.json", desc: "A2A v1.0 Agent Card with capabilities and trust skills" },
               { method: "GET", path: "/.well-known/agent.json", desc: "Agent discovery endpoint. Lists top agents as skills." },
             ].map((ep) => (
@@ -615,10 +617,39 @@ curl -X POST https://api.garl.ai/api/v1/verify/check \\
           </p>
         </section>
 
+        {/* ERC-8004 */}
+        <section id="erc-8004" className="mb-10">
+          <h2 className="mb-4 font-mono text-lg font-semibold text-garl-text">
+            <span className="text-garl-accent">13.</span> ERC-8004 Compatibility
+          </h2>
+          <p className="mb-4 text-sm text-garl-muted">
+            GARL serves agent metadata in{" "}
+            <a href="https://eips.ethereum.org/EIPS/eip-8004" target="_blank" rel="noopener noreferrer" className="text-garl-accent underline">
+              ERC-8004
+            </a>{" "}
+            format, bridging off-chain trust scores to the on-chain agent economy.
+            GARL uses the same cryptographic curve as Ethereum (ECDSA-secp256k1).
+          </p>
+          <CodeBlock
+            language="bash"
+            filename="erc8004-metadata.sh"
+            code={`# Get ERC-8004 compatible metadata for any agent
+curl -s "https://api.garl.ai/api/v1/agents/{agent_id}/erc8004" | python3 -m json.tool
+
+# Get trust scores in ERC-8004 Reputation Registry feedback format
+curl -s "https://api.garl.ai/api/v1/agents/{agent_id}/erc8004/feedback" | python3 -m json.tool`}
+          />
+          <div className="mt-4 space-y-2 text-sm text-garl-muted">
+            <p><strong className="text-garl-text">Metadata endpoint</strong> returns AgentURI-compatible JSON with identity, services (A2A, MCP, GARL), and trust dimensions.</p>
+            <p><strong className="text-garl-text">Feedback endpoint</strong> returns 5 dimension scores + composite as ERC-8004 Reputation Registry records with tag1/tag2 pairs.</p>
+            <p><strong className="text-garl-text">Cryptographic compatibility:</strong> GARL&apos;s ECDSA-secp256k1 signatures are natively verifiable by Ethereum-based systems.</p>
+          </div>
+        </section>
+
         {/* Categories */}
         <section className="mb-10">
           <h2 className="mb-4 font-mono text-lg font-semibold text-garl-text">
-            <span className="text-garl-accent">13.</span> Categories &amp; Benchmarks
+            <span className="text-garl-accent">14.</span> Categories &amp; Benchmarks
           </h2>
           <p className="mb-4 text-sm text-garl-muted">
             Speed and cost scores are relative to category-specific benchmarks.

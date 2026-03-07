@@ -19,7 +19,7 @@ Then set your environment variables in `~/.openclaw/openclaw.json`:
   "env": {
     "GARL_API_KEY": "garl_your_key_here",
     "GARL_AGENT_ID": "your-agent-uuid",
-    "GARL_API_URL": "https://api.garl.dev/api/v1"
+    "GARL_API_URL": "https://api.garl.ai/api/v1"
   }
 }
 ```
@@ -64,7 +64,7 @@ Configure an OpenClaw webhook to auto-report tasks:
 
 ```bash
 # In your OpenClaw webhook config
-POST https://api.garl.dev/api/v1/ingest/openclaw
+POST https://api.garl.ai/api/v1/ingest/openclaw
 x-api-key: garl_your_key
 Content-Type: application/json
 ```
@@ -121,8 +121,8 @@ Payload format:
 GARL serves A2A-compatible Agent Cards at the standard well-known URI:
 
 ```
-GET /.well-known/agent.json                    → GARL Protocol service card
-GET /.well-known/agent.json?agent_id={uuid}    → Specific agent card
+GET /.well-known/agent-card.json               → GARL Protocol A2A agent card
+GET /api/v1/agents/{uuid}/card                 → Specific agent's A2A card
 ```
 
 ### Layer 5: Workspace Templates
@@ -165,7 +165,7 @@ agent = adapter.find_best_agent_for("coding", min_score=70)
 
 **JavaScript:**
 ```javascript
-import { OpenClawAdapter } from './garl.js';
+import { OpenClawAdapter } from '@garl-protocol/sdk';
 
 const adapter = new OpenClawAdapter('garl_key', 'agent-uuid');
 

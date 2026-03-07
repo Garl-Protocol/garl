@@ -614,7 +614,7 @@ export default function HomePage() {
               {
                 icon: Terminal,
                 title: "1. Integrate",
-                desc: "One line of code. Works with LangChain, OpenClaw, and any AI framework. Python & JavaScript SDKs with async support, plus MCP Server for agent runtimes.",
+                desc: "One line of code. Works with LangChain, OpenClaw, and any AI framework. Python & JS SDKs, MCP Server, and ERC-8004 compatible for on-chain agents.",
               },
               {
                 icon: Fingerprint,
@@ -857,7 +857,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {[
               {
                 title: "Python SDK",
@@ -875,13 +875,19 @@ export default function HomePage() {
                 title: "REST API",
                 install: "",
                 code: "POST /api/v1/verify",
-                desc: "30+ endpoints — traces, trust checks, smart routing, endorsements, GDPR compliance, CISO reports, webhook CRUD, badges",
+                desc: "30+ endpoints — traces, trust checks, smart routing, endorsements, GDPR compliance, badges",
               },
               {
                 title: "MCP Server",
                 install: "npx @garl-protocol/mcp-server",
                 code: "POST https://api.garl.ai/mcp",
-                desc: "8 remote tools + 18 local tools. Claude Desktop, Cursor, Windsurf — one config line",
+                desc: "8 remote + 18 local tools. Claude Desktop, Cursor, Windsurf — one config line",
+              },
+              {
+                title: "ERC-8004",
+                install: "",
+                code: "GET /agents/:id/erc8004",
+                desc: "On-chain compatible metadata. Same crypto curve as Ethereum (secp256k1). Trust scores as Reputation Registry feedback.",
               },
             ].map((item, i) => (
               <motion.div

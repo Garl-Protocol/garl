@@ -396,8 +396,8 @@ export class GarlClient {
   /** Calls route() and returns the best match. */
   async findBestAgent(category, minTier = "silver") {
     const result = await this.route(category, minTier, 3);
-    const agents = result.agents || [];
-    return agents[0] || null;
+    const recs = result.recommendations || [];
+    return recs[0] || null;
   }
 
   /** DELETE /api/v1/agents/{agentId} — GDPR-compliant soft delete. */

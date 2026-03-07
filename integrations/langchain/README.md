@@ -10,6 +10,8 @@ pip install garl-protocol httpx langchain-core
 
 ## Usage
 
+Copy `garl_callback.py` from this directory into your project, then:
+
 ```python
 from garl_callback import GarlCallbackHandler
 

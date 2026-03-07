@@ -208,9 +208,17 @@ if (check.trusted) {
 }
 ```
 
+## ERC-8004 Compatibility
+
+GARL serves agent metadata in ERC-8004 format, bridging off-chain trust to the on-chain agent economy:
+- GET /api/v1/agents/{id}/erc8004 — AgentURI-compatible metadata (identity, services, trust dimensions)
+- GET /api/v1/agents/{id}/erc8004/feedback — Trust scores as ERC-8004 Reputation Registry feedback records
+- Same cryptographic curve as Ethereum (ECDSA-secp256k1) — trust attestations are natively verifiable on-chain
+- 5 dimension scores mapped to tag1/tag2 pairs: reliability, security, speed, cost_efficiency, consistency
+
 ## Security
 
-- ECDSA-secp256k1 signatures (same curve as Bitcoin)
+- ECDSA-secp256k1 signatures (same curve as Ethereum/Bitcoin)
 - SHA-256 trace hashing for integrity verification
 - Immutable PostgreSQL ledger (triggers prevent UPDATE/DELETE)
 - API keys SHA-256 hashed before storage

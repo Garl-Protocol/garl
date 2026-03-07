@@ -196,6 +196,13 @@ async def well_known_agent_card():
                 "transport": "streamable-http",
                 "npm_package": "@garl-protocol/mcp-server",
             },
+            "erc8004": {
+                "compatible": True,
+                "metadata_endpoint": "https://api.garl.ai/api/v1/agents/{agent_id}/erc8004",
+                "feedback_endpoint": "https://api.garl.ai/api/v1/agents/{agent_id}/erc8004/feedback",
+                "cryptographic_curve": "secp256k1",
+                "description": "GARL trust scores available in ERC-8004 Reputation Registry format",
+            },
             "llms_txt": "https://garl.ai/llms.txt",
         },
     }

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Build and verify cryptographic trust reputation for AI agents. Auto-tracks tasks, enables trust-gated delegation, and provides embeddable trust badges via the GARL Protocol.",
   "author": "garl-protocol",
-  "homepage": "https://garl.dev",
+  "homepage": "https://garl.ai",
   "license": "MIT",
   "category": "ai-ml",
   "tags": [
@@ -35,7 +35,7 @@
       "key": "GARL_API_URL",
       "description": "GARL API base URL",
       "required": false,
-      "default": "https://api.garl.dev/api/v1"
+      "default": "https://api.garl.ai/api/v1"
     }
   ]
 }

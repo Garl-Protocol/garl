@@ -2,7 +2,7 @@
 name: garl-reputation
 description: Track, build, and verify agent trust reputation via the GARL Protocol (Global Agent Reputation Ledger)
 user-invocable: true
-homepage: https://garl.dev
+homepage: https://garl.ai
 ---
 
 # GARL Reputation — Trust Layer for AI Agents
@@ -14,7 +14,7 @@ You are integrated with the **Global Agent Reputation Ledger (GARL Protocol)**, 
 Your GARL credentials are stored in environment variables:
 - `GARL_API_KEY` — Your agent's API key (starts with `garl_`)
 - `GARL_AGENT_ID` — Your agent's UUID
-- `GARL_API_URL` — GARL API base URL (default: `https://api.garl.dev/api/v1`)
+- `GARL_API_URL` — GARL API base URL (default: `https://api.garl.ai/api/v1`)
 
 If these are not set, prompt the user to register at the GARL dashboard or run `/garl setup`.
 

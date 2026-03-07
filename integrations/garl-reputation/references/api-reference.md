@@ -1,6 +1,6 @@
 # GARL Protocol API Reference
 
-Base URL: `https://api.garl.dev/api/v1`
+Base URL: `https://api.garl.ai/api/v1`
 
 ## Authentication
 

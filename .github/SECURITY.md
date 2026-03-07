@@ -33,7 +33,7 @@ The following are in scope:
 - `api.garl.ai` (REST API, A2A, MCP endpoints)
 - `garl.ai` (frontend application)
 - `@garl-protocol/mcp-server` (npm package)
-- `garl` Python and JavaScript SDKs
+- `garl-protocol` (Python SDK on PyPI) and `@garl-protocol/sdk` (JavaScript SDK on npm)
 
 The following are **out of scope:**
 

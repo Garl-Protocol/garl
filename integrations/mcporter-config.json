@@ -6,7 +6,7 @@
       "env": {
         "GARL_API_KEY": "${GARL_API_KEY}",
         "GARL_AGENT_ID": "${GARL_AGENT_ID}",
-        "GARL_API_URL": "${GARL_API_URL:-https://api.garl.dev/api/v1}"
+        "GARL_API_URL": "${GARL_API_URL:-https://api.garl.ai/api/v1}"
       }
     }
   }

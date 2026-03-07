@@ -370,6 +370,122 @@ async def agent_scorecard(agent_id: str, request: Request):
     return generate_scorecard(agent)
 
 
+# --- ERC-8004 Compatibility ---
+
+@router.get("/agents/{agent_id}/erc8004")
+async def agent_erc8004_metadata(agent_id: str, request: Request):
+    """Serve ERC-8004-compatible agent metadata (AgentURI format).
+    Allows on-chain systems to read GARL agent data natively."""
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    _validate_uuid(agent_id, "agent_id")
+    agent = get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    trust_score = round(float(agent.get("trust_score", 50)), 2)
+    tier = agent.get("certification_tier", "bronze")
+    dims = {
+        "reliability": round(float(agent.get("score_reliability", 50)), 2),
+        "security": round(float(agent.get("score_security", 50)), 2),
+        "speed": round(float(agent.get("score_speed", 50)), 2),
+        "cost_efficiency": round(float(agent.get("score_cost_efficiency", 50)), 2),
+        "consistency": round(float(agent.get("score_consistency", 50)), 2),
+    }
+
+    return {
+        "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+        "name": agent.get("name", "Unknown"),
+        "description": agent.get("description", ""),
+        "active": True,
+        "services": [
+            {
+                "name": "A2A",
+                "endpoint": f"https://api.garl.ai/api/v1/agents/{agent_id}/card",
+                "version": "1.0",
+            },
+            {
+                "name": "MCP",
+                "endpoint": "https://api.garl.ai/mcp",
+                "version": "2024-11-05",
+            },
+            {
+                "name": "GARL",
+                "endpoint": f"https://api.garl.ai/api/v1/agents/{agent_id}/passport",
+                "version": "1.0.0",
+            },
+        ],
+        "supportedTrust": ["reputation"],
+        "x402Support": False,
+        "garl": {
+            "sovereign_id": agent.get("sovereign_id", f"did:garl:{agent_id}"),
+            "trust_score": trust_score,
+            "certification_tier": tier,
+            "dimensions": dims,
+            "total_traces": int(agent.get("total_traces", 0)),
+            "success_rate": round(float(agent.get("success_rate", 0)), 2),
+            "framework": agent.get("framework", "custom"),
+            "category": agent.get("category", "other"),
+            "verified": int(agent.get("total_traces", 0)) >= 10,
+        },
+    }
+
+
+@router.get("/agents/{agent_id}/erc8004/feedback")
+async def agent_erc8004_feedback(agent_id: str, request: Request):
+    """Return trust scores formatted as ERC-8004 Reputation Registry feedback records.
+    Blockchain systems can consume these to bridge GARL scores on-chain."""
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    _validate_uuid(agent_id, "agent_id")
+    agent = get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat()
+
+    dim_map = {
+        "reliability": float(agent.get("score_reliability", 50)),
+        "security": float(agent.get("score_security", 50)),
+        "speed": float(agent.get("score_speed", 50)),
+        "cost_efficiency": float(agent.get("score_cost_efficiency", 50)),
+        "consistency": float(agent.get("score_consistency", 50)),
+    }
+
+    feedbacks = []
+    for dim_name, dim_value in dim_map.items():
+        feedbacks.append({
+            "agentId": agent_id,
+            "clientAddress": "garl-protocol",
+            "createdAt": now,
+            "value": str(int(dim_value * 100)),
+            "valueDecimals": 2,
+            "tag1": dim_name,
+            "tag2": "garl-trust-score",
+            "endpoint": "https://api.garl.ai/api/v1",
+            "reasoning": f"GARL protocol {dim_name} score based on EMA of {agent.get('total_traces', 0)} execution traces",
+        })
+
+    composite = round(float(agent.get("trust_score", 50)), 2)
+    feedbacks.append({
+        "agentId": agent_id,
+        "clientAddress": "garl-protocol",
+        "createdAt": now,
+        "value": str(int(composite * 100)),
+        "valueDecimals": 2,
+        "tag1": "composite",
+        "tag2": "garl-trust-score",
+        "endpoint": "https://api.garl.ai/api/v1",
+        "reasoning": f"GARL protocol composite trust score ({agent.get('certification_tier', 'bronze')} tier)",
+    })
+
+    return {
+        "agent_id": agent_id,
+        "sovereign_id": agent.get("sovereign_id", f"did:garl:{agent_id}"),
+        "format": "erc8004-reputation-v1",
+        "feedbacks": feedbacks,
+    }
+
+
 # --- Trace Verification ---
 
 @router.post("/verify", response_model=TraceResponse)

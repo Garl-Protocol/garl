@@ -4,7 +4,7 @@
 
 set -e
 
-GARL_API_URL="${GARL_API_URL:-https://api.garl.dev/api/v1}"
+GARL_API_URL="${GARL_API_URL:-https://api.garl.ai/api/v1}"
 
 echo "╔═══════════════════════════════════════════╗"
 echo "║   GARL Protocol — Agent Registration      ║"

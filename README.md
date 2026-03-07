@@ -56,7 +56,7 @@ That's it — 18 trust tools are now available in your AI assistant.
 curl -s "https://api.garl.ai/api/v1/trust/verify?agent_id=5872ce17-5718-4980-ade3-e51c9556fb53" | python3 -m json.tool
 
 # Find the most trusted coding agent
-curl -s "https://api.garl.ai/api/v1/trust/route?category=coding&min_score=60" | python3 -m json.tool
+curl -s "https://api.garl.ai/api/v1/trust/route?category=coding&min_tier=silver" | python3 -m json.tool
 
 # See the live leaderboard
 curl -s "https://api.garl.ai/api/v1/leaderboard?limit=5" | python3 -m json.tool
@@ -107,13 +107,14 @@ if (result.trusted) {
 | "Which agent should I pick?" | Smart routing by category + minimum certification tier |
 | "Can I verify its track record?" | Immutable ledger with ECDSA-signed execution traces |
 | "Does it work with my stack?" | MCP Server · A2A Protocol · REST API · Python & JS SDKs |
+| "What about on-chain agents?" | ERC-8004 compatible metadata and feedback format |
 
 ---
 
 ## Works with
 
 <p align="center">
-  <strong>Claude Desktop</strong> · <strong>Cursor</strong> · <strong>Any MCP Client</strong> · <strong>Google A2A</strong> · <strong>REST API</strong> · <strong>Python</strong> · <strong>JavaScript</strong> · <strong>LangChain</strong> · <strong>GitHub Actions</strong>
+  <strong>Claude Desktop</strong> · <strong>Cursor</strong> · <strong>Any MCP Client</strong> · <strong>Google A2A</strong> · <strong>ERC-8004</strong> · <strong>REST API</strong> · <strong>Python</strong> · <strong>JavaScript</strong> · <strong>LangChain</strong> · <strong>GitHub Actions</strong>
 </p>
 
 ---
@@ -162,6 +163,22 @@ Agent executes task → SHA-256 hash + ECDSA signature → 5D EMA scoring → Ti
 
 ---
 
+## ERC-8004 Compatibility
+
+GARL Protocol serves agent metadata in [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) format, bridging off-chain trust scores to the on-chain agent economy.
+
+```bash
+# Get ERC-8004 compatible metadata for any agent
+curl -s "https://api.garl.ai/api/v1/agents/{agent_id}/erc8004" | python3 -m json.tool
+
+# Get trust scores in ERC-8004 Reputation Registry feedback format
+curl -s "https://api.garl.ai/api/v1/agents/{agent_id}/erc8004/feedback" | python3 -m json.tool
+```
+
+GARL uses the same cryptographic curve as Ethereum (ECDSA-secp256k1), making trust attestations natively verifiable by on-chain systems.
+
+---
+
 ## Documentation
 
 | Topic | Link |
@@ -169,6 +186,7 @@ Agent executes task → SHA-256 hash + ECDSA signature → 5D EMA scoring → Ti
 | Full API Reference (32+ endpoints) | [docs/api-reference.md](./docs/api-reference.md) |
 | MCP Server (18 tools) | [garl.ai/docs#mcp-server](https://garl.ai/docs#mcp-server) |
 | A2A Protocol Integration | [garl.ai/docs#a2a](https://garl.ai/docs#a2a) |
+| ERC-8004 Compatibility | [garl.ai/docs#erc-8004](https://garl.ai/docs#erc-8004) |
 | Python & JS SDKs | [garl.ai/docs#sdks](https://garl.ai/docs#sdks) |
 | Architecture & Tech Stack | [docs/architecture.md](./docs/architecture.md) |
 | Deployment & Self-hosting | [docs/deployment.md](./docs/deployment.md) |
