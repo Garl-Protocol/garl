@@ -203,7 +203,7 @@ async def create_agent(request: Request, req: AgentRegisterRequest):
 
 @router.post("/agents/auto-register")
 async def auto_register_agent(request: Request, req: AutoRegisterRequest):
-    """Otonom ajanlar için sadeleştirilmiş kayıt: minimum alan, makine-okunabilir talimatlar."""
+    """Streamlined registration for autonomous agents: minimal fields, machine-readable instructions."""
     _check_rate_limit(_get_client_ip(request), "auto_register", request)
     req.name = _sanitize_agent_name(req.name)
     if req.description:

@@ -42,6 +42,9 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    if not request.url.path.startswith(("/docs", "/redoc", "/openapi.json")):
+        fa = "'none'" if not request.url.path.startswith("/api/v1/badge/embed/") else "*"
+        response.headers["Content-Security-Policy"] = f"default-src 'none'; frame-ancestors {fa}"
     rl = getattr(request.state, "rate_limit_headers", None) or rate_limit_info.get(None)
     if rl:
         for k, v in rl.items():

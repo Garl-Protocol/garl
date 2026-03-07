@@ -18,7 +18,7 @@ const API_URL = (process.env.GARL_API_URL || "https://api.garl.ai/api/v1").repla
 const API_KEY = process.env.GARL_API_KEY || "";
 const AGENT_ID = process.env.GARL_AGENT_ID || "";
 
-// GARL API'ye istek gönderir
+// Sends requests to the GARL API
 async function garlFetch(path, options = {}) {
   const url = `${API_URL}${path}`;
   const headers = { "Content-Type": "application/json", ...options.headers };
@@ -30,7 +30,7 @@ async function garlFetch(path, options = {}) {
   return text ? JSON.parse(text) : {};
 }
 
-// Kademe sıralaması
+// Tier ordering for comparison
 const TIER_ORDER = { bronze: 1, silver: 2, gold: 3, enterprise: 4 };
 
 const TOOLS = [
@@ -299,7 +299,7 @@ const TOOLS = [
   },
 ];
 
-// Araç çağrılarını işler
+// Handles tool call dispatch
 async function handleToolCall(name, args) {
   switch (name) {
     case "garl_verify": {
