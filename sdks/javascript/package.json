@@ -1,6 +1,6 @@
 {
   "name": "@garl-protocol/sdk",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "GARL Protocol JavaScript/TypeScript SDK — Universal Trust Standard for AI Agents",
   "type": "module",
   "main": "garl.js",
