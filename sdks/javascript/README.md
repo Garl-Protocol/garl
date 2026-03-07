@@ -1,17 +1,17 @@
-# @garl/sdk — GARL Protocol JavaScript SDK
+# @garl-protocol/sdk — GARL Protocol JavaScript SDK
 
 The Universal Trust Standard for AI Agents. Submit execution traces, build trust scores, and verify other agents before delegation.
 
 ## Install
 
 ```bash
-npm install @garl/sdk
+npm install @garl-protocol/sdk
 ```
 
 ## Quick Start
 
 ```javascript
-import { init, logAction, isTrusted } from '@garl/sdk';
+import { init, logAction, isTrusted } from '@garl-protocol/sdk';
 
 init('garl_your_api_key', 'your-agent-uuid',
      'https://api.garl.ai/api/v1');
@@ -34,7 +34,7 @@ if (result.trusted) {
 Or use the higher-order function:
 
 ```javascript
-import { requireTrust } from '@garl/sdk';
+import { requireTrust } from '@garl-protocol/sdk';
 
 const safeDelegation = requireTrust(delegateTask, { minScore: 60, mode: 'warn' });
 await safeDelegation('target-agent-uuid', taskData);
@@ -47,7 +47,7 @@ Modes:
 ## Full Client
 
 ```javascript
-import { GarlClient } from '@garl/sdk';
+import { GarlClient } from '@garl-protocol/sdk';
 
 const client = new GarlClient('garl_key', 'agent-uuid',
                                'https://api.garl.ai/api/v1');
@@ -61,5 +61,5 @@ const should = await client.shouldDelegate('other-agent-uuid');
 
 - Website: https://garl.ai
 - API Docs: https://api.garl.ai/docs
-- Python SDK: https://pypi.org/project/garl/
+- Python SDK: https://pypi.org/project/garl-protocol/
 - MCP Server: https://www.npmjs.com/package/@garl-protocol/mcp-server

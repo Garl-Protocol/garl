@@ -1,22 +1,22 @@
 """
 GARL Protocol Python SDK v5 — Sovereign Trust Layer
 
-Dört entegrasyon seviyesi:
+Four integration levels:
 
-1. Tek satır (en basit):
+1. One-liner (simplest):
     import garl
     garl.init("garl_key", "agent-uuid")
     garl.log_action("Generated REST API", "success", category="coding")
 
-2. İstemci (tam kontrol):
+2. Client (full control):
     from garl import GarlClient
     client = GarlClient("garl_key", "agent-uuid")
     cert = client.verify(status="success", task="...", duration_ms=1250)
 
-3. Proaktif Koruma (güvensiz delegasyonu otomatik engeller):
+3. Proactive Guard (auto-blocks unsafe delegation):
     from garl import GarlClient
     client = GarlClient("garl_key", "agent-uuid")
-    if client.should_delegate("target-uuid"):  # trust + anomali + tier kontrolü
+    if client.should_delegate("target-uuid"):
         delegate_to(target)
 
 4. Async:
@@ -33,13 +33,13 @@ import httpx
 
 logger = logging.getLogger("garl")
 
-# Yeniden deneme: 3 deneme, üstel geri çekilme (1s, 2s, 4s), sadece 5xx hatalarında
+# Retry: 3 attempts, exponential backoff (1s, 2s, 4s), only on 5xx errors
 MAX_RETRIES = 3
-RETRY_DELAYS = [1, 2, 4]  # saniye
+RETRY_DELAYS = [1, 2, 4]  # seconds
 
 
 def _retry_request(fn, *args, **kwargs):
-    """5xx ve bağlantı hatalarında üstel geri çekilme ile HTTP isteği yürütür."""
+    """Execute HTTP request with exponential backoff on 5xx and connection errors."""
     last_exc = None
     for attempt in range(MAX_RETRIES):
         try:
@@ -55,14 +55,14 @@ def _retry_request(fn, *args, **kwargs):
 
 
 # ──────────────────────────────────────────────
-#  Modül seviyesi tek satır API
+#  Module-level one-liner API
 # ──────────────────────────────────────────────
 
 _default_client: "GarlClient | None" = None
 
 
 def init(api_key: str, agent_id: str, base_url: str = "https://api.garl.ai/api/v1"):
-    """Tek satır kullanım için global GARL istemcisini başlatır."""
+    """Initialize the global GARL client for one-liner usage."""
     global _default_client
     _default_client = GarlClient(api_key, agent_id, base_url)
 
@@ -79,12 +79,12 @@ def log_action(
     background: bool = True,
 ) -> dict | None:
     """
-    Tek satırda GARL'a ajan aksiyonu kaydeder.
+    Log an agent action to GARL in one line.
 
-    Varsayılan olarak arka planda (bloklamadan) çalışır.
-    background=False ile senkron çalıştırır ve sertifika döner.
+    Runs in background (non-blocking) by default.
+    Use background=False to run synchronously and return the certificate.
 
-    Kullanım:
+    Usage:
         garl.log_action("Generated API docs", "success", category="coding")
     """
     if not _default_client:
@@ -126,14 +126,14 @@ def is_trusted(
     require_verified: bool = False,
 ) -> dict:
     """
-    Hedef ajanın güven durumunu sorgular. Trust Gate kalıbı için kullanılır.
+    Query a target agent's trust status. Used for the Trust Gate pattern.
 
-    Dönen dict:
-      - trusted (bool): ajanın güvenilir olup olmadığı
-      - score (float): güven puanı (kayıtlı değilse 0)
-      - registered (bool): GARL'da kayıtlı mı
-      - recommendation (str): trusted|caution|unknown vb.
-      - reason (str): kısa açıklama
+    Returns dict:
+      - trusted (bool): whether the agent is trusted
+      - score (float): trust score (0 if not registered)
+      - registered (bool): whether registered on GARL
+      - recommendation (str): trusted|caution|unknown etc.
+      - reason (str): short explanation
     """
     if not _default_client:
         logger.warning("GARL not initialized. Call garl.init() first.")
@@ -144,12 +144,12 @@ def is_trusted(
 
 def require_trust(min_score: float = 50.0, mode: str = "warn"):
     """
-    Dekoratör: fonksiyonun ilk argümanı target_agent_id olmalıdır.
+    Decorator: the function's first argument must be target_agent_id.
 
-    mode="warn": uyarı loglar ama fonksiyonu çalıştırır
-    mode="block": güvensizse fonksiyonu çalıştırmaz, None döner
+    mode="warn": logs a warning but executes the function
+    mode="block": blocks execution if untrusted, returns None
 
-    Kullanım:
+    Usage:
         @garl.require_trust(min_score=60, mode="warn")
         def delegate_task(target_agent_id, task):
             ...
@@ -176,11 +176,11 @@ def require_trust(min_score: float = 50.0, mode: str = "warn"):
 
 
 # ──────────────────────────────────────────────
-#  Senkron İstemci
+#  Synchronous Client
 # ──────────────────────────────────────────────
 
 class GarlClient:
-    """GARL Protocol v1.0 Sovereign Trust Layer senkron istemcisi."""
+    """GARL Protocol v1.0 Sovereign Trust Layer synchronous client."""
 
     def __init__(
         self,
@@ -213,8 +213,8 @@ class GarlClient:
         proof_of_result: dict | None = None,
         pii_mask: bool = False,
     ) -> dict:
-        """Yürütme izini gönderir ve imzalı sertifika alır.
-        Enterprise PII koruması için pii_mask=True kullanın (input/output özetlerini hash'ler)."""
+        """Submit an execution trace and receive a signed certificate.
+        Use pii_mask=True for enterprise PII protection (hashes input/output summaries)."""
         payload = {
             "agent_id": self.agent_id,
             "task_description": task,
@@ -241,7 +241,7 @@ class GarlClient:
         return resp.json()
 
     def verify_batch(self, traces: list[dict]) -> dict:
-        """Tek istekte en fazla 50 iz gönderir."""
+        """Submit up to 50 traces in a single request."""
         for t in traces:
             t.setdefault("agent_id", self.agent_id)
         resp = _retry_request(self._client.post, "/verify/batch", json={"traces": traces})
@@ -249,13 +249,13 @@ class GarlClient:
         return resp.json()
 
     def get_history(self, limit: int = 50) -> list[dict]:
-        """Zaman içinde güven skoru geçmişini döner."""
+        """Return trust score history over time."""
         resp = self._client.get(f"/agents/{self.agent_id}/history", params={"limit": limit})
         resp.raise_for_status()
         return resp.json()
 
     def check_trust(self, target_agent_id: str) -> dict:
-        """A2A: Delegasyondan önce başka bir ajanın güvenilirliğini doğrular."""
+        """A2A: Verify another agent's trustworthiness before delegation."""
         resp = _retry_request(self._client.get, f"/trust/verify?agent_id={target_agent_id}")
         resp.raise_for_status()
         return resp.json()
@@ -267,9 +267,9 @@ class GarlClient:
         require_verified: bool = False,
     ) -> dict:
         """
-        Trust Gate: hedef ajanın yeterli güven puanına sahip olup olmadığını kontrol eder.
+        Trust Gate: check whether a target agent has a sufficient trust score.
 
-        Dönen dict: trusted, score, registered, recommendation, reason
+        Returns dict: trusted, score, registered, recommendation, reason
         """
         try:
             data = self.check_trust(target_agent_id)
@@ -312,33 +312,33 @@ class GarlClient:
         }
 
     def get_agent_card(self, target_agent_id: str | None = None) -> dict:
-        """Güven profili ve yeteneklerle Agent Card alır."""
+        """Retrieve the Agent Card with trust profile and capabilities."""
         aid = target_agent_id or self.agent_id
         resp = self._client.get(f"/agents/{aid}/card")
         resp.raise_for_status()
         return resp.json()
 
     def get_score(self) -> dict:
-        """Mevcut ajan profilini alır."""
+        """Retrieve the current agent profile."""
         resp = self._client.get(f"/agents/{self.agent_id}")
         resp.raise_for_status()
         return resp.json()
 
     def get_detail(self) -> dict:
-        """İzler, geçmiş ve bozulma projeksiyonu ile tam ajan detayını alır."""
+        """Retrieve full agent detail with traces, history and decay projection."""
         resp = self._client.get(f"/agents/{self.agent_id}/detail")
         resp.raise_for_status()
         return resp.json()
 
     def compare_with(self, *agent_ids: str) -> list[dict]:
-        """Bu ajansı diğerleriyle yan yana karşılaştırır."""
+        """Compare this agent side-by-side with others."""
         all_ids = [self.agent_id] + list(agent_ids)
         resp = self._client.get(f"/compare?agents={','.join(all_ids)}")
         resp.raise_for_status()
         return resp.json()
 
     def register_webhook(self, url: str, events: list[str] | None = None) -> dict:
-        """Skor değişiklikleri, kilometre taşları ve anomaliler için webhook kaydeder."""
+        """Register a webhook for score changes, milestones, and anomalies."""
         payload = {
             "agent_id": self.agent_id,
             "url": url,
@@ -349,14 +349,14 @@ class GarlClient:
         return resp.json()
 
     def list_webhooks(self) -> list[dict]:
-        """Bu ajan için tüm webhook'ları listeler."""
+        """List all webhooks for this agent."""
         resp = self._client.get(f"/webhooks/{self.agent_id}")
         resp.raise_for_status()
         return resp.json()
 
     def update_webhook(self, webhook_id: str, is_active: bool | None = None,
                        url: str | None = None, events: list[str] | None = None) -> dict:
-        """Webhook günceller (aktif/pasif, URL veya event değişikliği)."""
+        """Update a webhook (active/inactive, URL, or event changes)."""
         payload = {}
         if is_active is not None:
             payload["is_active"] = is_active
@@ -369,22 +369,23 @@ class GarlClient:
         return resp.json()
 
     def delete_webhook(self, webhook_id: str) -> bool:
-        """Webhook siler."""
+        """Delete a webhook."""
         resp = self._client.delete(f"/webhooks/{self.agent_id}/{webhook_id}")
         resp.raise_for_status()
         return True
 
     def search(self, query: str = "", category: str | None = None, limit: int = 10) -> list[dict]:
-        """İsim, açıklama veya kategoriye göre ajan arar."""
+        """Search agents by name, description, or category."""
         params = {"q": query, "limit": limit}
         if category:
             params["category"] = category
         resp = self._client.get("/search", params=params)
         resp.raise_for_status()
-        return resp.json()
+        result = resp.json()
+        return result.get("data", result) if isinstance(result, dict) else result
 
     def find_trusted_agent(self, category: str = "other", min_score: float = 65.0) -> dict | None:
-        """Belirli kategoride minimum skorun üzerindeki en güvenilir ajansı bulur."""
+        """Find the most trusted agent in a category above the minimum score."""
         agents = self.search(category=category, limit=5)
         for agent in agents:
             if float(agent.get("trust_score", 0)) >= min_score:
@@ -400,16 +401,16 @@ class GarlClient:
         block_bronze: bool = True,
         min_tier: str = "silver",
     ) -> bool:
-        """Proaktif delegasyon koruması — güvensiz hedefleri otomatik engeller.
+        """Proactive delegation guard — automatically blocks unsafe targets.
 
-        Tüm kriterler karşılanırsa True döner:
-        - Güven skoru >= min_score (varsayılan 60)
-        - Doğrulanmış (>= 10 iz) eğer require_verified True ise
-        - Aktif anomali bayrağı yok eğer block_anomalies True ise
-        - Risk seviyesi 'critical' veya 'high' değil
-        - Sertifikasyon kademesi >= min_tier (varsayılan silver); bronze varsayılan olarak engellenir
+        Returns True when all criteria are met:
+        - Trust score >= min_score (default 60)
+        - Verified (>= 10 traces) if require_verified is True
+        - No active anomaly flags if block_anomalies is True
+        - Risk level is not 'critical' or 'high'
+        - Certification tier >= min_tier (default silver); bronze is blocked by default
 
-        Kullanım:
+        Usage:
             if client.should_delegate("target-uuid"):
                 result = delegate_to(target)
             else:
@@ -445,7 +446,7 @@ class GarlClient:
             logger.info("GARL guard: %s blocked (risk_level=%s, tier=%s)", target_agent_id, risk, tier)
             return False
 
-        # Sertifikasyon kademesi kontrolü (bronze varsayılan olarak engellenir)
+        # Certification tier check (bronze blocked by default)
         target_tier = trust.get("certification_tier", "bronze")
         target_tier_idx = tier_order.index(target_tier) if target_tier in tier_order else 0
         if block_bronze and target_tier == "bronze":
@@ -459,7 +460,7 @@ class GarlClient:
         return True
 
     def get_delegation_report(self, target_agent_id: str) -> dict:
-        """Eyleme geçirilebilir öneri ile tam delegasyon analizi."""
+        """Full delegation analysis with actionable recommendation."""
         trust = self.check_trust(target_agent_id)
         return {
             "agent_id": target_agent_id,
@@ -476,34 +477,34 @@ class GarlClient:
         }
 
     def endorse(self, target_agent_id: str, context: str = "") -> dict:
-        """Başka bir ajansı onaylar (A2A itibar transferi)."""
+        """Endorse another agent (A2A reputation transfer)."""
         payload = {"target_agent_id": target_agent_id, "context": context}
         resp = self._client.post("/endorse", json=payload)
         resp.raise_for_status()
         return resp.json()
 
     def get_endorsements(self, agent_id: str | None = None) -> dict:
-        """Bir ajan için onayları alır."""
+        """Retrieve endorsements for an agent."""
         aid = agent_id or self.agent_id
         resp = self._client.get(f"/endorsements/{aid}")
         resp.raise_for_status()
         return resp.json()
 
     def track(self, task: str, category: str = "other", cost_usd: float | None = None):
-        """Süre ve durumu otomatik raporlayan bağlam yöneticisi."""
+        """Context manager that automatically reports duration and status."""
         return _TrackedExecution(self, task, category, cost_usd)
 
-    # ─── v1.0 Sovereign Trust Layer yeni metodlar ───
+    # ─── v1.0 Sovereign Trust Layer new methods ───
 
     def route(self, category: str, min_tier: str = "silver", limit: int = 3) -> dict:
-        """GET /api/v1/trust/route — Kategori ve kademe filtresiyle en güvenilir ajanları önerir."""
+        """GET /api/v1/trust/route — Recommend most trusted agents by category and tier filter."""
         params = {"category": category, "min_tier": min_tier, "limit": limit}
         resp = self._client.get("/trust/route", params=params)
         resp.raise_for_status()
         return resp.json()
 
     def find_best_agent(self, category: str, min_tier: str = "silver") -> dict | None:
-        """route() çağırır ve en iyi eşleşmeyi döner."""
+        """Call route() and return the best match."""
         result = self.route(category, min_tier=min_tier, limit=3)
         agents = result.get("agents", [])
         return agents[0] if agents else None
@@ -525,24 +526,24 @@ class GarlClient:
         return resp.json()
 
     def get_compliance(self, agent_id: str | None = None) -> dict:
-        """GET /api/v1/agents/{agent_id}/compliance — Kurumsal uyumluluk raporu."""
+        """GET /api/v1/agents/{agent_id}/compliance — Enterprise compliance report."""
         aid = agent_id or self.agent_id
         resp = self._client.get(f"/agents/{aid}/compliance")
         resp.raise_for_status()
         return resp.json()
 
     def get_sovereign_id(self) -> str | None:
-        """Ajanın DID'sini get_score() üzerinden döner."""
+        """Return the agent's DID via get_score()."""
         score = self.get_score()
         return score.get("sovereign_id")
 
     def get_tier(self) -> str:
-        """Ajanın sertifikasyon kademesini get_score() üzerinden döner."""
+        """Return the agent's certification tier via get_score()."""
         score = self.get_score()
         return score.get("certification_tier", "bronze")
 
     def close(self):
-        """HTTP istemcisini kapatır."""
+        """Close the HTTP client."""
         self._client.close()
 
     def heartbeat(
@@ -592,11 +593,11 @@ class GarlClient:
 
 
 # ──────────────────────────────────────────────
-#  Async İstemci
+#  Async Client
 # ──────────────────────────────────────────────
 
 class AsyncGarlClient:
-    """httpx.AsyncClient kullanan GarlClient'ın async sürümü."""
+    """Async version of GarlClient using httpx.AsyncClient."""
 
     def __init__(
         self,
@@ -614,7 +615,7 @@ class AsyncGarlClient:
         )
 
     async def _retry(self, fn, *args, **kwargs):
-        """5xx ve bağlantı hatalarında async yeniden deneme."""
+        """Async retry on 5xx and connection errors."""
         import asyncio
         last_exc = None
         for attempt in range(MAX_RETRIES):
@@ -645,7 +646,7 @@ class AsyncGarlClient:
         proof_of_result: dict | None = None,
         pii_mask: bool = False,
     ) -> dict:
-        """Yürütme izini asenkron olarak gönderir."""
+        """Submit an execution trace asynchronously."""
         payload = {
             "agent_id": self.agent_id,
             "task_description": task,
@@ -672,7 +673,7 @@ class AsyncGarlClient:
         return resp.json()
 
     async def verify_batch(self, traces: list[dict]) -> dict:
-        """Tek istekte en fazla 50 iz gönderir."""
+        """Submit up to 50 traces in a single request."""
         for t in traces:
             t.setdefault("agent_id", self.agent_id)
         resp = await self._retry(self._client.post, "/verify/batch", json={"traces": traces})
@@ -680,45 +681,45 @@ class AsyncGarlClient:
         return resp.json()
 
     async def get_history(self, limit: int = 50) -> list[dict]:
-        """Zaman içinde güven skoru geçmişini döner."""
+        """Return trust score history over time."""
         resp = await self._client.get(f"/agents/{self.agent_id}/history", params={"limit": limit})
         resp.raise_for_status()
         return resp.json()
 
     async def check_trust(self, target_agent_id: str) -> dict:
-        """A2A: Başka bir ajanın güvenilirliğini asenkron doğrular."""
+        """A2A: Asynchronously verify another agent's trustworthiness."""
         resp = await self._retry(self._client.get, f"/trust/verify?agent_id={target_agent_id}")
         resp.raise_for_status()
         return resp.json()
 
     async def get_agent_card(self, target_agent_id: str | None = None) -> dict:
-        """Agent Card alır."""
+        """Retrieve the Agent Card."""
         aid = target_agent_id or self.agent_id
         resp = await self._client.get(f"/agents/{aid}/card")
         resp.raise_for_status()
         return resp.json()
 
     async def get_score(self) -> dict:
-        """Mevcut ajan profilini alır."""
+        """Retrieve the current agent profile."""
         resp = await self._client.get(f"/agents/{self.agent_id}")
         resp.raise_for_status()
         return resp.json()
 
     async def get_detail(self) -> dict:
-        """Tam ajan detayını alır."""
+        """Retrieve full agent detail."""
         resp = await self._client.get(f"/agents/{self.agent_id}/detail")
         resp.raise_for_status()
         return resp.json()
 
     async def compare_with(self, *agent_ids: str) -> list[dict]:
-        """Bu ajansı diğerleriyle karşılaştırır."""
+        """Compare this agent with others."""
         all_ids = [self.agent_id] + list(agent_ids)
         resp = await self._client.get(f"/compare?agents={','.join(all_ids)}")
         resp.raise_for_status()
         return resp.json()
 
     async def register_webhook(self, url: str, events: list[str] | None = None) -> dict:
-        """Webhook kaydeder."""
+        """Register a webhook."""
         payload = {
             "agent_id": self.agent_id,
             "url": url,
@@ -729,14 +730,14 @@ class AsyncGarlClient:
         return resp.json()
 
     async def list_webhooks(self) -> list[dict]:
-        """Webhook'ları listeler."""
+        """List all webhooks."""
         resp = await self._client.get(f"/webhooks/{self.agent_id}")
         resp.raise_for_status()
         return resp.json()
 
     async def update_webhook(self, webhook_id: str, is_active: bool | None = None,
                              url: str | None = None, events: list[str] | None = None) -> dict:
-        """Webhook günceller."""
+        """Update a webhook."""
         payload = {}
         if is_active is not None:
             payload["is_active"] = is_active
@@ -749,22 +750,23 @@ class AsyncGarlClient:
         return resp.json()
 
     async def delete_webhook(self, webhook_id: str) -> bool:
-        """Webhook siler."""
+        """Delete a webhook."""
         resp = await self._client.delete(f"/webhooks/{self.agent_id}/{webhook_id}")
         resp.raise_for_status()
         return True
 
     async def search(self, query: str = "", category: str | None = None, limit: int = 10) -> list[dict]:
-        """Ajan arar."""
+        """Search agents by name, description, or category."""
         params = {"q": query, "limit": limit}
         if category:
             params["category"] = category
         resp = await self._client.get("/search", params=params)
         resp.raise_for_status()
-        return resp.json()
+        result = resp.json()
+        return result.get("data", result) if isinstance(result, dict) else result
 
     async def find_trusted_agent(self, category: str = "other", min_score: float = 65.0) -> dict | None:
-        """Kategoride en güvenilir ajansı bulur."""
+        """Find the most trusted agent in a category."""
         agents = await self.search(category=category, limit=5)
         for agent in agents:
             if float(agent.get("trust_score", 0)) >= min_score:
@@ -780,7 +782,7 @@ class AsyncGarlClient:
         block_bronze: bool = True,
         min_tier: str = "silver",
     ) -> bool:
-        """Proaktif delegasyon koruması (async)."""
+        """Proactive delegation guard (async)."""
         tier_order = ["bronze", "silver", "gold", "enterprise"]
         min_tier_idx = tier_order.index(min_tier) if min_tier in tier_order else 1
 
@@ -824,7 +826,7 @@ class AsyncGarlClient:
         return True
 
     async def get_delegation_report(self, target_agent_id: str) -> dict:
-        """Tam delegasyon analizi."""
+        """Full delegation analysis."""
         trust = await self.check_trust(target_agent_id)
         return {
             "agent_id": target_agent_id,
@@ -841,28 +843,28 @@ class AsyncGarlClient:
         }
 
     async def endorse(self, target_agent_id: str, context: str = "") -> dict:
-        """Başka bir ajansı onaylar."""
+        """Endorse another agent."""
         payload = {"target_agent_id": target_agent_id, "context": context}
         resp = await self._client.post("/endorse", json=payload)
         resp.raise_for_status()
         return resp.json()
 
     async def get_endorsements(self, agent_id: str | None = None) -> dict:
-        """Onayları alır."""
+        """Retrieve endorsements."""
         aid = agent_id or self.agent_id
         resp = await self._client.get(f"/endorsements/{aid}")
         resp.raise_for_status()
         return resp.json()
 
     async def route(self, category: str, min_tier: str = "silver", limit: int = 3) -> dict:
-        """Kategori ve kademe ile routing."""
+        """Route by category and tier."""
         params = {"category": category, "min_tier": min_tier, "limit": limit}
         resp = await self._client.get("/trust/route", params=params)
         resp.raise_for_status()
         return resp.json()
 
     async def find_best_agent(self, category: str, min_tier: str = "silver") -> dict | None:
-        """En iyi ajansı bulur."""
+        """Find the best agent."""
         result = await self.route(category, min_tier=min_tier, limit=3)
         agents = result.get("agents", [])
         return agents[0] if agents else None
@@ -884,24 +886,24 @@ class AsyncGarlClient:
         return resp.json()
 
     async def get_compliance(self, agent_id: str | None = None) -> dict:
-        """Uyumluluk raporu alır."""
+        """Retrieve compliance report."""
         aid = agent_id or self.agent_id
         resp = await self._client.get(f"/agents/{aid}/compliance")
         resp.raise_for_status()
         return resp.json()
 
     async def get_sovereign_id(self) -> str | None:
-        """Ajanın DID'sini döner."""
+        """Return the agent's DID."""
         score = await self.get_score()
         return score.get("sovereign_id")
 
     async def get_tier(self) -> str:
-        """Ajanın sertifikasyon kademesini döner."""
+        """Return the agent's certification tier."""
         score = await self.get_score()
         return score.get("certification_tier", "bronze")
 
     async def track(self, task: str, fn, category: str = "other", cost_usd: float | None = None):
-        """Async fonksiyonun yürütmesini otomatik izler."""
+        """Automatically track an async function's execution."""
         start = time.time()
         status = "success"
         result = None
@@ -918,7 +920,7 @@ class AsyncGarlClient:
             return {"result": result, "certificate": cert}
 
     async def close(self):
-        """HTTP istemcisini kapatır."""
+        """Close the HTTP client."""
         await self._client.aclose()
 
     async def __aenter__(self):
@@ -929,11 +931,11 @@ class AsyncGarlClient:
 
 
 # ──────────────────────────────────────────────
-#  Bağlam Yöneticisi
+#  Context Manager
 # ──────────────────────────────────────────────
 
 class _TrackedExecution:
-    """Süre ve durumu otomatik raporlayan context manager."""
+    """Context manager that automatically reports duration and status."""
 
     def __init__(self, client: GarlClient, task: str, category: str, cost_usd: float | None):
         self.client = client
@@ -965,7 +967,7 @@ class _TrackedExecution:
 # ──────────────────────────────────────────────
 
 class OpenClawAdapter:
-    """OpenClaw ajanları için adaptör — otomatik iz raporlama + güven-gated delegasyon."""
+    """Adapter for OpenClaw agents — automatic trace reporting + trust-gated delegation."""
 
     def __init__(self, api_key: str, agent_id: str, base_url: str = "https://api.garl.ai/api/v1"):
         self.client = GarlClient(api_key, agent_id, base_url)
@@ -975,7 +977,7 @@ class OpenClawAdapter:
                     channel: str | None = None, session_id: str | None = None,
                     tool_calls: list[dict] | None = None, cost_usd: float | None = None,
                     category: str = "") -> dict:
-        """OpenClaw görev tamamlanma olayını GARL izine dönüştürür."""
+        """Convert an OpenClaw task completion event into a GARL trace."""
         payload = {
             "agent_id": self.agent_id, "message": message, "status": status,
             "duration_ms": duration_ms, "category": category, "runtime_env": "openclaw",
@@ -991,7 +993,7 @@ class OpenClawAdapter:
 
     def should_delegate(self, target_agent_id: str, min_score: float = 50.0,
                         require_verified: bool = False, block_anomalies: bool = False) -> bool:
-        """Güven-gated delegasyon kararı."""
+        """Trust-gated delegation decision."""
         try:
             trust = self.client.check_trust(target_agent_id)
         except Exception:
@@ -1003,7 +1005,7 @@ class OpenClawAdapter:
             return False
         if block_anomalies and len(trust.get("anomalies", [])) > 0:
             return False
-        # Bronze tier varsayılan olarak engellenir
+        # Bronze tier blocked by default
 
         tier = trust.get("certification_tier", "bronze")
         if tier == "bronze":
@@ -1011,7 +1013,7 @@ class OpenClawAdapter:
         return True
 
     def get_delegation_recommendation(self, target_agent_id: str) -> dict:
-        """Detaylı delegasyon önerisi."""
+        """Detailed delegation recommendation."""
         trust = self.client.check_trust(target_agent_id)
         return {
             "agent_id": target_agent_id,
@@ -1027,17 +1029,17 @@ class OpenClawAdapter:
         }
 
     def find_best_agent_for(self, category: str, min_score: float = 65.0) -> dict | None:
-        """Kategoride en iyi ajansı bulur (eski API uyumluluğu)."""
+        """Find the best agent in a category (legacy API compatibility)."""
         return self.client.find_trusted_agent(category, min_score)
 
     def route(self, category: str, min_tier: str = "silver", limit: int = 3) -> dict:
-        """GET /api/v1/trust/route — Kategori ve kademe ile en güvenilir ajanları önerir."""
+        """GET /api/v1/trust/route — Recommend most trusted agents by category and tier."""
         return self.client.route(category, min_tier=min_tier, limit=limit)
 
     def find_best_agent(self, category: str, min_tier: str = "silver") -> dict | None:
-        """route() çağırır ve en iyi eşleşmeyi döner."""
+        """Call route() and return the best match."""
         return self.client.find_best_agent(category, min_tier=min_tier)
 
     def close(self):
-        """İstemci bağlantısını kapatır."""
+        """Close the client connection."""
         self.client.close()

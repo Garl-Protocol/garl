@@ -727,7 +727,6 @@ body{{background:#0a0a1a;font-family:ui-monospace,SFMono-Regular,Consolas,monosp
     return HTMLResponse(
         content=html,
         headers={
-            "X-Frame-Options": "ALLOWALL",
             "Content-Security-Policy": "frame-ancestors *",
             "Cache-Control": "public, max-age=300",
         },

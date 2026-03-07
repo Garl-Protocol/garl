@@ -5,7 +5,7 @@ Automatically report LangChain execution traces to GARL Protocol.
 ## Installation
 
 ```bash
-pip install garl httpx langchain-core
+pip install garl-protocol httpx langchain-core
 ```
 
 ## Usage

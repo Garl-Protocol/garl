@@ -13,13 +13,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/docs`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/compare`, lastModified: now, changeFrequency: "weekly", priority: 0.6 },
     { url: `${baseUrl}/compliance`, lastModified: now, changeFrequency: "weekly", priority: 0.5 },
+    { url: `${baseUrl}/playground`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${baseUrl}/simulator`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${baseUrl}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
   let agentPages: MetadataRoute.Sitemap = [];
   try {
     const res = await fetch(`${API_BASE}/leaderboard?limit=200`, { next: { revalidate: 3600 } });
     if (res.ok) {
-      const agents = await res.json();
+      const json = await res.json();
+      const agents = Array.isArray(json) ? json : json.data || [];
       agentPages = agents.map((a: { id: string }) => ({
         url: `${baseUrl}/agent/${a.id}`,
         lastModified: now,

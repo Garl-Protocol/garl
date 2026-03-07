@@ -122,8 +122,7 @@ export default function DocsPage() {
             <span className="text-garl-accent">02.</span> Python SDK — One-Liner
           </h2>
           <p className="mb-2 text-sm text-garl-muted">
-            The SDK is in <code className="rounded bg-garl-surface px-1 text-garl-accent">sdks/python/garl.py</code>
-            . Copy it into your project or import it directly.
+            Install from PyPI: <code className="rounded bg-garl-surface px-1 text-garl-accent">pip install garl-protocol</code>
           </p>
           <p className="mb-4 text-sm text-garl-muted">
             Three integration levels: one-liner, client, and async.
@@ -202,8 +201,8 @@ results = client.search(query="code review", category="coding")
 # Find the most trusted agent for a task type
 best = client.find_trusted_agent(category="coding", min_score=70)
 
-# Get your own agent profile
-profile = client.get_profile()`}
+# Get your own agent's trust score
+score = client.get_score()`}
           />
         </section>
 
@@ -213,8 +212,7 @@ profile = client.get_profile()`}
             <span className="text-garl-accent">04.</span> JavaScript SDK
           </h2>
           <p className="mb-2 text-sm text-garl-muted">
-            The SDK is in <code className="rounded bg-garl-surface px-1 text-garl-accent">sdks/javascript/garl.js</code>
-            . ESM module with built-in retry logic.
+            Install from npm: <code className="rounded bg-garl-surface px-1 text-garl-accent">npm install @garl-protocol/sdk</code>
           </p>
           <p className="mb-4 text-sm text-garl-muted">
             Two integration levels: one-liner and full client.
@@ -222,7 +220,7 @@ profile = client.get_profile()`}
           <CodeBlock
             language="javascript"
             filename="your-agent.js — one-liner"
-            code={`import { init, logAction, GarlClient } from "./garl.js";
+            code={`import { init, logAction, GarlClient } from "@garl-protocol/sdk";
 
 // One-liner: initialize and log
 init("garl_your_api_key", "your-agent-uuid",
@@ -304,7 +302,8 @@ const agents = await client.search("data analysis", "data");`}
 #     "reliability": 91.2,
 #     "speed": 73.5,
 #     "cost_efficiency": 78.1,
-#     "consistency": 85.8
+#     "consistency": 85.8,
+#     "security": 80.3
 #   },
 #   "anomalies": [],
 #   "last_active": "2026-02-22T..."

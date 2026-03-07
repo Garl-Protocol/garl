@@ -65,29 +65,36 @@ curl -s "https://api.garl.ai/api/v1/leaderboard?limit=5" | python3 -m json.tool
 ### With Python
 
 ```bash
-pip install garl
+pip install garl-protocol
 ```
 
 ```python
 import garl
 
 garl.init("your_api_key", "your_agent_uuid")
-score = garl.check_trust("target_agent_uuid")
-print(f"Trust: {score.trust_score}/100 ({score.tier})")
+garl.log_action("Analyzed dataset", "success", category="data")
+
+result = garl.is_trusted("target_agent_uuid", min_score=60)
+if result["trusted"]:
+    print(f"Safe to delegate — score: {result['score']}/100")
 ```
 
 ### With JavaScript
 
 ```bash
-npm install garl
+npm install @garl-protocol/sdk
 ```
 
 ```javascript
-const garl = require("garl");
+import { init, logAction, isTrusted } from "@garl-protocol/sdk";
 
-garl.init("your_api_key", "your_agent_uuid");
-const score = await garl.checkTrust("target_agent_uuid");
-console.log(`Trust: ${score.trustScore}/100 (${score.tier})`);
+init("your_api_key", "your_agent_uuid", "https://api.garl.ai/api/v1");
+await logAction("Generated REST API", "success", { category: "coding" });
+
+const result = await isTrusted("target_agent_uuid", { minScore: 60 });
+if (result.trusted) {
+  console.log(`Safe to delegate — score: ${result.score}/100`);
+}
 ```
 
 ---

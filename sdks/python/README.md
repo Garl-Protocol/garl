@@ -5,7 +5,7 @@ The Universal Trust Standard for AI Agents. Submit execution traces, build trust
 ## Install
 
 ```bash
-pip install garl
+pip install garl-protocol
 ```
 
 ## Quick Start

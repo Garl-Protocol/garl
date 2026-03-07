@@ -1,30 +1,30 @@
 /**
  * GARL Protocol JavaScript SDK v5 — Sovereign Trust Layer
  *
- * Dört entegrasyon seviyesi:
+ * Four integration levels:
  *
- * 1. Tek satır:
- *    import garl from './garl.js';
+ * 1. One-liner:
+ *    import garl from '@garl-protocol/sdk';
  *    garl.init('garl_key', 'agent-uuid');
- *    garl.logAction('API dokümantasyonu oluşturuldu', 'success', { category: 'coding' });
+ *    garl.logAction('Generated API docs', 'success', { category: 'coding' });
  *
- * 2. İstemci (tam kontrol):
- *    import { GarlClient } from './garl.js';
+ * 2. Client (full control):
+ *    import { GarlClient } from '@garl-protocol/sdk';
  *    const client = new GarlClient('garl_key', 'agent-uuid');
  *    const cert = await client.verify({ status: 'success', task: '...', durationMs: 1250 });
  *
- * 3. Proaktif koruma:
+ * 3. Proactive guard:
  *    if (await client.shouldDelegate('target-uuid')) { ... }
  *
- * 4. OpenClaw adaptörü:
- *    import { OpenClawAdapter } from './garl.js';
+ * 4. OpenClaw adapter:
+ *    import { OpenClawAdapter } from '@garl-protocol/sdk';
  *    const adapter = new OpenClawAdapter('garl_key', 'agent-uuid');
  */
 
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2000, 4000];
 
-/** 5xx hatalarında üstel geri çekilme ile yeniden deneme (1s, 2s, 4s). */
+/** Retry with exponential backoff on 5xx errors (1s, 2s, 4s). */
 async function retryFetch(url, options, retries = MAX_RETRIES) {
   let lastErr;
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -44,7 +44,7 @@ async function retryFetch(url, options, retries = MAX_RETRIES) {
 }
 
 // ──────────────────────────────────────────────
-//  Modül seviyesi tek satır API
+//  Module-level one-liner API
 // ──────────────────────────────────────────────
 
 let _defaultClient = null;
@@ -74,7 +74,7 @@ export function logAction(task, result = "success", options = {}) {
 }
 
 /**
- * Trust Gate: hedef ajanın güvenilirliğini kontrol eder.
+ * Trust Gate: checks target agent's trustworthiness.
  *
  * @param {string} targetAgentId
  * @param {object} [options]
@@ -91,12 +91,12 @@ export async function isTrusted(targetAgentId, options = {}) {
 }
 
 /**
- * Trust Gate dekoratör kalıbı: fn çağrılmadan önce güven kontrolü yapar.
+ * Trust Gate decorator pattern: performs trust check before calling fn.
  *
- * @param {Function} fn - İlk argümanı targetAgentId olan fonksiyon
+ * @param {Function} fn - Function whose first argument is targetAgentId
  * @param {object} [options]
  * @param {number} [options.minScore=50]
- * @param {string} [options.mode="warn"] - "warn" veya "block"
+ * @param {string} [options.mode="warn"] - "warn" or "block"
  */
 export function requireTrust(fn, options = {}) {
   const { minScore = 50, mode = "warn" } = options;
@@ -115,7 +115,7 @@ export function requireTrust(fn, options = {}) {
 }
 
 // ──────────────────────────────────────────────
-//  Tam İstemci
+//  Full Client
 // ──────────────────────────────────────────────
 
 export class GarlClient {
@@ -238,7 +238,8 @@ export class GarlClient {
     if (category) params.set("category", category);
     const res = await fetch(`${this.baseUrl}/search?${params}`);
     if (!res.ok) throw new Error(`GARL API error: ${res.status}`);
-    return res.json();
+    const result = await res.json();
+    return Array.isArray(result) ? result : (result.data || result);
   }
 
   async findTrustedAgent(category = "other", minScore = 65) {
@@ -246,7 +247,7 @@ export class GarlClient {
     return agents.find((a) => parseFloat(a.trust_score) >= minScore) || null;
   }
 
-  /** Proaktif delegasyon koruması — sertifikasyon kademesi (certification_tier) kontrolü dahil. Bronze varsayılan olarak engellenir. */
+  /** Proactive delegation guard — includes certification_tier check. Bronze is blocked by default. */
   async shouldDelegate(targetAgentId, {
     minScore = 60,
     requireVerified = true,
@@ -382,9 +383,9 @@ export class GarlClient {
     }
   }
 
-  // ─── v1.0 Sovereign Trust Layer yeni metodlar ───
+  // ─── v1.0 Sovereign Trust Layer new methods ───
 
-  /** GET /api/v1/trust/route — Kategori ve kademe filtresiyle en güvenilir ajanları önerir. */
+  /** GET /api/v1/trust/route — Recommends most trusted agents filtered by category and tier. */
   async route(category, minTier = "silver", limit = 3) {
     const params = new URLSearchParams({ category, min_tier: minTier, limit: String(limit) });
     const res = await retryFetch(`${this.baseUrl}/trust/route?${params}`, {});
@@ -392,14 +393,14 @@ export class GarlClient {
     return res.json();
   }
 
-  /** route() çağırır ve en iyi eşleşmeyi döner. */
+  /** Calls route() and returns the best match. */
   async findBestAgent(category, minTier = "silver") {
     const result = await this.route(category, minTier, 3);
     const agents = result.agents || [];
     return agents[0] || null;
   }
 
-  /** DELETE /api/v1/agents/{agentId} — GDPR uyumlu yumuşak silme. */
+  /** DELETE /api/v1/agents/{agentId} — GDPR-compliant soft delete. */
   async softDelete(confirmation = "DELETE_CONFIRMED") {
     if (confirmation !== "DELETE_CONFIRMED") {
       throw new Error("confirmation must be 'DELETE_CONFIRMED'");
@@ -413,7 +414,7 @@ export class GarlClient {
     return res.json();
   }
 
-  /** POST /api/v1/agents/{agentId}/anonymize — GDPR uyumlu anonimleştirme. */
+  /** POST /api/v1/agents/{agentId}/anonymize — GDPR-compliant anonymization. */
   async anonymize(confirmation = "ANONYMIZE_CONFIRMED") {
     if (confirmation !== "ANONYMIZE_CONFIRMED") {
       throw new Error("confirmation must be 'ANONYMIZE_CONFIRMED'");
@@ -427,7 +428,7 @@ export class GarlClient {
     return res.json();
   }
 
-  /** GET /api/v1/agents/{agentId}/compliance — Kurumsal uyumluluk raporu. */
+  /** GET /api/v1/agents/{agentId}/compliance — Enterprise compliance report. */
   async getCompliance(agentId = null) {
     const aid = agentId || this.agentId;
     const res = await retryFetch(`${this.baseUrl}/agents/${aid}/compliance`, {
@@ -437,13 +438,13 @@ export class GarlClient {
     return res.json();
   }
 
-  /** Ajanın DID'sini (sovereign_id) get_score() üzerinden döner. */
+  /** Returns the agent's DID (sovereign_id) via getScore(). */
   async getSovereignId() {
     const score = await this.getScore();
     return score.sovereign_id ?? null;
   }
 
-  /** Ajanın sertifikasyon kademesini get_score() üzerinden döner. */
+  /** Returns the agent's certification tier via getScore(). */
   async getTier() {
     const score = await this.getScore();
     return score.certification_tier || "bronze";
@@ -451,7 +452,7 @@ export class GarlClient {
 }
 
 // ──────────────────────────────────────────────
-//  OpenClaw Adaptörü
+//  OpenClaw Adapter
 // ──────────────────────────────────────────────
 
 export class OpenClawAdapter {
@@ -510,12 +511,12 @@ export class OpenClawAdapter {
     return this.client.findTrustedAgent(category, minScore);
   }
 
-  /** GET /api/v1/trust/route — Kategori ve kademe ile en güvenilir ajanları önerir. */
+  /** GET /api/v1/trust/route — Recommends most trusted agents by category and tier. */
   async route(category, minTier = "silver", limit = 3) {
     return this.client.route(category, minTier, limit);
   }
 
-  /** route() çağırır ve en iyi eşleşmeyi döner. */
+  /** Calls route() and returns the best match. */
   async findBestAgent(category, minTier = "silver") {
     return this.client.findBestAgent(category, minTier);
   }

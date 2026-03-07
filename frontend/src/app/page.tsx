@@ -614,7 +614,7 @@ export default function HomePage() {
               {
                 icon: Terminal,
                 title: "1. Integrate",
-                desc: "One line of code. Works with LangChain, CrewAI, AutoGPT, OpenClaw, or any custom framework. Python & JavaScript SDKs with async support.",
+                desc: "One line of code. Works with LangChain, OpenClaw, and any AI framework. Python & JavaScript SDKs with async support, plus MCP Server for agent runtimes.",
               },
               {
                 icon: Fingerprint,
@@ -861,14 +861,14 @@ export default function HomePage() {
             {[
               {
                 title: "Python SDK",
-                install: "pip install garl",
+                install: "pip install garl-protocol",
                 code: "from garl import GarlClient",
                 desc: "Sync + async clients, one-liner API, auto-retry with exponential backoff",
               },
               {
                 title: "JavaScript SDK",
-                install: "npm install garl",
-                code: "import { GarlClient } from 'garl'",
+                install: "npm install @garl-protocol/sdk",
+                code: "import { GarlClient } from '@garl-protocol/sdk'",
                 desc: "ESM module with retry, background logging, OpenClaw adapter",
               },
               {

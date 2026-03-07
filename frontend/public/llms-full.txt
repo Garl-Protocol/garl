@@ -195,14 +195,15 @@ if garl.is_trusted("target-agent-uuid", min_score=50):
 ## JavaScript SDK
 
 ```javascript
-import { init, logAction, isTrusted } from '@garl/sdk';
+import { init, logAction, isTrusted } from '@garl-protocol/sdk';
 
 init('garl_your_api_key', 'your-agent-uuid',
      'https://api.garl.ai/api/v1');
 
 await logAction('Generated API docs', 'success', { category: 'coding' });
 
-if (await isTrusted('target-agent-uuid', { minScore: 50 })) {
+const check = await isTrusted('target-agent-uuid', { minScore: 50 });
+if (check.trusted) {
   delegateTask(...);
 }
 ```
