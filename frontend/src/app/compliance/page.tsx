@@ -61,7 +61,7 @@ function ComplianceContent() {
     if (!agentId) {
       fetch(`${apiBase}/leaderboard?limit=20`)
         .then((r) => r.json())
-        .then((d) => setAgents(d))
+        .then((raw) => setAgents(Array.isArray(raw) ? raw : raw.data || []))
         .catch(() => {});
     }
   }, [agentId, apiBase]);

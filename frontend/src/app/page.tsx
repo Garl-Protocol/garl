@@ -54,7 +54,10 @@ function LiveTrustFeed({ apiBase }: { apiBase: string }) {
   const fetchFeed = useCallback(async () => {
     try {
       const res = await fetch(`${apiBase}/feed?limit=8`);
-      if (res.ok) setFeed(await res.json());
+      if (res.ok) {
+        const json = await res.json();
+        setFeed(Array.isArray(json) ? json : json.data || []);
+      }
     } catch { /* silent */ }
   }, [apiBase]);
 
@@ -153,10 +156,11 @@ function TryItLive({ apiBase }: { apiBase: string }) {
   useEffect(() => {
     fetch(`${apiBase}/leaderboard?limit=10`)
       .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+      .then((raw) => {
+        const data = Array.isArray(raw) ? raw : raw.data || [];
+        if (data.length > 0) {
           setTopAgents(data.map((a: Record<string, unknown>) => ({ id: a.id as string, name: a.name as string, trust_score: a.trust_score as number })));
-          if (data[0]?.id) setPlaceholder(data[0].id);
+          if (data[0]?.id) setPlaceholder(data[0].id as string);
         }
       })
       .catch(() => {});

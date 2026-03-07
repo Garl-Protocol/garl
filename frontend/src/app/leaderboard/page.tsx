@@ -36,7 +36,10 @@ export default function LeaderboardPage() {
     try {
       const catParam = category !== "all" ? `&category=${category}` : "";
       const res = await fetch(`${apiBase}/leaderboard?limit=50${catParam}`);
-      if (res.ok) setEntries(await res.json());
+      if (res.ok) {
+        const json = await res.json();
+        setEntries(Array.isArray(json) ? json : json.data || []);
+      }
     } catch {
       // API not available
     } finally {

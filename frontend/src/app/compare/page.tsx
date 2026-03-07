@@ -48,7 +48,10 @@ function ComparePageInner() {
       setSearching(true);
       try {
         const res = await fetch(`${apiBase}/search?q=${encodeURIComponent(searchQuery)}&limit=8`);
-        if (res.ok) setSearchResults(await res.json());
+        if (res.ok) {
+          const json = await res.json();
+          setSearchResults(Array.isArray(json) ? json : json.data || []);
+        }
       } catch { /* ignore */ }
       setSearching(false);
     }, 300);

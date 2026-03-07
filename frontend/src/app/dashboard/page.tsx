@@ -38,7 +38,10 @@ export default function DashboardPage() {
         fetch(`${apiBase}/stats`),
         fetch(`${backendBase}/health`).catch(() => null),
       ]);
-      if (feedRes.ok) setFeed(await feedRes.json());
+      if (feedRes.ok) {
+        const feedJson = await feedRes.json();
+        setFeed(Array.isArray(feedJson) ? feedJson : feedJson.data || []);
+      }
       if (statsRes.ok) setStats(await statsRes.json());
       if (healthRes && healthRes.ok) {
         setHealthStatus("healthy");
