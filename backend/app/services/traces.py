@@ -51,7 +51,7 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
         raise PermissionError("Agent has been deactivated")
 
     api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-    if agent.get("api_key_hash") != api_key_hash:
+    if not hmac.compare_digest(agent.get("api_key_hash", ""), api_key_hash):
         raise PermissionError("Invalid API key for this agent")
 
     total_traces = int(agent["total_traces"])
@@ -168,6 +168,10 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
         "timestamp": now,
     }
     trace_hash = _compute_trace_hash(trace_raw)
+
+    dup_check = db.table("traces").select("id").eq("trace_hash", trace_hash).limit(1).execute()
+    if dup_check.data:
+        raise ValueError("Duplicate trace detected. This exact trace has already been submitted.")
 
     trace_payload = {
         **trace_raw,

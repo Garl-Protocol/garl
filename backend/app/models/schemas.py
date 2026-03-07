@@ -32,7 +32,14 @@ class AgentRegisterRequest(BaseModel):
     description: str = Field(default="", max_length=500)
     framework: str = Field(default="custom", max_length=50)
     category: TaskCategory = TaskCategory.other
-    homepage_url: str | None = None
+    homepage_url: str | None = Field(default=None, max_length=500)
+
+    @field_validator("homepage_url", mode="before")
+    @classmethod
+    def validate_url_scheme(cls, v: str | None) -> str | None:
+        if v and not v.startswith(("https://", "http://")):
+            return None
+        return v
     is_sandbox: bool = Field(
         default=False,
         description="Mark as sandbox/test agent. Sandbox agents are hidden from leaderboard."
@@ -193,6 +200,18 @@ class WebhookRegisterRequest(BaseModel):
     agent_id: str
     url: str = Field(..., max_length=500)
     events: list[str] | None = None
+
+    @field_validator("url", mode="before")
+    @classmethod
+    def validate_webhook_url(cls, v: str) -> str:
+        if not v.startswith("https://"):
+            raise ValueError("Webhook URL must use HTTPS scheme")
+        from urllib.parse import urlparse
+        parsed = urlparse(v)
+        blocked = {"localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "[::1]"}
+        if parsed.hostname and (parsed.hostname in blocked or parsed.hostname.startswith("10.") or parsed.hostname.startswith("192.168.") or parsed.hostname.startswith("172.")):
+            raise ValueError("Webhook URL must not point to private/internal addresses")
+        return v
 
 
 class BatchTraceRequest(BaseModel):

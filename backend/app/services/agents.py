@@ -1,4 +1,5 @@
 import uuid
+import hmac
 import secrets
 import hashlib
 import logging
@@ -210,6 +211,7 @@ def get_leaderboard(category: str | None = None, limit: int = 50, offset: int = 
 
     rows = res.data or []
     rows = batch_apply_decay_for_leaderboard(rows, db)
+    rows.sort(key=lambda r: (-float(r.get("trust_score", 0)), r.get("id", "")))
 
     entries = []
     for i, row in enumerate(rows, offset + 1):
@@ -573,7 +575,7 @@ def create_endorsement(endorser_id: str, target_id: str, context: str, api_key: 
     endorser = endorser_res.data[0]
 
     api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-    if endorser.get("api_key_hash") != api_key_hash:
+    if not hmac.compare_digest(endorser.get("api_key_hash", ""), api_key_hash):
         raise PermissionError("API key does not belong to endorser agent")
 
     if endorser_id == target_id:
@@ -692,7 +694,7 @@ def soft_delete_agent(agent_id: str, api_key: str) -> dict:
 
     agent = agent_res.data[0]
     api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-    if agent.get("api_key_hash") != api_key_hash:
+    if not hmac.compare_digest(agent.get("api_key_hash", ""), api_key_hash):
         raise PermissionError("Invalid API key")
 
     now = datetime.now(timezone.utc).isoformat()
@@ -720,7 +722,7 @@ def anonymize_agent(agent_id: str, api_key: str) -> dict:
 
     agent = agent_res.data[0]
     api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-    if agent.get("api_key_hash") != api_key_hash:
+    if not hmac.compare_digest(agent.get("api_key_hash", ""), api_key_hash):
         raise PermissionError("Invalid API key")
 
     # Anonymize personal data

@@ -1,5 +1,7 @@
 import re
 import time
+import json
+import hmac
 import hashlib
 import threading
 import contextvars
@@ -174,13 +176,21 @@ def _verify_agent_ownership(agent_id: str, api_key: str) -> dict:
 
 
 def _require_read_auth(x_api_key: str | None):
-    """Read authorization: API key required for detail/trace data."""
+    """Read authorization: requires a valid registered API key."""
     settings = get_settings()
-    if settings.read_auth_enabled and not x_api_key:
-        raise HTTPException(
-            status_code=401,
-            detail="API key required for this endpoint. Set x-api-key header."
-        )
+    if settings.read_auth_enabled:
+        if not x_api_key:
+            raise HTTPException(
+                status_code=401,
+                detail="API key required for this endpoint. Set x-api-key header."
+            )
+        import hmac
+        from app.core.supabase_client import get_supabase
+        key_hash = hashlib.sha256(x_api_key.encode()).hexdigest()
+        db = get_supabase()
+        match = db.table("agents").select("id").eq("api_key_hash", key_hash).limit(1).execute()
+        if not match.data:
+            raise HTTPException(status_code=403, detail="Invalid API key.")
 
 
 # --- Agent CRUD ---
@@ -305,7 +315,7 @@ async def read_agent_traces(agent_id: str, limit: int = 20, offset: int = 0):
     db = get_supabase()
     res = (
         db.table("traces")
-        .select("id,agent_id,task_description,status,duration_ms,category,trust_delta,created_at")
+        .select("id,agent_id,task_description,status,duration_ms,category,trust_delta,cost_usd,trace_hash,created_at")
         .eq("agent_id", agent_id)
         .order("created_at", desc=True)
         .range(offset, offset + limit - 1)
@@ -538,7 +548,21 @@ async def verify_batch(request: Request, req: BatchTraceRequest, x_api_key: str 
 
 @router.post("/verify/check")
 async def check_certificate(certificate: dict):
-    valid = verify_signature(certificate)
+    if "passport" in certificate and "signature" in certificate:
+        payload = certificate["passport"]
+        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        digest = hashlib.sha256(canonical.encode()).digest()
+        try:
+            from ecdsa import VerifyingKey, SECP256k1, BadSignatureError
+            vk = VerifyingKey.from_string(
+                bytes.fromhex(certificate.get("public_key", get_public_key_hex())),
+                curve=SECP256k1,
+            )
+            valid = vk.verify_digest(bytes.fromhex(certificate["signature"]), digest)
+        except Exception:
+            valid = False
+    else:
+        valid = verify_signature(certificate)
     return {"valid": valid, "public_key": get_public_key_hex()}
 
 
@@ -668,6 +692,8 @@ async def compare(agents: str):
         raise HTTPException(status_code=400, detail="Provide at least 2 agent IDs")
     if len(ids) > 10:
         raise HTTPException(status_code=400, detail="Maximum 10 agents")
+    for aid in ids:
+        _validate_uuid(aid, "agent_id")
     results = compare_agents(ids)
     return results
 
@@ -901,8 +927,9 @@ async def endorse_agent(request: Request, req: EndorsementRequest, x_api_key: st
         raise HTTPException(status_code=403, detail="Invalid API key")
     endorser_id = endorser_res.data[0]["id"]
 
+    safe_context = _strip_html(req.context, 500) if req.context else ""
     try:
-        result = create_endorsement(endorser_id, req.target_agent_id, req.context, x_api_key)
+        result = create_endorsement(endorser_id, req.target_agent_id, safe_context, x_api_key)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
