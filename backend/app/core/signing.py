@@ -44,6 +44,15 @@ def get_public_key_hex() -> str:
     return _get_signing_key().get_verifying_key().to_string().hex()
 
 
+def sign_payload(payload: dict) -> tuple[str, str]:
+    """Sign an arbitrary JSON payload; return (signature_hex, content_hash_hex)."""
+    sk = _get_signing_key()
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    digest = hashlib.sha256(canonical.encode()).digest()
+    signature = sk.sign_digest(digest).hex()
+    return signature, digest.hex()
+
+
 def sign_trace(trace_data: dict) -> dict:
     """Sign a trace payload and return a Proof-of-Success certificate."""
     sk = _get_signing_key()

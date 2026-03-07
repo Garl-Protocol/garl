@@ -3,6 +3,9 @@
 import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
+import {
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer,
+} from "recharts";
 import { GitCompareArrows, Search, Shield, Zap, DollarSign, Clock, Plus, X, Lock } from "lucide-react";
 import { formatScore, formatDuration, formatCost, getScoreColor } from "@/lib/utils";
 import type { Agent } from "@/lib/api";
@@ -229,6 +232,28 @@ function ComparePageInner() {
           animate={{ opacity: 1, y: 0 }}
           className="overflow-x-auto rounded-xl border border-garl-border bg-garl-surface"
         >
+          {agents.length > 0 && (
+            <div className="mb-6 rounded-xl border border-garl-border bg-garl-surface p-5">
+              <h3 className="mb-4 font-mono text-sm font-semibold">Dimension Overlay</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <RadarChart data={[
+                  { dimension: "Reliability", ...Object.fromEntries(agents.map(a => [a.name, (a as any).score_reliability ?? 50])) },
+                  { dimension: "Security", ...Object.fromEntries(agents.map(a => [a.name, (a as any).score_security ?? 50])) },
+                  { dimension: "Speed", ...Object.fromEntries(agents.map(a => [a.name, (a as any).score_speed ?? 50])) },
+                  { dimension: "Cost Eff.", ...Object.fromEntries(agents.map(a => [a.name, (a as any).score_cost_efficiency ?? 50])) },
+                  { dimension: "Consistency", ...Object.fromEntries(agents.map(a => [a.name, (a as any).score_consistency ?? 50])) },
+                ]}>
+                  <PolarGrid stroke="#2a2a3a" />
+                  <PolarAngleAxis dataKey="dimension" tick={{ fill: "#8b8ba7", fontSize: 11, fontFamily: "monospace" }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+                  {agents.map((a, i) => {
+                    const colors = ["#00ff88", "#3b82f6", "#a855f7", "#f59e0b", "#ef4444"];
+                    return <Radar key={a.id} name={a.name} dataKey={a.name} stroke={colors[i % colors.length]} fill={colors[i % colors.length]} fillOpacity={0.08} strokeWidth={2} />;
+                  })}
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
           <table className="w-full font-mono text-sm">
             <thead>
               <tr className="border-b border-garl-border text-left">

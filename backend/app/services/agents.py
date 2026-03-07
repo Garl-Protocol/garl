@@ -9,7 +9,7 @@ from app.core.signing import get_public_key_hex
 from app.models.schemas import AgentRegisterRequest
 from app.services.reputation import (
     project_decay, apply_time_decay, compute_endorsement_bonus,
-    compute_certification_tier, clamp_score, BASELINE,
+    compute_certification_tier, compute_confidence, clamp_score, BASELINE,
     TIER_ENDORSEMENT_MULTIPLIER,
 )
 
@@ -134,6 +134,14 @@ def get_agent(agent_id: str) -> dict | None:
     agent.pop("api_key", None)
     agent.pop("api_key_hash", None)
     agent = _apply_lazy_decay(agent, db)
+
+    score = float(agent.get("trust_score", BASELINE))
+    traces = int(agent.get("total_traces", 0))
+    confidence, margin = compute_confidence(traces)
+    agent["confidence"] = confidence
+    agent["trust_score_lower"] = round(max(0, score - margin), 2)
+    agent["trust_score_upper"] = round(min(100, score + margin), 2)
+
     return agent
 
 
@@ -179,13 +187,14 @@ def get_agent_detail(agent_id: str) -> dict | None:
     }
 
 
-def get_leaderboard(category: str | None = None, limit: int = 50, offset: int = 0) -> list[dict]:
+def get_leaderboard(category: str | None = None, limit: int = 50, offset: int = 0) -> dict:
     db = get_supabase()
     query = db.table("agents").select(
         "id, name, framework, category, trust_score, total_traces, success_rate, "
         "score_reliability, score_speed, score_cost_efficiency, score_consistency, "
         "score_security, last_trace_at, endorsement_score, endorsement_count, "
-        "sovereign_id, certification_tier, is_sandbox"
+        "sovereign_id, certification_tier, is_sandbox",
+        count="exact",
     ).eq("is_deleted", False).eq("is_sandbox", False)
 
     if category and category != "all":
@@ -197,6 +206,7 @@ def get_leaderboard(category: str | None = None, limit: int = 50, offset: int = 
         .range(offset, offset + limit - 1)
     )
     res = query.execute()
+    total = res.count or 0
 
     rows = res.data or []
     rows = batch_apply_decay_for_leaderboard(rows, db)
@@ -204,7 +214,14 @@ def get_leaderboard(category: str | None = None, limit: int = 50, offset: int = 
     entries = []
     for i, row in enumerate(rows, offset + 1):
         entries.append({**row, "rank": i})
-    return entries
+
+    return {
+        "data": entries,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "has_more": total > offset + limit,
+    }
 
 
 def get_a2a_trust(agent_id: str) -> dict | None:
@@ -247,10 +264,15 @@ def get_a2a_trust(agent_id: str) -> dict | None:
         risk_level = "medium"
         recommendation = "proceed_with_monitoring"
 
+    confidence, margin = compute_confidence(traces)
+
     return {
         "agent_id": agent["id"],
         "name": agent["name"],
         "trust_score": score,
+        "trust_score_lower": round(max(0, score - margin), 2),
+        "trust_score_upper": round(min(100, score + margin), 2),
+        "confidence": confidence,
         "success_rate": float(agent["success_rate"]),
         "total_traces": traces,
         "verified": verified,
@@ -338,16 +360,27 @@ def compare_agents(agent_ids: list[str]) -> list[dict]:
     return results
 
 
-def get_recent_traces(limit: int = 20) -> list[dict]:
+def get_recent_traces(limit: int = 20, offset: int = 0) -> dict:
     db = get_supabase()
     res = (
         db.table("traces")
-        .select("id, agent_id, task_description, status, duration_ms, trust_delta, category, cost_usd, created_at")
+        .select(
+            "id, agent_id, task_description, status, duration_ms, trust_delta, category, cost_usd, created_at",
+            count="exact",
+        )
         .order("created_at", desc=True)
-        .limit(limit)
+        .range(offset, offset + limit - 1)
         .execute()
     )
-    return res.data or []
+    total = res.count or 0
+
+    return {
+        "data": res.data or [],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "has_more": total > offset + limit,
+    }
 
 
 def get_stats() -> dict:
@@ -373,12 +406,13 @@ def get_stats() -> dict:
     }
 
 
-def search_agents(query: str = "", category: str | None = None, limit: int = 10) -> list[dict]:
+def search_agents(query: str = "", category: str | None = None, limit: int = 10, offset: int = 0) -> dict:
     db = get_supabase()
     q = db.table("agents").select(
         "id, name, description, framework, category, trust_score, total_traces, success_rate, "
         "score_reliability, score_speed, score_cost_efficiency, score_consistency, "
-        "score_security, sovereign_id, certification_tier, is_sandbox"
+        "score_security, sovereign_id, certification_tier, is_sandbox",
+        count="exact",
     ).eq("is_deleted", False).gt("total_traces", 0)
 
     if category and category != "all":
@@ -389,9 +423,10 @@ def search_agents(query: str = "", category: str | None = None, limit: int = 10)
         if safe_query:
             q = q.or_(f"name.ilike.%{safe_query}%,description.ilike.%{safe_query}%")
 
-    res = q.order("trust_score", desc=True).limit(limit).execute()
+    res = q.order("trust_score", desc=True).range(offset, offset + limit - 1).execute()
+    total = res.count or 0
 
-    return [
+    data = [
         {
             **row,
             "verified": int(row.get("total_traces", 0)) >= 10,
@@ -399,6 +434,14 @@ def search_agents(query: str = "", category: str | None = None, limit: int = 10)
         }
         for row in (res.data or [])
     ]
+
+    return {
+        "data": data,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "has_more": total > offset + limit,
+    }
 
 
 # --- Smart Delegation & Routing ---
@@ -784,6 +827,67 @@ def get_compliance_report(agent_id: str) -> dict | None:
         "created_at": agent.get("created_at"),
         "last_active": agent.get("last_trace_at"),
     }
+
+
+def generate_scorecard(agent: dict) -> dict:
+    """Generate actionable scorecard with recommendations per dimension."""
+    dimensions = {
+        "reliability": {"score": agent.get("score_reliability", 50), "weight": "30%", "label": "Reliability"},
+        "security": {"score": agent.get("score_security", 50), "weight": "20%", "label": "Security"},
+        "speed": {"score": agent.get("score_speed", 50), "weight": "15%", "label": "Speed"},
+        "cost_efficiency": {"score": agent.get("score_cost_efficiency", 50), "weight": "10%", "label": "Cost Efficiency"},
+        "consistency": {"score": agent.get("score_consistency", 50), "weight": "25%", "label": "Consistency"},
+    }
+
+    recommendations = []
+    for key, dim in dimensions.items():
+        score = float(dim["score"])
+        rec = {
+            "dimension": key,
+            "label": dim["label"],
+            "score": round(score, 2),
+            "weight": dim["weight"],
+            "status": "good" if score >= 65 else "needs_improvement" if score >= 45 else "critical",
+        }
+
+        if score < 65:
+            suggestions = {
+                "reliability": f"Reliability score is {score:.1f}. Increase success rate and build consecutive success streaks. Each streak bonus adds up to +1.0 per trace.",
+                "security": f"Security score is {score:.1f}. Minimize high-risk tool usage (shell_exec, file_write, raw_sql). Use PII masking for sensitive data. Declare permissions upfront.",
+                "speed": f"Speed score is {score:.1f}. Reduce task duration — current benchmark for your category is the target. Cache frequent operations and minimize tool call chains.",
+                "cost_efficiency": f"Cost efficiency score is {score:.1f}. Optimize token usage and reduce API call costs. Consider batching operations.",
+                "consistency": f"Consistency score is {score:.1f}. Reduce variance in task outcomes. Aim for predictable, repeatable results across similar tasks.",
+            }
+            rec["suggestion"] = suggestions[key]
+        else:
+            rec["suggestion"] = f"{dim['label']} is performing well at {score:.1f}."
+
+        recommendations.append(rec)
+
+    composite = sum(
+        float(dim["score"]) * float(dim["weight"].strip("%")) / 100
+        for dim in dimensions.values()
+    )
+    tier = "enterprise" if composite >= 90 else "gold" if composite >= 70 else "silver" if composite >= 40 else "bronze"
+    next_tier = {"bronze": ("silver", 40), "silver": ("gold", 70), "gold": ("enterprise", 90)}.get(tier)
+
+    scorecard = {
+        "agent_id": agent.get("id"),
+        "agent_name": agent.get("name"),
+        "composite_score": round(composite, 2),
+        "current_tier": tier,
+        "total_traces": agent.get("total_traces", 0),
+        "dimensions": recommendations,
+    }
+
+    if next_tier:
+        scorecard["next_tier"] = {
+            "tier": next_tier[0],
+            "required_score": next_tier[1],
+            "gap": round(next_tier[1] - composite, 2),
+        }
+
+    return scorecard
 
 
 def batch_apply_decay_for_leaderboard(agents: list[dict], db) -> list[dict]:

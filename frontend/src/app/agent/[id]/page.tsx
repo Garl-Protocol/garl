@@ -4,6 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+} from "recharts";
+import {
   Shield,
   ArrowLeft,
   Copy,
@@ -310,13 +314,27 @@ export default function AgentDetailPage() {
 
       {/* Multi-dimensional scores + Decay + Badge */}
       <div className="mb-6 grid gap-6 lg:grid-cols-3">
-        {/* Dimension bars */}
+        {/* Trust Dimensions */}
         <div className="rounded-xl border border-garl-border bg-garl-surface p-5">
           <div className="mb-4 flex items-center gap-2">
             <Activity className="h-4 w-4 text-garl-accent" />
             <span className="font-mono text-sm font-semibold">Trust Dimensions</span>
           </div>
-          <div className="space-y-3">
+          <ResponsiveContainer width="100%" height={220}>
+            <RadarChart data={[
+              { dimension: "Reliability", value: dims.reliability, fullMark: 100 },
+              { dimension: "Security", value: dims.security, fullMark: 100 },
+              { dimension: "Speed", value: dims.speed, fullMark: 100 },
+              { dimension: "Cost Eff.", value: dims.cost_efficiency, fullMark: 100 },
+              { dimension: "Consistency", value: dims.consistency, fullMark: 100 },
+            ]} cx="50%" cy="50%" outerRadius="70%">
+              <PolarGrid stroke="#2a2a3a" />
+              <PolarAngleAxis dataKey="dimension" tick={{ fill: "#8b8ba7", fontSize: 11, fontFamily: "monospace" }} />
+              <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+              <Radar name="Trust" dataKey="value" stroke="#00ff88" fill="#00ff88" fillOpacity={0.15} strokeWidth={2} />
+            </RadarChart>
+          </ResponsiveContainer>
+          <div className="mt-4 space-y-3">
             {[
               { key: "reliability", label: "Reliability", icon: Shield, value: dims.reliability, color: "bg-garl-accent", weight: "30%" },
               { key: "security", label: "Security", icon: Shield, value: dims.security, color: "bg-red-400", weight: "20%" },
@@ -420,33 +438,25 @@ export default function AgentDetailPage() {
         </div>
         <div className="p-5">
           {reputation_history.length > 0 ? (
-            <div className="flex items-end gap-0.5" style={{ height: 120 }}>
-              {reputation_history
-                .slice(0, 60)
-                .reverse()
-                .map((h, i) => {
-                  const pct = (h.trust_score / 100) * 100;
-                  return (
-                    <div
-                      key={i}
-                      className="flex-1 rounded-t transition-all"
-                      style={{
-                        height: `${pct}%`,
-                        backgroundColor:
-                          h.event_type === "success"
-                            ? "rgba(0,255,136,0.6)"
-                            : h.event_type === "failure"
-                            ? "rgba(255,68,68,0.6)"
-                            : "rgba(255,170,0,0.6)",
-                        minWidth: 3,
-                      }}
-                      title={`Score: ${h.trust_score} (${h.event_type})`}
-                    />
-                  );
-                })}
-            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={reputation_history.slice(0, 60).reverse().map((h, i) => ({
+                index: i,
+                score: parseFloat(String(h.trust_score)),
+                event: h.event_type,
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
+                <XAxis dataKey="index" tick={false} axisLine={{ stroke: "#2a2a3a" }} />
+                <YAxis domain={[0, 100]} tick={{ fill: "#8b8ba7", fontSize: 10, fontFamily: "monospace" }} axisLine={{ stroke: "#2a2a3a" }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: "#1a1a2e", border: "1px solid #2a2a3a", borderRadius: "8px", fontFamily: "monospace", fontSize: "12px" }}
+                  labelStyle={{ color: "#8b8ba7" }}
+                  formatter={(value) => [`${Number(value).toFixed(1)}`, "Trust Score"]}
+                />
+                <Line type="monotone" dataKey="score" stroke="#00ff88" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#00ff88" }} />
+              </LineChart>
+            </ResponsiveContainer>
           ) : (
-            <div className="flex h-[120px] items-center justify-center font-mono text-xs text-garl-muted">
+            <div className="flex h-[200px] items-center justify-center font-mono text-xs text-garl-muted">
               No history yet
             </div>
           )}

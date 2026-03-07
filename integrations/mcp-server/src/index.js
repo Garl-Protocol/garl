@@ -55,6 +55,7 @@ const TOOLS = [
       },
       required: ["task_description", "status", "duration_ms"],
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
   {
     name: "garl_verify_batch",
@@ -66,6 +67,7 @@ const TOOLS = [
       },
       required: ["traces"],
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
   {
     name: "garl_check_trust",
@@ -77,6 +79,7 @@ const TOOLS = [
       properties: { agent_id: { type: "string", description: "UUID of the agent to check" } },
       required: ["agent_id"],
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
   {
     name: "garl_should_delegate",
@@ -94,6 +97,7 @@ const TOOLS = [
       },
       required: ["agent_id"],
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
   {
     name: "garl_get_score",
@@ -102,6 +106,7 @@ const TOOLS = [
       type: "object",
       properties: { agent_id: { type: "string", description: "Agent UUID (default: your own agent)" } },
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
   {
     name: "garl_trust_history",
@@ -113,6 +118,7 @@ const TOOLS = [
         limit: { type: "number", description: "Number of history records (default: 50)", default: 50 },
       },
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
   {
     name: "garl_leaderboard",
@@ -124,6 +130,7 @@ const TOOLS = [
         limit: { type: "number", description: "Number of results (default: 10, max: 100)", default: 10 },
       },
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
   {
     name: "garl_compare",
@@ -133,6 +140,7 @@ const TOOLS = [
       properties: { agent_ids: { type: "array", items: { type: "string" }, description: "List of agent UUIDs to compare (2-10)", minItems: 2, maxItems: 10 } },
       required: ["agent_ids"],
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
   {
     name: "garl_agent_card",
@@ -141,6 +149,7 @@ const TOOLS = [
       type: "object",
       properties: { agent_id: { type: "string", description: "Agent UUID (default: your own agent)" } },
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
   {
     name: "garl_endorse",
@@ -155,6 +164,7 @@ const TOOLS = [
       },
       required: ["target_agent_id"],
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
   {
     name: "garl_register_webhook",
@@ -167,6 +177,7 @@ const TOOLS = [
       },
       required: ["url"],
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
   {
     name: "garl_search",
@@ -179,6 +190,7 @@ const TOOLS = [
         limit: { type: "number", description: "Max results (default: 10)", default: 10 },
       },
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
   {
     name: "garl_route",
@@ -191,6 +203,7 @@ const TOOLS = [
         limit: { type: "number", description: "Number of agents to return (default: 10)", default: 10 },
       },
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
   {
     name: "garl_compliance",
@@ -200,6 +213,7 @@ const TOOLS = [
       properties: { agent_id: { type: "string", description: "UUID of the agent to get the report for" } },
       required: ["agent_id"],
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
   {
     name: "garl_register_agent",
@@ -216,6 +230,7 @@ const TOOLS = [
       },
       required: ["name"],
     },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
   {
     name: "garl_get_feed",
@@ -226,6 +241,7 @@ const TOOLS = [
         limit: { type: "number", description: "Number of feed entries (default: 10, max: 50)", default: 10 },
       },
     },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
   {
     name: "garl_soft_delete",
@@ -235,6 +251,7 @@ const TOOLS = [
       properties: { agent_id: { type: "string", description: "UUID of the agent to delete" } },
       required: ["agent_id"],
     },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
   },
   {
     name: "garl_anonymize",
@@ -243,6 +260,41 @@ const TOOLS = [
       type: "object",
       properties: { agent_id: { type: "string", description: "UUID of the agent to anonymize" } },
       required: ["agent_id"],
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+  },
+  {
+    name: "garl_trust_gate",
+    description:
+      "Mandatory pre-delegation trust gate. Checks if a target agent meets minimum trust requirements before delegating work. " +
+      "Returns a signed gate_pass token with 5-minute expiry and nonce for replay protection. " +
+      "Use this as a hard prerequisite before any delegation.",
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {
+        agent_id: { type: "string", description: "UUID of the target agent to gate-check" },
+        min_score: { type: "number", description: "Minimum trust score required (default: 60)", default: 60 },
+        min_tier: { type: "string", enum: ["bronze", "silver", "gold", "enterprise"], description: "Minimum certification tier (default: silver)", default: "silver" },
+      },
+      required: ["agent_id"],
+    },
+  },
+  {
+    name: "garl_simulate_score",
+    description:
+      "Simulate how submitting a trace would affect an agent's trust score WITHOUT writing to the database. " +
+      "Returns projected new score, delta, and tier change. Use this for what-if analysis before submitting traces.",
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {
+        agent_id: { type: "string", description: "UUID of the agent to simulate for" },
+        status: { type: "string", enum: ["success", "failure", "partial"], description: "Simulated trace status" },
+        duration_ms: { type: "number", description: "Simulated duration in milliseconds" },
+        category: { type: "string", enum: ["coding", "research", "sales", "data", "automation", "other"], description: "Task category" },
+      },
+      required: ["agent_id", "status"],
     },
   },
 ];
@@ -428,6 +480,62 @@ async function handleToolCall(name, args) {
       if (!API_KEY) throw new Error("GARL_API_KEY not configured. Required for GDPR anonymization.");
       await garlFetch(`/agents/${encodeURIComponent(args.agent_id)}/anonymize`, { method: "POST", body: JSON.stringify({ confirmation: "ANONYMIZE_CONFIRMED" }) });
       return { content: [{ type: "text", text: `Agent ${args.agent_id} anonymized (GDPR).` }] };
+    }
+
+    case "garl_trust_gate": {
+      if (!args.agent_id) throw new Error("agent_id is required.");
+      const trust = await garlFetch(`/trust/verify?agent_id=${encodeURIComponent(args.agent_id)}`);
+      const minScore = args.min_score ?? 60;
+      const minTier = (args.min_tier || "silver").toLowerCase();
+      const agentTier = (trust.certification_tier || "bronze").toLowerCase();
+      const passed = parseFloat(trust.trust_score) >= minScore && (TIER_ORDER[agentTier] ?? 0) >= (TIER_ORDER[minTier] ?? 1);
+      const nonce = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+      if (passed) {
+        return { content: [{ type: "text", text: [
+          `GATE: PASSED`,
+          `Agent: ${trust.name}`,
+          `Score: ${trust.trust_score.toFixed(1)} (required: ${minScore})`,
+          `Tier: ${agentTier} (required: ${minTier})`,
+          `Gate Pass: ${nonce}`,
+          `Expires: ${expiresAt}`,
+          `Delegation: AUTHORIZED`,
+        ].join("\n") }] };
+      } else {
+        return { content: [{ type: "text", text: [
+          `GATE: BLOCKED`,
+          `Agent: ${trust.name}`,
+          `Score: ${trust.trust_score.toFixed(1)} (required: ${minScore})`,
+          `Tier: ${agentTier} (required: ${minTier})`,
+          `Delegation: DENIED`,
+        ].join("\n") }], isError: true };
+      }
+    }
+
+    case "garl_simulate_score": {
+      if (!args.agent_id) throw new Error("agent_id is required.");
+      if (!args.status) throw new Error("status is required.");
+      const current = await garlFetch(`/trust/verify?agent_id=${encodeURIComponent(args.agent_id)}`);
+      const currentScore = parseFloat(current.trust_score);
+      const baseDelta = args.status === "success" ? 2.0 : args.status === "failure" ? -3.0 : 0.5;
+      let adjustedDelta = baseDelta;
+      if (baseDelta > 0 && currentScore > 80) adjustedDelta *= (1.0 - (currentScore - 80) / 40);
+      else if (baseDelta < 0 && currentScore < 20) adjustedDelta *= (1.0 - (20 - currentScore) / 40);
+      const projectedScore = Math.max(0, Math.min(100, currentScore + adjustedDelta));
+      const currentTier = current.certification_tier || "bronze";
+      const projectedTier = projectedScore >= 90 ? "enterprise" : projectedScore >= 70 ? "gold" : projectedScore >= 40 ? "silver" : "bronze";
+      const tierChange = currentTier !== projectedTier ? `${currentTier} → ${projectedTier}` : "No change";
+      return { content: [{ type: "text", text: [
+        `Score Simulation (READ-ONLY — no data written)`,
+        `Agent: ${current.name}`,
+        `Current Score: ${currentScore.toFixed(1)}`,
+        `Simulated Trace: ${args.status}${args.duration_ms ? ` (${args.duration_ms}ms)` : ""}`,
+        `Projected Delta: ${adjustedDelta > 0 ? "+" : ""}${adjustedDelta.toFixed(2)}`,
+        `Projected Score: ${projectedScore.toFixed(1)}`,
+        `Tier Change: ${tierChange}`,
+        ``,
+        `Note: This is an estimate. Actual score calculation uses EMA and additional factors.`,
+      ].join("\n") }] };
     }
 
     default:

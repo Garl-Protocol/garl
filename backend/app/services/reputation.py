@@ -279,6 +279,20 @@ def compute_composite_score(dimensions: dict[str, float]) -> float:
     return round(clamp_score(total), 2)
 
 
+def compute_confidence(total_traces: int) -> tuple[float, float]:
+    """
+    Compute confidence level and score bounds based on trace count.
+    Returns: (confidence, margin)
+    - confidence: 0.0 to 1.0 indicating data reliability
+    - margin: score margin for upper/lower bounds
+    """
+    if total_traces <= 0:
+        return 0.0, 25.0
+    confidence = min(1.0 - math.exp(-0.03 * total_traces), 0.99)
+    margin = 25.0 * (1.0 - confidence)
+    return round(confidence, 3), round(margin, 2)
+
+
 def apply_time_decay(score: float, hours_since_last: float) -> float:
     """Score decay: pulled toward baseline at 0.1% per day."""
     if hours_since_last <= 0:

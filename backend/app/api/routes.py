@@ -7,6 +7,7 @@ from collections import defaultdict
 from html import escape as html_escape
 
 from fastapi import APIRouter, HTTPException, Header, Request, Response
+from fastapi.responses import HTMLResponse
 
 from app.core.config import get_settings
 from app.core.supabase_client import get_supabase as _get_supabase
@@ -47,9 +48,10 @@ from app.services.agents import (
     soft_delete_agent,
     anonymize_agent,
     get_compliance_report,
+    generate_scorecard,
 )
 from app.services.traces import submit_trace
-from app.core.signing import verify_signature, get_public_key_hex
+from app.core.signing import verify_signature, get_public_key_hex, sign_payload
 
 router = APIRouter(prefix="/api/v1", tags=["GARL Protocol"])
 
@@ -321,6 +323,53 @@ async def read_agent_card(agent_id: str):
     return card
 
 
+# --- Portable Trust Passport ---
+
+@router.get("/agents/{agent_id}/passport")
+async def agent_passport(agent_id: str, request: Request):
+    """ECDSA-signed trust snapshot verifiable offline against GARL's public key."""
+    _validate_uuid(agent_id, "agent_id")
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    agent = get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    now = int(time.time())
+    payload = {
+        "version": "1.0",
+        "agent_id": str(agent["id"]),
+        "agent_name": agent["name"],
+        "trust_score": round(float(agent.get("trust_score", 50)), 2),
+        "certification_tier": agent.get("certification_tier", "bronze"),
+        "total_traces": int(agent.get("total_traces", 0)),
+        "success_rate": round(float(agent.get("success_rate", 0)), 2),
+        "sovereign_id": agent.get("sovereign_id", ""),
+        "issued_at": now,
+        "expires_at": now + 3600,
+        "issuer": "garl-protocol",
+    }
+
+    signature, content_hash = sign_payload(payload)
+
+    return {
+        "passport": payload,
+        "signature": signature,
+        "content_hash": content_hash,
+        "verify_url": "https://api.garl.ai/api/v1/verify/check",
+        "public_key": get_public_key_hex(),
+    }
+
+
+@router.get("/agents/{agent_id}/scorecard")
+async def agent_scorecard(agent_id: str, request: Request):
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    _validate_uuid(agent_id, "agent_id")
+    agent = get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return generate_scorecard(agent)
+
+
 # --- Trace Verification ---
 
 @router.post("/verify", response_model=TraceResponse)
@@ -390,11 +439,13 @@ async def leaderboard(request: Request, category: str | None = None, limit: int 
 
 
 @router.get("/feed")
-async def activity_feed(request: Request, limit: int = 20):
+async def activity_feed(request: Request, limit: int = 20, offset: int = 0):
     _check_rate_limit(_get_client_ip(request), "default", request)
     if limit < 1 or limit > 100:
         raise HTTPException(status_code=422, detail="limit must be between 1 and 100")
-    return get_recent_traces(limit)
+    if offset < 0:
+        raise HTTPException(status_code=422, detail="offset must be >= 0")
+    return get_recent_traces(limit, offset)
 
 
 @router.get("/stats")
@@ -427,6 +478,40 @@ async def a2a_trust_check(agent_id: str):
         }
     result["registered"] = True
     return result
+
+
+@router.post("/trust/verify/batch")
+async def bulk_trust_check(request: Request):
+    """Batch trust check for up to 20 agents in a single call."""
+    _check_rate_limit(_get_client_ip(request), "batch", request)
+    body = await request.json()
+    agent_ids = body.get("agent_ids", [])
+    if not agent_ids or len(agent_ids) > 20:
+        raise HTTPException(status_code=422, detail="agent_ids required, max 20")
+
+    results = []
+    for aid in agent_ids:
+        try:
+            _validate_uuid(aid, "agent_id")
+            trust_data = get_a2a_trust(aid)
+            if not trust_data:
+                results.append({
+                    "agent_id": aid,
+                    "registered": False,
+                    "trust_score": 0,
+                    "risk_level": "unknown",
+                    "recommendation": "unknown",
+                    "message": "This agent is not registered on GARL Protocol.",
+                })
+            else:
+                trust_data["registered"] = True
+                results.append(trust_data)
+        except HTTPException:
+            results.append({"agent_id": aid, "error": "Invalid agent ID format"})
+        except Exception:
+            results.append({"agent_id": aid, "error": "Agent not found"})
+
+    return {"results": results, "total": len(results)}
 
 
 # --- Smart Routing (Delegation Routing) ---
@@ -568,6 +653,84 @@ async def badge_data(agent_id: str):
         verified=agent["total_traces"] >= 10,
         certification_tier=agent.get("certification_tier", "bronze"),
         sovereign_id=agent.get("sovereign_id"),
+    )
+
+
+@router.get("/badge/embed/{agent_id}")
+async def badge_embed(agent_id: str, request: Request):
+    """Embeddable iframe trust card widget."""
+    _check_rate_limit(_get_client_ip(request), request=request)
+    _validate_uuid(agent_id, "agent_id")
+    agent = get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    name = html_escape(agent.get("name", "Unknown"))
+    score = round(float(agent.get("trust_score", 50)), 1)
+    tier = agent.get("certification_tier", "bronze")
+    traces = int(agent.get("total_traces", 0))
+    verified = traces >= 10
+
+    score_color = "#00ff88" if score >= 70 else "#ffaa00" if score >= 40 else "#ff4444"
+    tier_colors = {"enterprise": "#a855f7", "gold": "#eab308", "silver": "#94a3b8", "bronze": "#d97706"}
+    tier_color = tier_colors.get(tier, "#d97706")
+
+    verified_html = '<span class="verified">&#10003; verified</span>' if verified else ""
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{name} — GARL Trust</title>
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{background:#0a0a1a;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:#e0e0ff;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:12px}}
+.card{{background:#12122a;border:1px solid #2a2a3a;border-radius:12px;padding:20px 24px;max-width:320px;width:100%}}
+.header{{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}}
+.name{{font-size:14px;font-weight:600;color:#e0e0ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}}
+.tier{{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,0.05);color:{tier_color}}}
+.score-row{{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}}
+.score{{font-size:36px;font-weight:700;color:{score_color};line-height:1}}
+.max{{font-size:14px;color:#4a4a6a}}
+.bar{{height:4px;border-radius:2px;background:#1a1a2e;overflow:hidden;margin-bottom:12px}}
+.bar-fill{{height:100%;border-radius:2px;background:{score_color};width:{min(score, 100)}%}}
+.meta{{display:flex;justify-content:space-between;font-size:11px;color:#8b8ba7}}
+.meta a{{color:#3b82f6;text-decoration:none}}
+.meta a:hover{{text-decoration:underline}}
+.verified{{color:#00ff88}}
+.garl{{margin-top:10px;text-align:center;font-size:9px;color:#4a4a6a}}
+.garl a{{color:#4a4a6a;text-decoration:none}}
+.garl a:hover{{color:#8b8ba7}}
+</style>
+</head>
+<body>
+<div class="card">
+<div class="header">
+<span class="name">{name}</span>
+<span class="tier">{tier}</span>
+</div>
+<div class="score-row">
+<span class="score">{score}</span>
+<span class="max">/100</span>
+</div>
+<div class="bar"><div class="bar-fill"></div></div>
+<div class="meta">
+<span>{traces} traces {verified_html}</span>
+<a href="https://garl.ai/agent/{agent_id}" target="_blank" rel="noopener">View Profile &#8594;</a>
+</div>
+<div class="garl"><a href="https://garl.ai" target="_blank" rel="noopener">Powered by GARL Protocol</a></div>
+</div>
+</body>
+</html>"""
+
+    return HTMLResponse(
+        content=html,
+        headers={
+            "X-Frame-Options": "ALLOWALL",
+            "Content-Security-Policy": "frame-ancestors *",
+            "Cache-Control": "public, max-age=300",
+        },
     )
 
 
@@ -755,5 +918,7 @@ async def ingest_openclaw(request: Request, payload: OpenClawIngestPayload, x_ap
 # --- Agent Search ---
 
 @router.get("/search")
-async def search_agents_endpoint(q: str = "", category: str | None = None, limit: int = 10):
-    return search_agents(q, category, max(1, min(limit, 50)))
+async def search_agents_endpoint(q: str = "", category: str | None = None, limit: int = 10, offset: int = 0):
+    if offset < 0:
+        raise HTTPException(status_code=422, detail="offset must be >= 0")
+    return search_agents(q, category, max(1, min(limit, 50)), max(0, offset))
