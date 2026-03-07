@@ -222,7 +222,7 @@ async def well_known_agent(agent_id: str = Query(default=None)):
             raise HTTPException(status_code=404, detail="Agent not found")
         return card
 
-    top_agents = get_leaderboard(None, 20, 0)
+    top_agents = get_leaderboard(None, 20, 0).get("data", [])
     agent_skills = [
         {
             "id": a["id"],

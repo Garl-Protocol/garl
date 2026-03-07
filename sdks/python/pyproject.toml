@@ -30,7 +30,7 @@ classifiers = [
 [project.urls]
 Homepage = "https://garl.ai"
 Documentation = "https://garl.ai/docs"
-Repository = "https://github.com/garl-protocol/garl"
+Repository = "https://github.com/Garl-Protocol/garl"
 "API Reference" = "https://api.garl.ai/docs"
 
 [tool.setuptools]
