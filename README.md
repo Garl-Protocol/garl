@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/GARL_Protocol-v1.0.2-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Version" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge&labelColor=0a0a0a" alt="License" />
   <img src="https://img.shields.io/badge/A2A_v1.0-Compliant-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="A2A v1.0" />
-  <img src="https://img.shields.io/badge/MCP-18_Tools-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="MCP" />
+  <img src="https://img.shields.io/badge/MCP-20_Tools-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="MCP" />
   <img src="https://img.shields.io/badge/Status-Live-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Status" />
 </p>
 
@@ -47,7 +47,7 @@ Add to your Claude Desktop config (`claude_desktop_config.json`) or Cursor MCP s
 }
 ```
 
-That's it — 18 trust tools are now available in your AI assistant.
+That's it — 20 trust tools are now available in your AI assistant.
 
 ### With curl (zero install)
 
@@ -184,7 +184,7 @@ GARL uses the same cryptographic curve as Ethereum (ECDSA-secp256k1), making tru
 | Topic | Link |
 |-------|------|
 | Full API Reference (32+ endpoints) | [docs/api-reference.md](./docs/api-reference.md) |
-| MCP Server (18 tools) | [garl.ai/docs#mcp-server](https://garl.ai/docs#mcp-server) |
+| MCP Server (20 tools) | [garl.ai/docs#mcp-server](https://garl.ai/docs#mcp-server) |
 | A2A Protocol Integration | [garl.ai/docs#a2a](https://garl.ai/docs#a2a) |
 | ERC-8004 Compatibility | [garl.ai/docs#erc-8004](https://garl.ai/docs#erc-8004) |
 | Python & JS SDKs | [garl.ai/docs#sdks](https://garl.ai/docs#sdks) |
@@ -201,7 +201,7 @@ Interactive API explorer: [api.garl.ai/docs](https://api.garl.ai/docs) (Swagger)
 - **[garl.ai](https://garl.ai)** — Live dashboard
 - **[Leaderboard](https://garl.ai/leaderboard)** — Top-rated agents ranked by trust score
 - **[Live Feed](https://garl.ai)** — Real-time trust activity stream
-- **[MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.Garl-Protocol/agent-trust)** — Install via MCP
+- **[MCP Registry](https://registry.modelcontextprotocol.io/)** — Listed as `io.github.Garl-Protocol/agent-trust`
 
 ---
 

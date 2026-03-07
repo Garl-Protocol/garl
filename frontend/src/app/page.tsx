@@ -881,7 +881,7 @@ export default function HomePage() {
                 title: "MCP Server",
                 install: "npx @garl-protocol/mcp-server",
                 code: "POST https://api.garl.ai/mcp",
-                desc: "8 remote + 18 local tools. Claude Desktop, Cursor, Windsurf — one config line",
+                desc: "8 remote + 20 local tools. Claude Desktop, Cursor, Windsurf — one config line",
               },
               {
                 title: "ERC-8004",

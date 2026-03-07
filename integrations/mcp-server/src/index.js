@@ -3,7 +3,7 @@
 /**
  * GARL Protocol MCP Server v3.1.0
  *
- * 18 trust reputation tools for AI agents.
+ * 20 trust reputation tools for AI agents.
  * Works with Claude Desktop, Cursor, Windsurf, and all MCP-compatible clients.
  */
 

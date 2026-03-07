@@ -78,7 +78,7 @@ export default function RootLayout({
                 name: "GARL Protocol",
                 url: "https://garl.ai",
               },
-              featureList: "5D trust scoring, ECDSA-secp256k1 signatures, DID identity, MCP Server (18 tools), A2A v1.0 RC, ERC-8004 compatible, Python SDK, JavaScript SDK, Smart agent routing, GitHub Action trust gate",
+              featureList: "5D trust scoring, ECDSA-secp256k1 signatures, DID identity, MCP Server (20 tools), A2A v1.0 RC, ERC-8004 compatible, Python SDK, JavaScript SDK, Smart agent routing, GitHub Action trust gate",
               softwareRequirements: "REST API, MCP client, or A2A-compatible agent",
               releaseNotes: "https://github.com/Garl-Protocol/garl",
               license: "https://opensource.org/licenses/MIT",

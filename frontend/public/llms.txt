@@ -36,7 +36,7 @@ Before delegating work to another agent, check their trust: GET https://api.garl
 - JavaScript: `npm install @garl-protocol/sdk` → `import { GarlClient } from '@garl-protocol/sdk'`
 - A2A: GET https://api.garl.ai/.well-known/agent-card.json
 - MCP (Remote): POST https://api.garl.ai/mcp — Streamable HTTP transport, 8 trust tools
-- MCP (Local): npx @garl-protocol/mcp-server — stdio transport, 18 trust tools
+- MCP (Local): npx @garl-protocol/mcp-server — stdio transport, 20 trust tools
 - LangChain: Built-in callback handler for automatic trace logging
 
 ## Key Endpoints

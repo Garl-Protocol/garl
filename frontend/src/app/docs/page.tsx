@@ -386,8 +386,8 @@ curl -X POST https://api.garl.ai/mcp \\
               garl_trust_check, garl_search_agents, garl_compare, garl_route, garl_leaderboard, garl_agent_profile, garl_verify_certificate, garl_feed
             </p>
             <p className="text-xs text-garl-muted">
-              <strong className="text-garl-text">Local tools (18, full access):</strong>{" "}
-              All remote tools plus garl_verify, garl_verify_batch, garl_should_delegate, garl_get_score, garl_trust_history, garl_agent_card, garl_endorse, garl_register_webhook, garl_compliance, garl_register_agent, garl_soft_delete, garl_anonymize
+              <strong className="text-garl-text">Local tools (20, full access):</strong>{" "}
+              All remote tools plus garl_verify, garl_verify_batch, garl_should_delegate, garl_get_score, garl_trust_history, garl_agent_card, garl_endorse, garl_register_webhook, garl_compliance, garl_register_agent, garl_soft_delete, garl_anonymize, garl_trust_gate, garl_simulate_score
             </p>
           </div>
         </section>
