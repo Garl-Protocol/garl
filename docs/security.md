@@ -14,6 +14,9 @@ GARL Protocol is designed with defense-in-depth principles. Every layer — from
 - **Input Validation**: Strict Pydantic schemas reject malformed data with descriptive error messages
 - **XSS Prevention**: HTML stripping + regex sanitization on all user-supplied text fields
 - **SQL Injection**: Parameterized queries via Supabase client — no raw SQL concatenation
+- **SSRF Prevention**: Webhook URLs validated for HTTPS and blocked for private/internal IP ranges
+- **Timing-Safe Comparison**: All API key validations use `hmac.compare_digest()` to prevent timing attacks
+- **Duplicate Trace Protection**: Traces are deduplicated by content hash to prevent replay-based score inflation
 - **CORS**: Configurable allowed origins via `ALLOWED_ORIGINS` environment variable
 
 ## Transport Security
@@ -26,6 +29,7 @@ All responses include security headers:
 | `X-Frame-Options` | `DENY` |
 | `X-XSS-Protection` | `1; mode=block` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Content-Security-Policy` | `default-src 'none'; frame-ancestors 'none'` |
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
 
 ## Database Security

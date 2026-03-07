@@ -46,8 +46,8 @@
 │                                                                 │
 ├─────────────────────────────────────────────────────────────────┤
 │  Frontend: Next.js 14 + Tailwind CSS                            │
-│  9 pages: Home, Dashboard, Leaderboard, Agent Detail,           │
-│  Compare, Compliance (CISO), Docs, Badge, Layout                │
+│  9 pages: Home, Dashboard, Leaderboard, Playground,              │
+│  Compare, Compliance, Docs, Privacy, Simulator                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

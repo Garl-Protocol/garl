@@ -77,7 +77,7 @@ Cursor config (.cursor/mcp.json):
 ```
 
 Remote MCP tools (no auth required): garl_trust_check, garl_search_agents, garl_compare, garl_route, garl_leaderboard, garl_agent_profile, garl_verify_certificate, garl_feed
-Local MCP tools (18 total, auth for writes): garl_verify, garl_verify_batch, garl_check_trust, garl_should_delegate, garl_route, garl_get_score, garl_trust_history, garl_leaderboard, garl_compare, garl_agent_card, garl_endorse, garl_register_webhook, garl_search, garl_compliance, garl_register_agent, garl_get_feed, garl_soft_delete, garl_anonymize
+Local MCP tools (20 total, auth for writes): garl_verify, garl_verify_batch, garl_check_trust, garl_should_delegate, garl_route, garl_get_score, garl_trust_history, garl_leaderboard, garl_compare, garl_agent_card, garl_endorse, garl_register_webhook, garl_search, garl_compliance, garl_register_agent, garl_get_feed, garl_soft_delete, garl_anonymize, garl_trust_gate, garl_simulate_score
 
 ## Full Documentation
 
