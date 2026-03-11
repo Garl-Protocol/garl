@@ -31,42 +31,50 @@ def mock_supabase_for_routes():
         mock_res.count = 0
 
         if table_name == "agents":
-            # register_agent: success after insert
             mock_table.insert.return_value = mock_table
-            mock_table.execute.return_value = mock_res
 
-            # route_agents and get_compliance_report: agent data (valid UUID)
+            _agent_data = {
+                "id": "a1b2c3d4-e5f6-4789-a012-345678901234",
+                "name": "Test Agent",
+                "trust_score": 75.0,
+                "certification_tier": "silver",
+                "sovereign_id": "did:garl:a1b2c3d4-e5f6-4789-a012-345678901234",
+                "score_reliability": 75.0,
+                "score_security": 70.0,
+                "score_speed": 72.0,
+                "score_cost_efficiency": 68.0,
+                "score_consistency": 74.0,
+                "total_traces": 50,
+                "success_rate": 92.0,
+                "framework": "langchain",
+                "category": "coding",
+                "permissions_declared": [],
+                "created_at": "2025-01-01T00:00:00Z",
+                "last_trace_at": "2025-01-15T12:00:00Z",
+                "anomaly_flags": [],
+            }
+
+            _is_name_uniqueness = {"val": False}
+
+            def _tracking_eq(col, val=None):
+                if col == "name":
+                    _is_name_uniqueness["val"] = True
+                return mock_table
+            mock_table.eq = _tracking_eq
+
             def agents_execute():
-                mock_res.data = [
-                    {
-                        "id": "a1b2c3d4-e5f6-4789-a012-345678901234",
-                        "name": "Test Agent",
-                        "trust_score": 75.0,
-                        "certification_tier": "silver",
-                        "sovereign_id": "did:garl:a1b2c3d4-e5f6-4789-a012-345678901234",
-                        "score_reliability": 75.0,
-                        "score_security": 70.0,
-                        "score_speed": 72.0,
-                        "score_cost_efficiency": 68.0,
-                        "score_consistency": 74.0,
-                        "total_traces": 50,
-                        "success_rate": 92.0,
-                        "framework": "langchain",
-                        "category": "coding",
-                        "permissions_declared": [],
-                        "created_at": "2025-01-01T00:00:00Z",
-                        "last_trace_at": "2025-01-15T12:00:00Z",
-                        "anomaly_flags": [],
-                    }
-                ]
+                if _is_name_uniqueness["val"]:
+                    _is_name_uniqueness["val"] = False
+                    mock_res.data = []
+                else:
+                    mock_res.data = [_agent_data]
                 return mock_res
 
+            mock_table.select.return_value = mock_table
             mock_table.in_.return_value = mock_table
             mock_table.gt.return_value = mock_table
-            mock_table.eq.return_value = mock_table
             mock_table.order.return_value = mock_table
             mock_table.limit.return_value = mock_table
-            mock_table.select.return_value = mock_table
             mock_table.range.return_value = mock_table
             mock_table.or_.return_value = mock_table
             mock_table.execute.side_effect = agents_execute

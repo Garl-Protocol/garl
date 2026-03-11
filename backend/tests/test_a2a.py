@@ -142,16 +142,14 @@ class TestA2AVersionMiddleware:
         )
         assert resp.status_code == 200
 
-    def test_a2a_endpoint_rejects_missing_version(self, client):
-        """The /a2a JSON-RPC endpoint still requires valid A2A-Version."""
+    def test_a2a_endpoint_allows_missing_version(self, client):
+        """The /a2a JSON-RPC endpoint allows requests without A2A-Version header (graceful degradation)."""
         resp = client.post(
             "/a2a",
             content="{}",
             headers={"Content-Type": "application/json"},
         )
-        assert resp.status_code == 400
-        data = resp.json()
-        assert data["error"]["message"] == "VersionNotSupported"
+        assert resp.status_code == 200
 
     def test_valid_version_accepted(self, client):
         resp = client.get(
