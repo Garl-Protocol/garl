@@ -167,10 +167,10 @@ export default function DashboardPage() {
                     fontFamily: "monospace",
                     fontSize: "11px",
                   }}
-                  labelFormatter={(v: string) => v}
-                  formatter={(value: number, name: string) => {
+                  labelFormatter={(v) => String(v)}
+                  formatter={(value, name) => {
                     const labels: Record<string, string> = { traces: "Traces", success: "Success", failure: "Failure" };
-                    return [value, labels[name] || name];
+                    return [String(value), labels[String(name)] || String(name)];
                   }}
                 />
                 <Area

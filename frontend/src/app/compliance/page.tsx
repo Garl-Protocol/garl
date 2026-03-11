@@ -721,9 +721,10 @@ function ComplianceContent() {
           onClick={() => {
             const buildHtml = () => {
               const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-              const riskRows = data.security_risks.length === 0
+              const risks = data.security_risks ?? [];
+              const riskRows = risks.length === 0
                 ? '<div class="row accent">No security risks detected.</div>'
-                : data.security_risks.map((r: { level: string; message: string }) =>
+                : risks.map((r: { level: string; message: string }) =>
                     `<div class="row"><span class="label">[${esc(r.level.toUpperCase())}]</span><span class="value">${esc(r.message)}</span></div>`
                   ).join("");
               return [
@@ -741,13 +742,13 @@ function ComplianceContent() {
                 "</style></head><body>",
                 "<h1>GARL Protocol — Compliance Report</h1>",
                 `<div class="meta">Agent: ${esc(data.name)} (${esc(data.agent_id)})<br/>`,
-                `Tier: ${esc(data.certification_tier)} | Trust Score: ${data.trust_score.toFixed(1)}<br/>`,
+                `Tier: ${esc(data.certification_tier ?? "bronze")} | Trust Score: ${data.trust_score.toFixed(1)}<br/>`,
                 `Generated: ${new Date().toISOString()}</div>`,
                 '<div class="section"><h2>SLA Compliance</h2>',
-                `<div class="row"><span class="label">Uptime Rate</span><span class="value">${data.sla_compliance.uptime_rate.toFixed(1)}%</span></div>`,
-                `<div class="row"><span class="label">Avg Response</span><span class="value">${data.sla_compliance.avg_response_ms}ms</span></div>`,
-                `<div class="row"><span class="label">Total Executions</span><span class="value">${data.sla_compliance.total_executions}</span></div>`,
-                `<div class="row"><span class="label">SLA Met</span><span class="value ${data.sla_compliance.sla_met ? "accent" : "danger"}">${data.sla_compliance.sla_met ? "YES" : "NO"}</span></div>`,
+                `<div class="row"><span class="label">Uptime Rate</span><span class="value">${(data.sla_compliance?.uptime_rate ?? 0).toFixed(1)}%</span></div>`,
+                `<div class="row"><span class="label">Avg Response</span><span class="value">${data.sla_compliance?.avg_response_ms ?? 0}ms</span></div>`,
+                `<div class="row"><span class="label">Total Executions</span><span class="value">${data.sla_compliance?.total_executions ?? 0}</span></div>`,
+                `<div class="row"><span class="label">SLA Met</span><span class="value ${data.sla_compliance?.sla_met ? "accent" : "danger"}">${data.sla_compliance?.sla_met ? "YES" : "NO"}</span></div>`,
                 "</div>",
                 '<div class="section"><h2>Trust Dimensions</h2>',
                 `<div class="row"><span class="label">Reliability</span><span class="value">${data.dimensions.reliability.toFixed(1)}</span></div>`,
@@ -758,9 +759,9 @@ function ComplianceContent() {
                 "</div>",
                 `<div class="section"><h2>Security Risks</h2>${riskRows}</div>`,
                 '<div class="section"><h2>Anomaly History</h2>',
-                `<div class="row"><span class="label">Active Flags</span><span class="value">${data.anomaly_history.active.length}</span></div>`,
-                `<div class="row"><span class="label">Archived</span><span class="value">${data.anomaly_history.archived.length}</span></div>`,
-                `<div class="row"><span class="label">Total</span><span class="value">${data.anomaly_history.total_flags}</span></div>`,
+                `<div class="row"><span class="label">Active Flags</span><span class="value">${(data.anomaly_history?.active ?? []).length}</span></div>`,
+                `<div class="row"><span class="label">Archived</span><span class="value">${(data.anomaly_history?.archived ?? []).length}</span></div>`,
+                `<div class="row"><span class="label">Total</span><span class="value">${data.anomaly_history?.total_flags ?? 0}</span></div>`,
                 "</div>",
                 '<div style="margin-top:32px;font-size:10px;color:#999;border-top:1px solid #ddd;padding-top:8px">',
                 "GARL Protocol — garl.ai — Cryptographic trust verification for AI agents</div>",
