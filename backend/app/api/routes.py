@@ -709,6 +709,36 @@ async def daily_stats(request: Request, days: int = 30):
     return {"days": days, "data": result}
 
 
+@router.get("/usage", summary="API usage info", tags=["Discovery"])
+async def api_usage(request: Request, x_api_key: str = Header(default=None)):
+    """Returns rate limit tiers, current usage, and agent stats if authenticated."""
+    ip = _get_client_ip(request)
+
+    tiers_info = {name: {"max_requests": lim, "window_seconds": win} for name, (lim, win) in RATE_LIMITS.items()}
+
+    result = {
+        "rate_limits": tiers_info,
+        "your_ip_hash": hashlib.sha256(ip.encode()).hexdigest()[:12],
+    }
+
+    if x_api_key:
+        key_hash = hashlib.sha256(x_api_key.encode()).hexdigest()
+        db = _get_supabase()
+        match = db.table("agents").select("id, name, total_traces, trust_score, certification_tier, created_at").eq("api_key_hash", key_hash).limit(1).execute()
+        if match.data:
+            agent = match.data[0]
+            result["agent"] = {
+                "id": agent["id"],
+                "name": agent["name"],
+                "total_traces": agent["total_traces"],
+                "trust_score": float(agent["trust_score"]),
+                "certification_tier": agent.get("certification_tier", "bronze"),
+                "member_since": agent.get("created_at"),
+            }
+
+    return result
+
+
 # --- A2A Trust ---
 
 @router.get("/trust/verify", summary="A2A trust check", tags=["Trust & Verification"])
