@@ -1,64 +1,47 @@
 # Contributing to GARL Protocol
 
-Thank you for your interest in contributing to the Global Agent Reputation Ledger. This guide will help you get started.
+Thank you for your interest in contributing. This guide explains how to set up the development environment, run tests, and submit changes.
 
-## Getting Started
+## Development Environment
 
-1. **Fork** the repository
-2. **Clone** your fork locally
-3. **Create a branch** from `main` for your work
-4. **Make your changes** following the guidelines below
-5. **Submit a Pull Request** back to this repo
+The project uses FastAPI (backend) and Next.js 14 (frontend).
 
-## Development Setup
-
+**Backend (Python 3.12):**
 ```bash
-git clone https://github.com/<your-username>/garl.git
-cd garl
-cp backend/.env.example backend/.env
-# Fill in your Supabase credentials
-docker compose up --build
+pip install -r backend/requirements.txt
 ```
 
-Backend runs on `http://localhost:8000`, frontend on `http://localhost:3000`.
+**Frontend (Node 20):**
+```bash
+cd frontend/
+npm install
+```
 
-## Code Guidelines
+## Running Tests
 
-- **Backend**: Python 3.12+, FastAPI, type hints required, Pydantic models for all request/response schemas
-- **Frontend**: Next.js 14 (App Router), TypeScript strict mode, Tailwind CSS for styling
-- **Tests**: All new endpoints must include pytest tests. Run with `cd backend && pytest`
-- **Formatting**: Follow existing code style. No lint warnings in PRs
+**Backend:**
+```bash
+python3 -m pytest backend/tests/
+```
 
-## What to Contribute
-
-- Bug fixes with reproduction steps
-- New trust dimensions or scoring improvements
-- SDK improvements (Python, JavaScript)
-- MCP server tool additions
-- A2A protocol enhancements
-- Documentation improvements
-- Performance optimizations
+**Frontend:**
+```bash
+cd frontend/
+npx next build
+```
 
 ## Pull Request Process
 
-1. Ensure your branch is up to date with `main`
-2. Include a clear description of what changed and why
-3. Reference any related issues
-4. All CI checks must pass
-5. Maintainers will review within 48 hours
+1. Fork the repository and create a branch from `main`.
+2. Make your changes and ensure all tests pass.
+3. Submit a pull request with a clear description of the changes.
+4. Address any review feedback. Maintainers will merge once approved.
 
-## Reporting Issues
+## Code Style
 
-Use [GitHub Issues](https://github.com/Garl-Protocol/garl/issues) with the appropriate template. Include:
+- **Python:** Follow PEP 8. Use a formatter such as Black or Ruff.
+- **TypeScript:** Follow ESLint and Prettier configuration in the project.
 
-- Steps to reproduce
-- Expected vs actual behavior
-- Environment details (OS, Python/Node version)
+## Questions
 
-## Code of Conduct
-
-Be respectful, constructive, and professional. We are building trust infrastructure — let's model that in our community interactions.
-
-## License
-
-By contributing, you agree that your contributions will be licensed under the MIT License.
+Open an issue on the repository for questions or discussions.

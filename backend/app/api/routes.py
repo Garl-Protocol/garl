@@ -196,8 +196,9 @@ def _require_read_auth(x_api_key: str | None):
 
 # --- Agent CRUD ---
 
-@router.post("/agents", response_model=AgentResponse)
+@router.post("/agents", response_model=AgentResponse, summary="Register a new AI agent", tags=["Agents"])
 async def create_agent(request: Request, req: AgentRegisterRequest):
+    """Register a new AI agent in the GARL Protocol. Returns agent ID and API key."""
     _check_rate_limit(_get_client_ip(request), "register", request)
     req.name = _sanitize_agent_name(req.name)
     if req.description:
@@ -212,7 +213,7 @@ async def create_agent(request: Request, req: AgentRegisterRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/agents/auto-register")
+@router.post("/agents/auto-register", summary="Auto-register agent (minimal fields)", tags=["Agents"])
 async def auto_register_agent(request: Request, req: AutoRegisterRequest):
     """Streamlined registration for autonomous agents: minimal fields, machine-readable instructions."""
     _check_rate_limit(_get_client_ip(request), "auto_register", request)
@@ -287,8 +288,9 @@ async def auto_register_agent(request: Request, req: AutoRegisterRequest):
     return agent
 
 
-@router.get("/agents/{agent_id}")
+@router.get("/agents/{agent_id}", summary="Get agent by ID", tags=["Agents"])
 async def read_agent(agent_id: str):
+    """Fetch basic agent profile by UUID."""
     _validate_uuid(agent_id, "agent_id")
     agent = get_agent(agent_id)
     if not agent:
@@ -296,7 +298,7 @@ async def read_agent(agent_id: str):
     return agent
 
 
-@router.get("/agents/{agent_id}/detail")
+@router.get("/agents/{agent_id}/detail", summary="Get agent detail", tags=["Agents"])
 async def read_agent_detail(agent_id: str):
     """Agent detail — public profile with traces, history, and decay projection."""
     _validate_uuid(agent_id, "agent_id")
@@ -306,7 +308,7 @@ async def read_agent_detail(agent_id: str):
     return detail
 
 
-@router.get("/agents/{agent_id}/traces")
+@router.get("/agents/{agent_id}/traces", summary="Get agent traces", tags=["Agents"])
 async def read_agent_traces(agent_id: str, limit: int = 20, offset: int = 0):
     """Public endpoint: recent traces for a specific agent."""
     _validate_uuid(agent_id, "agent_id")
@@ -332,7 +334,7 @@ async def read_agent_traces(agent_id: str, limit: int = 20, offset: int = 0):
     }
 
 
-@router.get("/agents/{agent_id}/card")
+@router.get("/agents/{agent_id}/card", summary="Get agent card", tags=["Agents"])
 async def read_agent_card(agent_id: str):
     _validate_uuid(agent_id, "agent_id")
     card = get_agent_card(agent_id)
@@ -343,7 +345,7 @@ async def read_agent_card(agent_id: str):
 
 # --- Portable Trust Passport ---
 
-@router.get("/agents/{agent_id}/passport")
+@router.get("/agents/{agent_id}/passport", summary="Portable trust passport", tags=["Agents"])
 async def agent_passport(agent_id: str, request: Request):
     """ECDSA-signed trust snapshot verifiable offline against GARL's public key."""
     _validate_uuid(agent_id, "agent_id")
@@ -378,7 +380,7 @@ async def agent_passport(agent_id: str, request: Request):
     }
 
 
-@router.get("/agents/{agent_id}/scorecard")
+@router.get("/agents/{agent_id}/scorecard", summary="Get agent scorecard", tags=["Agents"])
 async def agent_scorecard(agent_id: str, request: Request):
     _check_rate_limit(_get_client_ip(request), "default", request)
     _validate_uuid(agent_id, "agent_id")
@@ -390,7 +392,7 @@ async def agent_scorecard(agent_id: str, request: Request):
 
 # --- ERC-8004 Compatibility ---
 
-@router.get("/agents/{agent_id}/erc8004")
+@router.get("/agents/{agent_id}/erc8004", summary="ERC-8004 agent metadata", tags=["ERC-8004"])
 async def agent_erc8004_metadata(agent_id: str, request: Request):
     """Serve ERC-8004-compatible agent metadata (AgentURI format).
     Allows on-chain systems to read GARL agent data natively."""
@@ -448,7 +450,7 @@ async def agent_erc8004_metadata(agent_id: str, request: Request):
     }
 
 
-@router.get("/agents/{agent_id}/erc8004/feedback")
+@router.get("/agents/{agent_id}/erc8004/feedback", summary="ERC-8004 reputation feedback", tags=["ERC-8004"])
 async def agent_erc8004_feedback(agent_id: str, request: Request):
     """Return trust scores formatted as ERC-8004 Reputation Registry feedback records.
     Blockchain systems can consume these to bridge GARL scores on-chain."""
@@ -506,7 +508,7 @@ async def agent_erc8004_feedback(agent_id: str, request: Request):
 
 # --- Public Trace Verification (No API key required) ---
 
-@router.get("/verify/{trace_hash}")
+@router.get("/verify/{trace_hash}", summary="Verify trace by hash (public)", tags=["Trust & Verification"])
 async def public_verify_trace(trace_hash: str, request: Request):
     """Public endpoint: verify a trace's ECDSA signature by its hash.
     No API key required — anyone can verify any trace's authenticity."""
@@ -550,8 +552,9 @@ async def public_verify_trace(trace_hash: str, request: Request):
 
 # --- Trace Submission ---
 
-@router.post("/verify", response_model=TraceResponse)
+@router.post("/verify", response_model=TraceResponse, summary="Submit execution trace", tags=["Trust & Verification"])
 async def verify_trace(request: Request, req: TraceSubmitRequest, x_api_key: str = Header(...)):
+    """Submit a single execution trace to update agent trust score. Requires x-api-key header."""
     _check_rate_limit(x_api_key[:16], "write", request)
     req.task_description = _strip_html(req.task_description, 1000)
     if hasattr(req, "input_summary") and req.input_summary:
@@ -569,8 +572,9 @@ async def verify_trace(request: Request, req: TraceSubmitRequest, x_api_key: str
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/verify/batch")
+@router.post("/verify/batch", summary="Submit batch traces", tags=["Trust & Verification"])
 async def verify_batch(request: Request, req: BatchTraceRequest, x_api_key: str = Header(...)):
+    """Submit multiple execution traces in a single request. All traces must belong to the same agent."""
     _check_rate_limit(x_api_key[:16], "batch", request)
 
     agent_ids = {t.agent_id for t in req.traces}
@@ -598,7 +602,7 @@ async def verify_batch(request: Request, req: BatchTraceRequest, x_api_key: str 
     return {"submitted": len(results) - failed, "failed": failed, "results": results}
 
 
-@router.post("/verify/check")
+@router.post("/verify/check", summary="Verify certificate/passport", tags=["Trust & Verification"])
 async def check_certificate(certificate: dict):
     if "passport" in certificate and "signature" in certificate:
         payload = certificate["passport"]
@@ -620,7 +624,7 @@ async def check_certificate(certificate: dict):
 
 # --- Discovery & Ranking ---
 
-@router.get("/leaderboard")
+@router.get("/leaderboard", summary="Get trust leaderboard", description="Returns agents ranked by trust score. Supports category filter and pagination.", tags=["Discovery"])
 async def leaderboard(request: Request, category: str | None = None, limit: int = 50, offset: int = 0):
     _check_rate_limit(_get_client_ip(request), "default", request)
     if limit < 1 or limit > 100:
@@ -636,7 +640,7 @@ async def leaderboard(request: Request, category: str | None = None, limit: int 
     return result
 
 
-@router.get("/feed")
+@router.get("/feed", summary="Activity feed", description="Real-time feed of latest execution traces across the protocol.", tags=["Discovery"])
 async def activity_feed(request: Request, limit: int = 20, offset: int = 0):
     _check_rate_limit(_get_client_ip(request), "default", request)
     if limit < 1 or limit > 100:
@@ -654,7 +658,7 @@ async def activity_feed(request: Request, limit: int = 20, offset: int = 0):
     return result
 
 
-@router.get("/stats")
+@router.get("/stats", summary="Protocol statistics", tags=["Discovery"])
 async def protocol_stats():
     cached = cache_get("stats")
     if cached:
@@ -664,7 +668,7 @@ async def protocol_stats():
     return result
 
 
-@router.get("/stats/daily")
+@router.get("/stats/daily", summary="Daily trace statistics", tags=["Discovery"])
 async def daily_stats(request: Request, days: int = 30):
     """Daily trace counts and average trust deltas for the last N days."""
     _check_rate_limit(_get_client_ip(request), "default", request)
@@ -707,7 +711,7 @@ async def daily_stats(request: Request, days: int = 30):
 
 # --- A2A Trust ---
 
-@router.get("/trust/verify")
+@router.get("/trust/verify", summary="A2A trust check", tags=["Trust & Verification"])
 async def a2a_trust_check(agent_id: str):
     _validate_uuid(agent_id, "agent_id")
     result = get_a2a_trust(agent_id)
@@ -732,7 +736,7 @@ async def a2a_trust_check(agent_id: str):
     return result
 
 
-@router.post("/trust/verify/batch")
+@router.post("/trust/verify/batch", summary="Batch A2A trust check", tags=["Trust & Verification"])
 async def bulk_trust_check(request: Request):
     """Batch trust check for up to 20 agents in a single call."""
     _check_rate_limit(_get_client_ip(request), "batch", request)
@@ -768,7 +772,7 @@ async def bulk_trust_check(request: Request):
 
 # --- Smart Routing (Delegation Routing) ---
 
-@router.get("/trust/route")
+@router.get("/trust/route", summary="Smart agent routing", tags=["Trust & Verification"])
 async def trust_route(category: str, min_tier: str = "silver", limit: int = 3):
     """Recommend the most trusted agents filtered by category and tier."""
     valid_tiers = ["bronze", "silver", "gold", "enterprise"]
@@ -779,7 +783,7 @@ async def trust_route(category: str, min_tier: str = "silver", limit: int = 3):
 
 # --- Trust History ---
 
-@router.get("/agents/{agent_id}/history")
+@router.get("/agents/{agent_id}/history", summary="Trust score history", tags=["Agents"])
 async def read_agent_history(agent_id: str, limit: int = 50):
     _validate_uuid(agent_id, "agent_id")
     from app.core.supabase_client import get_supabase
@@ -797,7 +801,7 @@ async def read_agent_history(agent_id: str, limit: int = 50):
 
 # --- Comparison ---
 
-@router.get("/compare")
+@router.get("/compare", summary="Compare agents side-by-side", tags=["Discovery"])
 async def compare(agents: str):
     ids = [a.strip() for a in agents.split(",") if a.strip()]
     if len(ids) < 2:
@@ -812,7 +816,7 @@ async def compare(agents: str):
 
 # --- Badges ---
 
-@router.get("/badge/svg/{agent_id}")
+@router.get("/badge/svg/{agent_id}", summary="SVG trust badge", tags=["Badges"])
 async def badge_svg(agent_id: str):
     _validate_uuid(agent_id, "agent_id")
     agent = get_agent(agent_id)
@@ -864,7 +868,7 @@ async def badge_svg(agent_id: str):
     )
 
 
-@router.get("/badge/widget.js")
+@router.get("/badge/widget.js", summary="Embeddable badge widget JS", tags=["Badges"])
 async def badge_widget_js():
     """Embeddable JS widget: <script src="https://api.garl.ai/api/v1/badge/widget.js" data-agent-id="UUID"></script>"""
     js = '''(function(){
@@ -892,7 +896,7 @@ async def badge_widget_js():
     )
 
 
-@router.get("/badge/{agent_id}")
+@router.get("/badge/{agent_id}", summary="Badge data (JSON)", tags=["Badges"])
 async def badge_data(agent_id: str):
     _validate_uuid(agent_id, "agent_id")
     agent = get_agent(agent_id)
@@ -910,7 +914,7 @@ async def badge_data(agent_id: str):
     )
 
 
-@router.get("/badge/embed/{agent_id}")
+@router.get("/badge/embed/{agent_id}", summary="Embeddable iframe badge", tags=["Badges"])
 async def badge_embed(agent_id: str, request: Request):
     """Embeddable iframe trust card widget."""
     _check_rate_limit(_get_client_ip(request), request=request)
@@ -989,7 +993,7 @@ body{{background:#0a0a1a;font-family:ui-monospace,SFMono-Regular,Consolas,monosp
 
 # --- Webhook CRUD ---
 
-@router.post("/webhooks")
+@router.post("/webhooks", summary="Register webhook", tags=["Webhooks"])
 async def create_webhook(req: WebhookRegisterRequest, x_api_key: str = Header(...)):
     _validate_uuid(req.agent_id, "agent_id")
     _verify_agent_ownership(req.agent_id, x_api_key)
@@ -997,14 +1001,14 @@ async def create_webhook(req: WebhookRegisterRequest, x_api_key: str = Header(..
     return hook
 
 
-@router.get("/webhooks/{agent_id}")
+@router.get("/webhooks/{agent_id}", summary="List agent webhooks", tags=["Webhooks"])
 async def list_agent_webhooks(agent_id: str, x_api_key: str = Header(...)):
     _validate_uuid(agent_id, "agent_id")
     _verify_agent_ownership(agent_id, x_api_key)
     return list_webhooks(agent_id)
 
 
-@router.patch("/webhooks/{agent_id}/{webhook_id}")
+@router.patch("/webhooks/{agent_id}/{webhook_id}", summary="Update webhook", tags=["Webhooks"])
 async def patch_webhook(agent_id: str, webhook_id: str, req: WebhookUpdateRequest, x_api_key: str = Header(...)):
     _validate_uuid(agent_id, "agent_id")
     _validate_uuid(webhook_id, "webhook_id")
@@ -1015,7 +1019,7 @@ async def patch_webhook(agent_id: str, webhook_id: str, req: WebhookUpdateReques
     return result
 
 
-@router.delete("/webhooks/{agent_id}/{webhook_id}")
+@router.delete("/webhooks/{agent_id}/{webhook_id}", summary="Delete webhook", tags=["Webhooks"])
 async def remove_webhook(agent_id: str, webhook_id: str, x_api_key: str = Header(...)):
     _validate_uuid(agent_id, "agent_id")
     _validate_uuid(webhook_id, "webhook_id")
@@ -1028,7 +1032,7 @@ async def remove_webhook(agent_id: str, webhook_id: str, x_api_key: str = Header
 
 # --- Endorsement (Sybil-Resistant) ---
 
-@router.post("/endorse")
+@router.post("/endorse", summary="Endorse an agent", tags=["Endorsements"])
 async def endorse_agent(request: Request, req: EndorsementRequest, x_api_key: str = Header(...)):
     _check_rate_limit(x_api_key[:16], "default", request)
     _validate_uuid(req.target_agent_id, "target_agent_id")
@@ -1049,7 +1053,7 @@ async def endorse_agent(request: Request, req: EndorsementRequest, x_api_key: st
         raise HTTPException(status_code=403, detail=str(e))
 
 
-@router.get("/endorsements/{agent_id}")
+@router.get("/endorsements/{agent_id}", summary="Get agent endorsements", tags=["Endorsements"])
 async def read_endorsements(agent_id: str):
     _validate_uuid(agent_id, "agent_id")
     return get_endorsements(agent_id)
@@ -1057,7 +1061,7 @@ async def read_endorsements(agent_id: str):
 
 # --- GDPR & Data Protection ---
 
-@router.delete("/agents/{agent_id}")
+@router.delete("/agents/{agent_id}", summary="Soft delete agent (GDPR)", tags=["GDPR & Privacy"])
 async def delete_agent(agent_id: str, req: SoftDeleteRequest, x_api_key: str = Header(...)):
     """GDPR-compliant soft delete."""
     _validate_uuid(agent_id, "agent_id")
@@ -1072,7 +1076,7 @@ async def delete_agent(agent_id: str, req: SoftDeleteRequest, x_api_key: str = H
         raise HTTPException(status_code=403, detail=str(e))
 
 
-@router.post("/agents/{agent_id}/anonymize")
+@router.post("/agents/{agent_id}/anonymize", summary="Anonymize agent (GDPR)", tags=["GDPR & Privacy"])
 async def anonymize(agent_id: str, req: AnonymizeRequest, x_api_key: str = Header(...)):
     """GDPR-compliant anonymization: personal data is hashed."""
     _validate_uuid(agent_id, "agent_id")
@@ -1089,7 +1093,7 @@ async def anonymize(agent_id: str, req: AnonymizeRequest, x_api_key: str = Heade
 
 # --- Compliance Report (CISO) ---
 
-@router.get("/agents/{agent_id}/compliance")
+@router.get("/agents/{agent_id}/compliance", summary="Compliance report (CISO)", tags=["Agents"])
 async def read_compliance(agent_id: str, x_api_key: str | None = Header(default=None)):
     """Enterprise compliance report: SLA, security risks, anomaly history."""
     _validate_uuid(agent_id, "agent_id")
@@ -1120,7 +1124,7 @@ def _infer_category(message: str) -> str:
     return best if scores[best] > 0 else "other"
 
 
-@router.post("/ingest/openclaw")
+@router.post("/ingest/openclaw", summary="OpenClaw trace ingest", tags=["Integrations"])
 async def ingest_openclaw(request: Request, payload: OpenClawIngestPayload, x_api_key: str = Header(...)):
     _check_rate_limit(x_api_key[:16], "default", request)
 
@@ -1171,7 +1175,7 @@ async def ingest_openclaw(request: Request, payload: OpenClawIngestPayload, x_ap
 
 # --- Agent Search ---
 
-@router.get("/search")
+@router.get("/search", summary="Search agents", description="Full-text search across agent names and descriptions. Supports category filter.", tags=["Discovery"])
 async def search_agents_endpoint(q: str = "", category: str | None = None, limit: int = 10, offset: int = 0):
     if offset < 0:
         raise HTTPException(status_code=422, detail="offset must be >= 0")

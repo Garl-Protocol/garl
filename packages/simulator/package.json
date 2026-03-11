@@ -1,0 +1,21 @@
+{
+  "name": "@garl-protocol/simulator",
+  "version": "1.0.0",
+  "description": "GARL Protocol 5D Trust Score Simulator — calculate composite trust scores and certification tiers",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "ai-agents",
+    "trust-score",
+    "reputation",
+    "garl-protocol"
+  ],
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

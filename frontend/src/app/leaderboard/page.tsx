@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { Shield, Filter, GitCompareArrows } from "lucide-react";
+import { Shield, Filter, GitCompareArrows, Search } from "lucide-react";
 import {
   formatScore,
   getScoreColor,
@@ -12,12 +12,17 @@ import {
 import type { LeaderboardEntry } from "@/lib/api";
 
 const CATEGORIES = ["all", "coding", "research", "sales", "data", "automation"];
+const FRAMEWORKS = ["all", "langchain", "crewai", "autogen", "custom", "llamaindex", "semantic-kernel"];
 
 export default function LeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [category, setCategory] = useState("all");
   const [loading, setLoading] = useState(true);
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [framework, setFramework] = useState("all");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggleCompare = (id: string) => {
     setCompareIds((prev) => {
@@ -34,8 +39,15 @@ export default function LeaderboardPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const catParam = category !== "all" ? `&category=${category}` : "";
-      const res = await fetch(`${apiBase}/leaderboard?limit=50${catParam}`);
+      let url: string;
+      if (debouncedQuery.trim()) {
+        const catParam = category !== "all" ? `&category=${category}` : "";
+        url = `${apiBase}/search?q=${encodeURIComponent(debouncedQuery.trim())}&limit=50${catParam}`;
+      } else {
+        const catParam = category !== "all" ? `&category=${category}` : "";
+        url = `${apiBase}/leaderboard?limit=50${catParam}`;
+      }
+      const res = await fetch(url);
       if (res.ok) {
         const json = await res.json();
         setEntries(Array.isArray(json) ? json : json.data || []);
@@ -45,22 +57,46 @@ export default function LeaderboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [apiBase, category]);
+  }, [apiBase, category, debouncedQuery]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedQuery(value);
+    }, 300);
+  };
+
+  const filteredEntries = framework === "all"
+    ? entries
+    : entries.filter((e) => e.framework === framework);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-mono text-2xl font-bold">
-            <span className="text-garl-accent">$</span> leaderboard
-          </h1>
-          <p className="mt-1 font-mono text-sm text-garl-muted">
-            Top-performing agents ranked by trust score
-          </p>
+      <div className="mb-4">
+        <h1 className="font-mono text-2xl font-bold">
+          <span className="text-garl-accent">$</span> leaderboard
+        </h1>
+        <p className="mt-1 font-mono text-sm text-garl-muted">
+          Top-performing agents ranked by trust score
+        </p>
+      </div>
+
+      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        {/* Search input */}
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-garl-muted" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Search agents..."
+            className="h-9 w-full rounded-lg border border-garl-border bg-garl-bg pl-9 pr-3 font-mono text-sm text-garl-text placeholder:text-garl-muted focus:border-garl-accent focus:outline-none focus:ring-1 focus:ring-garl-accent lg:w-64"
+          />
         </div>
 
         {/* Category filter */}
@@ -82,6 +118,22 @@ export default function LeaderboardPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Framework filter */}
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs text-garl-muted">Framework:</span>
+          <select
+            value={framework}
+            onChange={(e) => setFramework(e.target.value)}
+            className="h-9 rounded-lg border border-garl-border bg-garl-bg px-3 font-mono text-sm text-garl-text focus:border-garl-accent focus:outline-none focus:ring-1 focus:ring-garl-accent"
+          >
+            {FRAMEWORKS.map((fw) => (
+              <option key={fw} value={fw}>
+                {fw === "all" ? "All Frameworks" : fw}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -124,13 +176,13 @@ export default function LeaderboardPage() {
               </div>
             ))}
           </div>
-        ) : entries.length === 0 ? (
+        ) : filteredEntries.length === 0 ? (
           <div className="py-20 text-center font-mono text-sm text-garl-muted">
             No agents found. Run the mock script to populate data.
           </div>
         ) : (
           <div className="divide-y divide-garl-border/50">
-            {entries.map((entry, i) => (
+            {filteredEntries.map((entry, i) => (
               <motion.div
                 key={entry.id}
                 initial={{ opacity: 0, y: 5 }}
