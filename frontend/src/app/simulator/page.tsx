@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { Share2, RotateCcw } from "lucide-react";
 
 const WEIGHTS = { reliability: 0.30, security: 0.20, speed: 0.15, cost_efficiency: 0.10, consistency: 0.25 };
 
@@ -20,6 +21,14 @@ const TIERS = [
   { name: "Bronze", min: 0, color: "text-amber-600", bg: "bg-amber-600/10", border: "border-amber-600/30" },
 ];
 
+const PRESETS: { name: string; desc: string; scores: Record<string, number> }[] = [
+  { name: "Baseline", desc: "Fresh agent, no history", scores: { reliability: 50, security: 50, speed: 50, cost_efficiency: 50, consistency: 50 } },
+  { name: "Strong Coder", desc: "Reliable coding agent", scores: { reliability: 82, security: 65, speed: 70, cost_efficiency: 55, consistency: 78 } },
+  { name: "Enterprise Data", desc: "High-security data agent", scores: { reliability: 88, security: 92, speed: 60, cost_efficiency: 45, consistency: 85 } },
+  { name: "Fast & Cheap", desc: "Speed-optimized agent", scores: { reliability: 60, security: 45, speed: 95, cost_efficiency: 90, consistency: 55 } },
+  { name: "Gold Tier", desc: "Balanced gold-tier agent", scores: { reliability: 75, security: 70, speed: 72, cost_efficiency: 68, consistency: 74 } },
+];
+
 function getTier(score: number) {
   return TIERS.find((t) => score >= t.min) || TIERS[TIERS.length - 1];
 }
@@ -32,6 +41,22 @@ export default function SimulatorPage() {
     cost_efficiency: 50,
     consistency: 50,
   });
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const r = params.get("r"), se = params.get("se"), sp = params.get("sp"), c = params.get("c"), co = params.get("co");
+    if (r && se && sp && c && co) {
+      setScores({
+        reliability: Math.min(100, Math.max(0, Number(r))),
+        security: Math.min(100, Math.max(0, Number(se))),
+        speed: Math.min(100, Math.max(0, Number(sp))),
+        cost_efficiency: Math.min(100, Math.max(0, Number(c))),
+        consistency: Math.min(100, Math.max(0, Number(co))),
+      });
+    }
+  }, []);
 
   const composite = useMemo(() => {
     return Object.entries(WEIGHTS).reduce((sum, [key, weight]) => sum + (scores[key] || 0) * weight, 0);
@@ -190,6 +215,85 @@ export default function SimulatorPage() {
                 <span className="text-garl-accent">Score</span> = (Reliability × 0.30) + (Security × 0.20) + (Speed × 0.15) + (Cost Efficiency × 0.10) + (Consistency × 0.25)
               </p>
             </div>
+
+            {/* What-If */}
+            <div className="rounded-xl border border-garl-border bg-garl-surface p-5">
+              <h2 className="mb-3 font-mono text-xs uppercase tracking-wider text-garl-muted">
+                What-If Analysis
+              </h2>
+              <div className="space-y-2">
+                {DIMENSIONS.map((dim) => {
+                  const current = scores[dim.key];
+                  const improved = Math.min(100, current + 10);
+                  const currentComposite = composite;
+                  const newComposite = currentComposite + 10 * dim.weight;
+                  const delta = newComposite - currentComposite;
+                  const currentTier = tier;
+                  const newTier = getTier(newComposite);
+                  return (
+                    <div key={dim.key} className="flex items-center justify-between font-mono text-xs">
+                      <span className="text-garl-muted">{dim.label} +10</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-garl-accent">+{delta.toFixed(1)}</span>
+                        {newTier.name !== currentTier.name && (
+                          <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${newTier.bg} ${newTier.color} ${newTier.border} border`}>
+                            → {newTier.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const url = `${window.location.pathname}?r=${scores.reliability}&se=${scores.security}&sp=${scores.speed}&c=${scores.cost_efficiency}&co=${scores.consistency}`;
+                  navigator.clipboard.writeText(window.location.origin + url);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-garl-border bg-garl-surface py-2 font-mono text-xs text-garl-muted transition-colors hover:border-garl-accent/30 hover:text-garl-accent"
+              >
+                <Share2 className="h-3 w-3" />
+                {copied ? "Link copied!" : "Share"}
+              </button>
+              <button
+                onClick={() =>
+                  setScores({ reliability: 50, security: 50, speed: 50, cost_efficiency: 50, consistency: 50 })
+                }
+                className="flex items-center gap-2 rounded-lg border border-garl-border bg-garl-surface px-4 py-2 font-mono text-xs text-garl-muted transition-colors hover:border-garl-accent/30 hover:text-garl-accent"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Presets */}
+        <div className="mt-6">
+          <h2 className="mb-3 font-mono text-xs uppercase tracking-wider text-garl-muted">
+            Quick Presets
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {PRESETS.map((preset) => (
+              <button
+                key={preset.name}
+                onClick={() => setScores({ ...preset.scores })}
+                className="rounded-lg border border-garl-border bg-garl-surface px-3 py-2 text-left transition-colors hover:border-garl-accent/30"
+              >
+                <span className="block font-mono text-xs font-semibold text-garl-text">
+                  {preset.name}
+                </span>
+                <span className="font-mono text-[10px] text-garl-muted">
+                  {preset.desc}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       </motion.div>

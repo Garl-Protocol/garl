@@ -13,6 +13,7 @@ import {
   AlertCircle,
   Info,
   Lock,
+  Download,
 } from "lucide-react";
 import { fetchCompliance, type ComplianceReport } from "@/lib/api";
 
@@ -697,6 +698,88 @@ function ComplianceContent() {
           </div>
         </div>
       </motion.section>
+
+      {/* Export Actions */}
+      <div className="mt-8 flex flex-wrap gap-3">
+        <button
+          onClick={() => {
+            const json = JSON.stringify(report, null, 2);
+            const blob = new Blob([json], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `garl-compliance-${report.agent_id.slice(0, 8)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+          className="flex items-center gap-2 rounded-lg border border-garl-border bg-garl-surface px-4 py-2.5 font-mono text-xs text-garl-muted transition-colors hover:border-garl-accent/30 hover:text-garl-accent"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Export JSON
+        </button>
+        <button
+          onClick={() => {
+            const buildHtml = () => {
+              const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+              const riskRows = report.security_risks.length === 0
+                ? '<div class="row accent">No security risks detected.</div>'
+                : report.security_risks.map((r: { level: string; message: string }) =>
+                    `<div class="row"><span class="label">[${esc(r.level.toUpperCase())}]</span><span class="value">${esc(r.message)}</span></div>`
+                  ).join("");
+              return [
+                "<html><head><title>GARL Compliance Report</title>",
+                "<style>",
+                "body{font-family:monospace;background:#fff;color:#111;padding:40px;max-width:800px;margin:0 auto}",
+                "h1{font-size:18px;border-bottom:2px solid #00AA55;padding-bottom:8px}",
+                "h2{font-size:14px;margin-top:24px;color:#333}",
+                ".meta{color:#666;font-size:11px}",
+                ".section{margin:16px 0;padding:12px;border:1px solid #ddd;border-radius:8px}",
+                ".row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px}",
+                ".label{color:#666}.value{font-weight:bold}",
+                ".accent{color:#00AA55}.danger{color:#cc3333}",
+                "@media print{body{padding:20px}}",
+                "</style></head><body>",
+                "<h1>GARL Protocol — Compliance Report</h1>",
+                `<div class="meta">Agent: ${esc(report.name)} (${esc(report.agent_id)})<br/>`,
+                `Tier: ${esc(report.certification_tier)} | Trust Score: ${report.trust_score.toFixed(1)}<br/>`,
+                `Generated: ${new Date().toISOString()}</div>`,
+                '<div class="section"><h2>SLA Compliance</h2>',
+                `<div class="row"><span class="label">Uptime Rate</span><span class="value">${report.sla_compliance.uptime_rate.toFixed(1)}%</span></div>`,
+                `<div class="row"><span class="label">Avg Response</span><span class="value">${report.sla_compliance.avg_response_ms}ms</span></div>`,
+                `<div class="row"><span class="label">Total Executions</span><span class="value">${report.sla_compliance.total_executions}</span></div>`,
+                `<div class="row"><span class="label">SLA Met</span><span class="value ${report.sla_compliance.sla_met ? "accent" : "danger"}">${report.sla_compliance.sla_met ? "YES" : "NO"}</span></div>`,
+                "</div>",
+                '<div class="section"><h2>Trust Dimensions</h2>',
+                `<div class="row"><span class="label">Reliability</span><span class="value">${report.dimensions.reliability.toFixed(1)}</span></div>`,
+                `<div class="row"><span class="label">Security</span><span class="value">${report.dimensions.security.toFixed(1)}</span></div>`,
+                `<div class="row"><span class="label">Speed</span><span class="value">${report.dimensions.speed.toFixed(1)}</span></div>`,
+                `<div class="row"><span class="label">Cost Efficiency</span><span class="value">${report.dimensions.cost_efficiency.toFixed(1)}</span></div>`,
+                `<div class="row"><span class="label">Consistency</span><span class="value">${report.dimensions.consistency.toFixed(1)}</span></div>`,
+                "</div>",
+                `<div class="section"><h2>Security Risks</h2>${riskRows}</div>`,
+                '<div class="section"><h2>Anomaly History</h2>',
+                `<div class="row"><span class="label">Active Flags</span><span class="value">${report.anomaly_history.active.length}</span></div>`,
+                `<div class="row"><span class="label">Archived</span><span class="value">${report.anomaly_history.archived.length}</span></div>`,
+                `<div class="row"><span class="label">Total</span><span class="value">${report.anomaly_history.total_flags}</span></div>`,
+                "</div>",
+                '<div style="margin-top:32px;font-size:10px;color:#999;border-top:1px solid #ddd;padding-top:8px">',
+                "GARL Protocol — garl.ai — Cryptographic trust verification for AI agents</div>",
+                "</body></html>",
+              ].join("\n");
+            };
+            const blob = new Blob([buildHtml()], { type: "text/html" });
+            const url = URL.createObjectURL(blob);
+            const win = window.open(url, "_blank");
+            if (win) {
+              win.addEventListener("load", () => { win.print(); URL.revokeObjectURL(url); });
+            }
+          }}
+          className="flex items-center gap-2 rounded-lg bg-garl-accent px-4 py-2.5 font-mono text-xs font-semibold text-garl-bg transition-opacity hover:opacity-90"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Print / Save PDF
+        </button>
+      </div>
     </div>
   );
 }

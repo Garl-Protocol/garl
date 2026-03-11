@@ -139,6 +139,12 @@ export default function RootLayout({
                   Try It
                 </a>
                 <a
+                  href="/verify"
+                  className="font-mono text-xs uppercase tracking-wider text-garl-muted transition-colors hover:text-garl-accent"
+                >
+                  Verify
+                </a>
+                <a
                   href="mailto:contact@garl.ai"
                   className="font-mono text-xs uppercase tracking-wider text-garl-muted transition-colors hover:text-garl-accent"
                 >

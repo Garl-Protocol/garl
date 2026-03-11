@@ -9,7 +9,17 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  BarChart3,
 } from "lucide-react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 import {
   formatScore,
   formatDelta,
@@ -21,9 +31,18 @@ import {
 } from "@/lib/utils";
 import type { Trace, Stats } from "@/lib/api";
 
+interface DailyData {
+  date: string;
+  traces: number;
+  success: number;
+  failure: number;
+  avg_delta: number;
+}
+
 export default function DashboardPage() {
   const [feed, setFeed] = useState<Trace[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [dailyData, setDailyData] = useState<DailyData[]>([]);
   const [loading, setLoading] = useState(true);
   const [healthStatus, setHealthStatus] = useState<"checking" | "healthy" | "down">("checking");
 
@@ -33,16 +52,21 @@ export default function DashboardPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [feedRes, statsRes, healthRes] = await Promise.all([
+      const [feedRes, statsRes, healthRes, dailyRes] = await Promise.all([
         fetch(`${apiBase}/feed?limit=30`),
         fetch(`${apiBase}/stats`),
         fetch(`${backendBase}/health`).catch(() => null),
+        fetch(`${apiBase}/stats/daily?days=30`).catch(() => null),
       ]);
       if (feedRes.ok) {
         const feedJson = await feedRes.json();
         setFeed(Array.isArray(feedJson) ? feedJson : feedJson.data || []);
       }
       if (statsRes.ok) setStats(await statsRes.json());
+      if (dailyRes && dailyRes.ok) {
+        const dailyJson = await dailyRes.json();
+        setDailyData(dailyJson.data || []);
+      }
       if (healthRes && healthRes.ok) {
         setHealthStatus("healthy");
       } else {
@@ -102,6 +126,82 @@ export default function DashboardPage() {
           accent={healthStatus === "healthy"}
         />
       </div>
+
+      {/* Trend Chart */}
+      {dailyData.length >= 3 && (
+        <div className="mb-8 rounded-xl border border-garl-border bg-garl-surface p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-garl-accent" />
+            <span className="font-mono text-xs uppercase tracking-wider text-garl-muted">
+              Daily Execution Activity (30 days)
+            </span>
+          </div>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={dailyData}>
+                <defs>
+                  <linearGradient id="traceGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#00FF88" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#00FF88" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1a1a2e" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: "#6b7280", fontSize: 10, fontFamily: "monospace" }}
+                  tickFormatter={(v: string) => v.slice(5)}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: "#6b7280", fontSize: 10, fontFamily: "monospace" }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={30}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "#0d0d1a",
+                    border: "1px solid #1a1a2e",
+                    borderRadius: "8px",
+                    fontFamily: "monospace",
+                    fontSize: "11px",
+                  }}
+                  labelFormatter={(v: string) => v}
+                  formatter={(value: number, name: string) => {
+                    const labels: Record<string, string> = { traces: "Traces", success: "Success", failure: "Failure" };
+                    return [value, labels[name] || name];
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="traces"
+                  stroke="#00FF88"
+                  strokeWidth={2}
+                  fill="url(#traceGrad)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="success"
+                  stroke="#22c55e"
+                  strokeWidth={1}
+                  fill="none"
+                  strokeDasharray="4 4"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {dailyData.length > 0 && dailyData.length < 3 && (
+        <div className="mb-8 rounded-xl border border-garl-border bg-garl-surface p-5 text-center">
+          <BarChart3 className="mx-auto mb-2 h-6 w-6 text-garl-muted/40" />
+          <p className="font-mono text-xs text-garl-muted">
+            Building activity history... ({dailyData.reduce((s, d) => s + d.traces, 0)} traces across {dailyData.length} days)
+          </p>
+        </div>
+      )}
 
       {/* Live Feed */}
       <div className="rounded-xl border border-garl-border bg-garl-surface">

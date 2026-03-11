@@ -54,6 +54,7 @@ from app.services.agents import (
 )
 from app.services.traces import submit_trace
 from app.core.signing import verify_signature, get_public_key_hex, sign_payload, sign_trace
+from app.core.cache import cache_get, cache_set
 
 router = APIRouter(prefix="/api/v1", tags=["GARL Protocol"])
 
@@ -626,7 +627,13 @@ async def leaderboard(request: Request, category: str | None = None, limit: int 
         raise HTTPException(status_code=422, detail="limit must be between 1 and 100")
     if offset < 0:
         raise HTTPException(status_code=422, detail="offset must be >= 0")
-    return get_leaderboard(category, limit, offset)
+    cache_key = f"leaderboard:{category or 'all'}:{limit}:{offset}"
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+    result = get_leaderboard(category, limit, offset)
+    cache_set(cache_key, result, ttl=120)
+    return result
 
 
 @router.get("/feed")
@@ -649,7 +656,53 @@ async def activity_feed(request: Request, limit: int = 20, offset: int = 0):
 
 @router.get("/stats")
 async def protocol_stats():
-    return get_stats()
+    cached = cache_get("stats")
+    if cached:
+        return cached
+    result = get_stats()
+    cache_set("stats", result, ttl=60)
+    return result
+
+
+@router.get("/stats/daily")
+async def daily_stats(request: Request, days: int = 30):
+    """Daily trace counts and average trust deltas for the last N days."""
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    if days < 1 or days > 90:
+        raise HTTPException(status_code=422, detail="days must be between 1 and 90")
+
+    from datetime import datetime, timezone, timedelta
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+    db = _get_supabase()
+    res = (
+        db.table("traces")
+        .select("created_at, trust_delta, status")
+        .gt("created_at", cutoff)
+        .order("created_at", desc=False)
+        .execute()
+    )
+
+    from collections import defaultdict
+    daily: dict[str, dict] = defaultdict(lambda: {"traces": 0, "success": 0, "failure": 0, "avg_delta": 0.0, "total_delta": 0.0})
+
+    for trace in (res.data or []):
+        day = trace["created_at"][:10]
+        daily[day]["traces"] += 1
+        daily[day]["total_delta"] += float(trace.get("trust_delta", 0))
+        if trace.get("status") == "success":
+            daily[day]["success"] += 1
+        elif trace.get("status") == "failure":
+            daily[day]["failure"] += 1
+
+    result = []
+    for day, data in sorted(daily.items()):
+        data["date"] = day
+        data["avg_delta"] = round(data["total_delta"] / data["traces"], 2) if data["traces"] > 0 else 0
+        del data["total_delta"]
+        result.append(data)
+
+    return {"days": days, "data": result}
 
 
 # --- A2A Trust ---
