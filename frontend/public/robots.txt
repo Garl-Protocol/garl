@@ -19,3 +19,5 @@ Sitemap: https://garl.ai/sitemap.xml
 # Agent Card: https://api.garl.ai/.well-known/agent.json
 # LLM Context: https://garl.ai/llms.txt
 # Full Docs: https://garl.ai/llms-full.txt
+# Agent Onboarding: https://garl.ai/skill.md
+# Trust Heartbeat: https://garl.ai/heartbeat.md

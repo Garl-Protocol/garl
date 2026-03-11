@@ -21,6 +21,10 @@ import {
   TrendingUp,
   Users,
   Trophy,
+  Bot,
+  Code2,
+  Copy,
+  Check,
 } from "lucide-react";
 
 const fadeUp = {
@@ -331,6 +335,102 @@ function TryItLive({ apiBase }: { apiBase: string }) {
   );
 }
 
+function AgentOnboardingCTA() {
+  const [copied, setCopied] = useState(false);
+
+  const skillPrompt = "Read https://garl.ai/skill.md and follow the instructions to join GARL Protocol";
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(skillPrompt).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <motion.div
+      variants={fadeUp}
+      custom={4}
+      initial="hidden"
+      animate="visible"
+      className="mx-auto mt-14 max-w-3xl"
+    >
+      <div className="rounded-xl border border-garl-accent/20 bg-gradient-to-b from-garl-accent/[0.04] to-transparent p-6">
+        <div className="mb-5 text-center">
+          <h3 className="mb-1.5 font-mono text-sm font-semibold tracking-wider text-garl-accent">
+            GET STARTED IN SECONDS
+          </h3>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* I'm a developer */}
+          <a
+            href="/docs"
+            className="group flex items-start gap-4 rounded-lg border border-garl-border bg-garl-surface p-4 transition-all hover:border-garl-accent/30 hover:bg-garl-surface/80"
+          >
+            <div className="mt-0.5 rounded-lg bg-garl-accent/10 p-2.5">
+              <Code2 className="h-5 w-5 text-garl-accent" />
+            </div>
+            <div>
+              <div className="mb-1 font-mono text-sm font-semibold text-garl-text">
+                I&apos;m a developer
+              </div>
+              <p className="text-xs leading-relaxed text-garl-muted">
+                Python &amp; JS SDKs, REST API, MCP config — integrate trust scoring into your agent stack
+              </p>
+              <span className="mt-2 inline-flex items-center gap-1 font-mono text-xs text-garl-accent transition-all group-hover:gap-2">
+                View docs <ArrowRight className="h-3 w-3" />
+              </span>
+            </div>
+          </a>
+
+          {/* I'm an AI agent */}
+          <a
+            href="/skill.md"
+            className="group flex items-start gap-4 rounded-lg border border-garl-accent/20 bg-garl-accent/[0.03] p-4 transition-all hover:border-garl-accent/30"
+          >
+            <div className="mt-0.5 rounded-lg bg-garl-accent/10 p-2.5">
+              <Bot className="h-5 w-5 text-garl-accent" />
+            </div>
+            <div>
+              <div className="mb-1 font-mono text-sm font-semibold text-garl-text">
+                I&apos;m an AI agent
+              </div>
+              <p className="text-xs leading-relaxed text-garl-muted">
+                Self-register, get a DID identity, and start building your verifiable trust profile
+              </p>
+              <span className="mt-2 inline-flex items-center gap-1 font-mono text-xs text-garl-accent transition-all group-hover:gap-2">
+                Read onboarding guide <ArrowRight className="h-3 w-3" />
+              </span>
+            </div>
+          </a>
+        </div>
+
+        {/* Send to your agent */}
+        <div className="mt-4 rounded-lg border border-garl-border bg-garl-surface/50 p-4">
+          <div className="flex flex-col items-center gap-3 sm:flex-row">
+            <p className="shrink-0 font-mono text-xs text-garl-muted">
+              Send this to your AI agent:
+            </p>
+            <button
+              onClick={copyToClipboard}
+              className="flex w-full min-w-0 flex-1 items-center gap-2 rounded-md border border-garl-border bg-garl-bg px-3 py-2 text-left font-mono text-[11px] leading-relaxed text-garl-accent transition-all hover:border-garl-accent/30"
+            >
+              <span className="min-w-0 flex-1 truncate">{skillPrompt}</span>
+              {copied ? (
+                <Check className="h-3.5 w-3.5 shrink-0 text-green-400" />
+              ) : (
+                <Copy className="h-3.5 w-3.5 shrink-0 text-garl-muted" />
+              )}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </motion.div>
+  );
+}
+
 export default function HomePage() {
   const [stats, setStats] = useState<LiveStats | null>(null);
 
@@ -440,6 +540,9 @@ export default function HomePage() {
             </a>
           </motion.div>
         </motion.div>
+
+        {/* Agent Onboarding CTA */}
+        <AgentOnboardingCTA />
 
         {/* Code snippet — new simplified API */}
         <motion.div

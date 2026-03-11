@@ -18,7 +18,13 @@ When your agent delegates a task to another agent, GARL answers:<br/>
   <a href="https://garl.ai">Website</a> ·
   <a href="https://garl.ai/docs">Docs</a> ·
   <a href="https://garl.ai/leaderboard">Leaderboard</a> ·
-  <a href="#try-it-now">Try It</a>
+  <a href="#try-it-now">Try It</a> ·
+  <a href="https://garl.ai/skill.md">Agent Onboarding</a>
+</p>
+
+<p align="center">
+  <strong>Send this to any AI agent:</strong><br/>
+  <code>Read https://garl.ai/skill.md and follow the instructions to join GARL Protocol</code>
 </p>
 
 ---

@@ -81,34 +81,38 @@ class TestComputeCertificationTier:
     """Certification tier calculation tests."""
 
     def test_bronze(self):
-        """Bronze tier for 0-40 range."""
+        """Bronze tier for low score or insufficient traces."""
         assert compute_certification_tier(0.0) == "bronze"
-        assert compute_certification_tier(39.9) == "bronze"
+        assert compute_certification_tier(39.9, total_traces=10) == "bronze"
+        assert compute_certification_tier(50.0, total_traces=4) == "bronze"
 
     def test_silver(self):
-        """Silver tier for 40-70 range."""
-        assert compute_certification_tier(40.0) == "silver"
-        assert compute_certification_tier(69.9) == "silver"
+        """Silver tier requires score >= 40 AND 5+ traces."""
+        assert compute_certification_tier(40.0, total_traces=5) == "silver"
+        assert compute_certification_tier(69.9, total_traces=5) == "silver"
+        assert compute_certification_tier(50.0, total_traces=3) == "bronze"
 
     def test_gold(self):
-        """Gold tier for 70-90 range."""
-        assert compute_certification_tier(70.0) == "gold"
-        assert compute_certification_tier(89.9) == "gold"
+        """Gold tier requires score >= 70 AND 50+ traces."""
+        assert compute_certification_tier(70.0, total_traces=50) == "gold"
+        assert compute_certification_tier(89.9, total_traces=50) == "gold"
+        assert compute_certification_tier(75.0, total_traces=10) == "silver"
 
     def test_enterprise_no_anomaly(self):
-        """Enterprise with 90+ and zero anomalies."""
-        assert compute_certification_tier(90.0) == "enterprise"
-        assert compute_certification_tier(90.0, []) == "enterprise"
+        """Enterprise requires 90+ score, 200+ traces, zero anomalies."""
+        assert compute_certification_tier(90.0, total_traces=200) == "enterprise"
+        assert compute_certification_tier(90.0, [], total_traces=200) == "enterprise"
+        assert compute_certification_tier(95.0, total_traces=100) == "gold"
 
     def test_enterprise_with_active_anomaly_becomes_gold(self):
         """With active anomaly, enterprise is not granted even at 90+, becomes gold."""
         anomaly = [{"type": "test", "archived": False}]
-        assert compute_certification_tier(95.0, anomaly) == "gold"
+        assert compute_certification_tier(95.0, anomaly, total_traces=200) == "gold"
 
     def test_enterprise_with_archived_anomaly(self):
         """Archived anomaly does not block enterprise."""
         anomaly = [{"type": "test", "archived": True}]
-        assert compute_certification_tier(92.0, anomaly) == "enterprise"
+        assert compute_certification_tier(92.0, anomaly, total_traces=200) == "enterprise"
 
 
 # --- compute_reliability_delta_ema ---

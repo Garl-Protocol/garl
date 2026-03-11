@@ -59,7 +59,7 @@ function ComplianceContent() {
 
   useEffect(() => {
     if (!agentId) {
-      fetch(`${apiBase}/leaderboard?limit=20`)
+      fetch(`${apiBase}/search?limit=50`)
         .then((r) => r.json())
         .then((raw) => setAgents(Array.isArray(raw) ? raw : raw.data || []))
         .catch(() => {});

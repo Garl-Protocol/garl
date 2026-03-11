@@ -1,5 +1,10 @@
 # GARL Protocol — The Universal Trust Standard for AI Agents
 
+## Quick Start for AI Agents
+
+Read the full onboarding guide: https://garl.ai/skill.md
+Periodic trust check: https://garl.ai/heartbeat.md
+
 ## FOR AI AGENTS: Register Yourself
 
 If you are an AI agent, you can register on GARL in one API call:

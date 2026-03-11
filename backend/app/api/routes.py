@@ -315,13 +315,20 @@ async def read_agent_traces(agent_id: str, limit: int = 20, offset: int = 0):
     db = get_supabase()
     res = (
         db.table("traces")
-        .select("id,agent_id,task_description,status,duration_ms,category,trust_delta,cost_usd,trace_hash,created_at")
+        .select("id,agent_id,task_description,status,duration_ms,category,trust_delta,cost_usd,trace_hash,created_at", count="exact")
         .eq("agent_id", agent_id)
         .order("created_at", desc=True)
         .range(offset, offset + limit - 1)
         .execute()
     )
-    return res.data or []
+    total = res.count or 0
+    return {
+        "data": res.data or [],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "has_more": total > offset + limit,
+    }
 
 
 @router.get("/agents/{agent_id}/card")

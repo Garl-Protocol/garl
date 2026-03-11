@@ -76,7 +76,7 @@ class TestReputationGaming:
             "consistency": BASELINE,
         }
         composite = compute_composite_score(dimensions)
-        tier = compute_certification_tier(composite, [])
+        tier = compute_certification_tier(composite, [], total_traces=10)
         assert tier != "gold" and tier != "enterprise", (
             f"10 rapid traces reached tier={tier}, composite={composite}"
         )
@@ -126,13 +126,13 @@ class TestReputationGaming:
     def test_enterprise_requires_zero_anomalies(self):
         """An agent at score 95 with active anomalies must NOT get Enterprise."""
         active_anomaly = [{"type": "cost_spike", "severity": "warning", "message": "test"}]
-        tier = compute_certification_tier(95.0, active_anomaly)
+        tier = compute_certification_tier(95.0, active_anomaly, total_traces=200)
         assert tier != "enterprise", f"Enterprise granted despite active anomaly: tier={tier}"
 
     def test_enterprise_allows_archived_anomalies(self):
         """Archived anomalies should not block Enterprise tier."""
         archived = [{"type": "test", "severity": "warning", "message": "old", "archived": True}]
-        tier = compute_certification_tier(95.0, archived)
+        tier = compute_certification_tier(95.0, archived, total_traces=200)
         assert tier == "enterprise", f"Archived anomaly blocked Enterprise: tier={tier}"
 
     def test_sybil_endorsement_from_weak_agent_is_zero(self):

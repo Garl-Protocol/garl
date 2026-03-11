@@ -55,10 +55,10 @@ def _apply_lazy_decay(agent: dict, db) -> dict:
             changed = True
 
     if changed:
-        # Tier update
         new_tier = compute_certification_tier(
             float(agent.get("trust_score", BASELINE)),
             agent.get("anomaly_flags"),
+            int(agent.get("total_traces", 0)),
         )
         updated["certification_tier"] = new_tier
         agent["certification_tier"] = new_tier
@@ -121,8 +121,19 @@ def register_agent(req: AgentRegisterRequest, developer_id: str | None = None) -
 
     db.table("agents").insert(agent_data).execute()
 
-    response = {**agent_data, "api_key": api_key}
-    response.pop("api_key_hash", None)
+    response = {
+        "id": agent_id,
+        "name": req.name,
+        "api_key": api_key,
+        "sovereign_id": sovereign_id,
+        "trust_score": BASELINE,
+        "certification_tier": "bronze",
+    }
+    full = {**agent_data, "api_key": api_key}
+    full.pop("api_key_hash", None)
+    for k, v in full.items():
+        if k not in response:
+            response[k] = v
     return response
 
 
@@ -415,7 +426,7 @@ def search_agents(query: str = "", category: str | None = None, limit: int = 10,
         "score_reliability, score_speed, score_cost_efficiency, score_consistency, "
         "score_security, sovereign_id, certification_tier, is_sandbox",
         count="exact",
-    ).eq("is_deleted", False).gt("total_traces", 0)
+    ).eq("is_deleted", False)
 
     if category and category != "all":
         q = q.eq("category", category)
@@ -475,7 +486,7 @@ def route_agents(category: str, min_tier: str = "silver", limit: int = 3) -> dic
     recommendations = []
     for agent in (res.data or []):
         recommendations.append({
-            "agent_id": agent["id"],
+            "id": agent["id"],
             "name": agent["name"],
             "trust_score": float(agent["trust_score"]),
             "certification_tier": agent["certification_tier"],
@@ -629,7 +640,7 @@ def create_endorsement(endorser_id: str, target_id: str, context: str, api_key: 
 
     current_trust = float(target.get("trust_score", BASELINE))
     new_trust = clamp_score(current_trust + bonus)
-    new_tier = compute_certification_tier(new_trust, target.get("anomaly_flags"))
+    new_tier = compute_certification_tier(new_trust, target.get("anomaly_flags"), int(target.get("total_traces", 0)))
 
     db.table("agents").update({
         "endorsement_score": new_endorsement_score,
@@ -929,6 +940,7 @@ def batch_apply_decay_for_leaderboard(agents: list[dict], db) -> list[dict]:
             new_tier = compute_certification_tier(
                 float(agent.get("trust_score", BASELINE)),
                 agent.get("anomaly_flags"),
+                int(agent.get("total_traces", 0)),
             )
             updated["certification_tier"] = new_tier
             agent["certification_tier"] = new_tier

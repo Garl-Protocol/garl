@@ -127,9 +127,8 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
 
     trust_delta = rel_delta
 
-    # Certification tier update
     anomaly_flags_current = agent.get("anomaly_flags") or []
-    new_tier = compute_certification_tier(new_composite, anomaly_flags_current)
+    new_tier = compute_certification_tier(new_composite, anomaly_flags_current, total_traces)
 
     # --- PII masking ---
     input_summary = req.input_summary
@@ -149,8 +148,7 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
     else:
         all_flags = auto_clear_anomalies(anomaly_flags_current, consecutive)
 
-    # Recalculate tier after anomalies
-    new_tier = compute_certification_tier(new_composite, all_flags)
+    new_tier = compute_certification_tier(new_composite, all_flags, total_traces)
 
     # --- Hash and signing ---
     trace_id = str(uuid.uuid4())

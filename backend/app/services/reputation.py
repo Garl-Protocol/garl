@@ -88,19 +88,26 @@ def _ema_update(ema_old: float, observation: float, alpha: float = EMA_ALPHA) ->
     return round(alpha * observation + (1 - alpha) * ema_old, 4)
 
 
-def compute_certification_tier(trust_score: float, anomaly_flags: list[dict] | None = None) -> str:
-    """Calculate certification tier based on score and anomaly status."""
+TIER_MIN_TRACES = {
+    "enterprise": 200,
+    "gold": 50,
+    "silver": 5,
+    "bronze": 0,
+}
+
+
+def compute_certification_tier(trust_score: float, anomaly_flags: list[dict] | None = None, total_traces: int = 0) -> str:
+    """Calculate certification tier based on score, anomaly status, and trace count."""
     active_anomalies = [
         f for f in (anomaly_flags or [])
         if not f.get("archived")
     ]
 
-    # Enterprise tier: zero active anomalies required
-    if trust_score >= TIER_THRESHOLDS["enterprise"] and len(active_anomalies) == 0:
+    if trust_score >= TIER_THRESHOLDS["enterprise"] and len(active_anomalies) == 0 and total_traces >= TIER_MIN_TRACES["enterprise"]:
         return "enterprise"
-    elif trust_score >= TIER_THRESHOLDS["gold"]:
+    elif trust_score >= TIER_THRESHOLDS["gold"] and total_traces >= TIER_MIN_TRACES["gold"]:
         return "gold"
-    elif trust_score >= TIER_THRESHOLDS["silver"]:
+    elif trust_score >= TIER_THRESHOLDS["silver"] and total_traces >= TIER_MIN_TRACES["silver"]:
         return "silver"
     return "bronze"
 
