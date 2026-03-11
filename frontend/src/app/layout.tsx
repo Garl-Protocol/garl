@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     "MCP server",
     "agent verification",
     "ERC-8004",
-    "on-chain agent trust",
+    "blockchain-ready agent trust",
     "multi-agent trust",
     "agent delegation",
     "AI agent reputation",
@@ -71,14 +71,14 @@ export default function RootLayout({
               operatingSystem: "Any",
               url: "https://garl.ai",
               description:
-                "The first A2A v1.0 RC compatible trust oracle. Universal trust standard for AI agents with 5-dimensional scoring, ECDSA-secp256k1 signatures, DID identity, and ERC-8004 compatibility.",
+                "The first A2A v1.0 RC compatible trust oracle. Universal trust standard for AI agents with 5-dimensional scoring, ECDSA-secp256k1 signatures, agent identity system, and ERC-8004 format compatibility.",
               offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
               author: {
                 "@type": "Organization",
                 name: "GARL Protocol",
                 url: "https://garl.ai",
               },
-              featureList: "5D trust scoring, ECDSA-secp256k1 signatures, DID identity, MCP Server (20 tools), A2A v1.0 RC, ERC-8004 compatible, Python SDK, JavaScript SDK, Smart agent routing, GitHub Action trust gate",
+              featureList: "5D trust scoring, ECDSA-secp256k1 signatures, agent identity system, MCP Server (20 tools), A2A v1.0 RC, ERC-8004 format compatible, Python SDK, JavaScript SDK, Smart agent routing, GitHub Action trust gate",
               softwareRequirements: "REST API, MCP client, or A2A-compatible agent",
               releaseNotes: "https://github.com/Garl-Protocol/garl",
               license: "https://opensource.org/licenses/MIT",
@@ -131,6 +131,12 @@ export default function RootLayout({
                   className="font-mono text-xs uppercase tracking-wider text-garl-muted transition-colors hover:text-garl-accent"
                 >
                   Docs
+                </a>
+                <a
+                  href="/playground"
+                  className="font-mono text-xs uppercase tracking-wider text-garl-accent/70 transition-colors hover:text-garl-accent"
+                >
+                  Try It
                 </a>
                 <a
                   href="mailto:contact@garl.ai"

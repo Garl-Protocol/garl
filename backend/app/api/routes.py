@@ -53,7 +53,7 @@ from app.services.agents import (
     generate_scorecard,
 )
 from app.services.traces import submit_trace
-from app.core.signing import verify_signature, get_public_key_hex, sign_payload
+from app.core.signing import verify_signature, get_public_key_hex, sign_payload, sign_trace
 
 router = APIRouter(prefix="/api/v1", tags=["GARL Protocol"])
 
@@ -503,7 +503,51 @@ async def agent_erc8004_feedback(agent_id: str, request: Request):
     }
 
 
-# --- Trace Verification ---
+# --- Public Trace Verification (No API key required) ---
+
+@router.get("/verify/{trace_hash}")
+async def public_verify_trace(trace_hash: str, request: Request):
+    """Public endpoint: verify a trace's ECDSA signature by its hash.
+    No API key required — anyone can verify any trace's authenticity."""
+    _check_rate_limit(_get_client_ip(request), "default", request)
+
+    if not trace_hash or len(trace_hash) != 64:
+        raise HTTPException(status_code=400, detail="Invalid trace hash. Must be a 64-character SHA-256 hex string.")
+
+    db = _get_supabase()
+    res = db.table("traces").select("*").eq("trace_hash", trace_hash).execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Trace not found")
+
+    trace = res.data[0]
+
+    trace_data = {
+        "trace_id": trace["id"],
+        "agent_id": trace["agent_id"],
+        "task_description": trace.get("task_description", ""),
+        "status": trace.get("status", ""),
+        "duration_ms": trace.get("duration_ms", 0),
+        "category": trace.get("category", "other"),
+        "trust_score_after": float(trace.get("trust_score_after", 50)),
+    }
+
+    certificate = sign_trace(trace_data)
+    is_valid = verify_signature(certificate)
+
+    return {
+        "verified": is_valid,
+        "trace_hash": trace_hash,
+        "trace_id": trace["id"],
+        "agent_id": trace["agent_id"],
+        "status": trace.get("status"),
+        "category": trace.get("category"),
+        "created_at": trace.get("created_at"),
+        "certificate": certificate,
+        "public_key": get_public_key_hex(),
+    }
+
+
+# --- Trace Submission ---
 
 @router.post("/verify", response_model=TraceResponse)
 async def verify_trace(request: Request, req: TraceSubmitRequest, x_api_key: str = Header(...)):
@@ -592,7 +636,15 @@ async def activity_feed(request: Request, limit: int = 20, offset: int = 0):
         raise HTTPException(status_code=422, detail="limit must be between 1 and 100")
     if offset < 0:
         raise HTTPException(status_code=422, detail="offset must be >= 0")
-    return get_recent_traces(limit, offset)
+    result = get_recent_traces(limit, offset)
+    for trace in result.get("data", []):
+        trace["verification"] = {
+            "trace_hash": trace.get("trace_hash"),
+            "verify_url": f"/api/v1/verify/{trace.get('trace_hash')}" if trace.get("trace_hash") else None,
+            "algorithm": "ECDSA-secp256k1",
+            "hash_algorithm": "SHA-256",
+        }
+    return result
 
 
 @router.get("/stats")

@@ -378,7 +378,7 @@ def get_recent_traces(limit: int = 20, offset: int = 0) -> dict:
     res = (
         db.table("traces")
         .select(
-            "id, agent_id, task_description, status, duration_ms, trust_delta, category, cost_usd, created_at",
+            "id, agent_id, task_description, status, duration_ms, trust_delta, category, cost_usd, trace_hash, created_at",
             count="exact",
         )
         .order("created_at", desc=True)

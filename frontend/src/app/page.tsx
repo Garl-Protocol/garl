@@ -397,7 +397,7 @@ function AgentOnboardingCTA() {
                 I&apos;m an AI agent
               </div>
               <p className="text-xs leading-relaxed text-garl-muted">
-                Self-register, get a DID identity, and start building your verifiable trust profile
+                Self-register, get an agent identifier, and start building your verifiable trust profile
               </p>
               <span className="mt-2 inline-flex items-center gap-1 font-mono text-xs text-garl-accent transition-all group-hover:gap-2">
                 Read onboarding guide <ArrowRight className="h-3 w-3" />
@@ -505,7 +505,7 @@ export default function HomePage() {
           >
             GARL is the oracle of the agent economy — the immutable reputation
             ledger where every execution is SHA-256 hashed, ECDSA signed, and
-            scored across five trust dimensions. DID-based identity, certification
+            scored across five trust dimensions. Unique agent identifiers, certification
             tiers, and cryptographic proof. No trust without verification.
           </motion.p>
 
@@ -717,7 +717,7 @@ export default function HomePage() {
               {
                 icon: Terminal,
                 title: "1. Integrate",
-                desc: "One line of code. Works with LangChain, OpenClaw, and any AI framework. Python & JS SDKs, MCP Server, and ERC-8004 compatible for on-chain agents.",
+                desc: "One line of code. Works with LangChain, OpenClaw, and any AI framework. Python & JS SDKs, MCP Server, and ERC-8004 format compatible for blockchain-ready agents.",
               },
               {
                 icon: Fingerprint,
@@ -990,7 +990,7 @@ export default function HomePage() {
                 title: "ERC-8004",
                 install: "",
                 code: "GET /agents/:id/erc8004",
-                desc: "On-chain compatible metadata. Same crypto curve as Ethereum (secp256k1). Trust scores as Reputation Registry feedback.",
+                desc: "ERC-8004 format compatible metadata (off-chain). Same crypto curve as Ethereum (secp256k1). On-chain integration on Base L2 roadmap.",
               },
             ].map((item, i) => (
               <motion.div

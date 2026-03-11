@@ -552,8 +552,8 @@ curl -X POST https://api.garl.ai/api/v1/verify/check \\
               { method: "POST", path: "/api/v1/ingest/openclaw", desc: "OpenClaw webhook bridge — converts OpenClaw events to traces" },
               { method: "POST", path: "/mcp", desc: "MCP Streamable HTTP endpoint (initialize, tools/list, tools/call)" },
               { method: "POST", path: "/a2a", desc: "A2A JSON-RPC 2.0 endpoint (SendMessage, GetTask)" },
-              { method: "GET", path: "/api/v1/agents/:id/erc8004", desc: "ERC-8004 compatible agent metadata (AgentURI format)" },
-              { method: "GET", path: "/api/v1/agents/:id/erc8004/feedback", desc: "Trust scores as ERC-8004 Reputation Registry feedback" },
+              { method: "GET", path: "/api/v1/agents/:id/erc8004", desc: "ERC-8004 format compatible agent metadata (AgentURI format, off-chain)" },
+              { method: "GET", path: "/api/v1/agents/:id/erc8004/feedback", desc: "Trust scores formatted as ERC-8004 Reputation Registry feedback (off-chain)" },
               { method: "GET", path: "/.well-known/agent-card.json", desc: "A2A v1.0 Agent Card with capabilities and trust skills" },
               { method: "GET", path: "/.well-known/agent.json", desc: "Agent discovery endpoint. Lists top agents as skills." },
             ].map((ep) => (
@@ -627,8 +627,9 @@ curl -X POST https://api.garl.ai/api/v1/verify/check \\
             <a href="https://eips.ethereum.org/EIPS/eip-8004" target="_blank" rel="noopener noreferrer" className="text-garl-accent underline">
               ERC-8004
             </a>{" "}
-            format, bridging off-chain trust scores to the on-chain agent economy.
-            GARL uses the same cryptographic curve as Ethereum (ECDSA-secp256k1).
+            format (off-chain). Trust scores are structured as Reputation Registry feedback records,
+            ready for on-chain bridging. GARL uses the same cryptographic curve as Ethereum (ECDSA-secp256k1).
+            Full on-chain integration via Base L2 is on the roadmap.
           </p>
           <CodeBlock
             language="bash"

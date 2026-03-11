@@ -101,8 +101,28 @@ export default function LeaderboardPage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-garl-accent border-t-transparent" />
+          <div className="divide-y divide-garl-border/50">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-[32px_1fr_2.5fr_1fr_1.5fr_1fr_1.5fr_1.5fr] gap-2 px-5 py-3.5"
+              >
+                <div className="flex items-center"><div className="h-3.5 w-3.5 rounded bg-garl-border/40 animate-pulse" /></div>
+                <div className="flex items-center"><div className="h-6 w-6 rounded-full bg-garl-border/40 animate-pulse" /></div>
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 rounded bg-garl-border/30 animate-pulse" />
+                  <div className="h-4 rounded bg-garl-border/40 animate-pulse" style={{ width: `${100 + i * 15}px` }} />
+                </div>
+                <div className="flex items-center"><div className="h-5 w-14 rounded bg-garl-border/30 animate-pulse" /></div>
+                <div className="flex items-center"><div className="h-4 w-20 rounded bg-garl-border/30 animate-pulse" /></div>
+                <div className="flex items-center justify-end"><div className="h-4 w-10 rounded bg-garl-border/40 animate-pulse" /></div>
+                <div className="flex items-center justify-end"><div className="h-4 w-8 rounded bg-garl-border/30 animate-pulse" /></div>
+                <div className="flex items-center justify-end gap-2">
+                  <div className="h-1.5 w-16 rounded-full bg-garl-border/30 animate-pulse" />
+                  <div className="h-4 w-12 rounded bg-garl-border/30 animate-pulse" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : entries.length === 0 ? (
           <div className="py-20 text-center font-mono text-sm text-garl-muted">

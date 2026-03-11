@@ -25,6 +25,13 @@ interface Endpoint {
 
 const ENDPOINTS: Endpoint[] = [
   {
+    id: "verify-trace",
+    name: "Verify Trace (Public)",
+    method: "GET",
+    path: "/verify/{trace_hash}",
+    params: [{ key: "trace_hash", label: "Trace Hash", type: "text", required: true, placeholder: "64-character SHA-256 hash" }],
+  },
+  {
     id: "trust-check",
     name: "Trust Check",
     method: "GET",
