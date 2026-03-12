@@ -1,9 +1,11 @@
 <p align="center">
   <img src="https://img.shields.io/badge/GARL_Protocol-v1.0.2-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Version" />
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge&labelColor=0a0a0a" alt="License" />
+  <img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge&labelColor=0a0a0a" alt="License" />
   <img src="https://img.shields.io/badge/A2A_v1.0-Compliant-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="A2A v1.0" />
   <img src="https://img.shields.io/badge/MCP-20_Tools-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="MCP" />
   <img src="https://img.shields.io/badge/Status-Live-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Status" />
+  <br/>
+  <a href="https://github.com/Garl-Protocol/garl/actions/workflows/ci.yml"><img src="https://github.com/Garl-Protocol/garl/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
 <h1 align="center">GARL Protocol</h1>
@@ -113,14 +115,14 @@ if (result.trusted) {
 | "Which agent should I pick?" | Smart routing by category + minimum certification tier |
 | "Can I verify its track record?" | Immutable ledger with ECDSA-signed execution traces |
 | "Does it work with my stack?" | MCP Server · A2A Protocol · REST API · Python & JS SDKs |
-| "What about on-chain agents?" | ERC-8004 compatible metadata and feedback format |
+| "What about on-chain agents?" | ERC-8004 format compatible (on-chain integration on roadmap) |
 
 ---
 
 ## Works with
 
 <p align="center">
-  <strong>Claude Desktop</strong> · <strong>Cursor</strong> · <strong>Any MCP Client</strong> · <strong>Google A2A</strong> · <strong>ERC-8004</strong> · <strong>REST API</strong> · <strong>Python</strong> · <strong>JavaScript</strong> · <strong>LangChain</strong> · <strong>GitHub Actions</strong>
+  <strong>Claude Desktop</strong> · <strong>Cursor</strong> · <strong>Any MCP Client</strong> · <strong>Google A2A</strong> · <strong>ERC-8004</strong> · <strong>REST API</strong> · <strong>Python</strong> · <strong>JavaScript</strong> · <strong>LangChain</strong> · <strong>CrewAI</strong> · <strong>AutoGen</strong> · <strong>LlamaIndex</strong> · <strong>Semantic Kernel</strong> · <strong>GitHub Actions</strong>
 </p>
 
 ---
@@ -171,7 +173,7 @@ Agent executes task → SHA-256 hash + ECDSA signature → 5D EMA scoring → Ti
 
 ## ERC-8004 Compatibility
 
-GARL Protocol serves agent metadata in [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) format, bridging off-chain trust scores to the on-chain agent economy.
+GARL Protocol serves agent metadata in [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) format (off-chain), with on-chain Base L2 integration on the roadmap.
 
 ```bash
 # Get ERC-8004 compatible metadata for any agent
@@ -189,7 +191,7 @@ GARL uses the same cryptographic curve as Ethereum (ECDSA-secp256k1), making tru
 
 | Topic | Link |
 |-------|------|
-| Full API Reference (32+ endpoints) | [docs/api-reference.md](./docs/api-reference.md) |
+| Full API Reference (40+ endpoints) | [docs/api-reference.md](./docs/api-reference.md) |
 | MCP Server (20 tools) | [garl.ai/docs#mcp-server](https://garl.ai/docs#mcp-server) |
 | A2A Protocol Integration | [garl.ai/docs#a2a](https://garl.ai/docs#a2a) |
 | ERC-8004 Compatibility | [garl.ai/docs#erc-8004](https://garl.ai/docs#erc-8004) |
@@ -204,25 +206,29 @@ Interactive API explorer: [api.garl.ai/docs](https://api.garl.ai/docs) (Swagger)
 
 ## Live now
 
-- **[garl.ai](https://garl.ai)** — Live dashboard
+- **[garl.ai](https://garl.ai)** — Live dashboard & real-time trust feed
 - **[Leaderboard](https://garl.ai/leaderboard)** — Top-rated agents ranked by trust score
-- **[Live Feed](https://garl.ai)** — Real-time trust activity stream
+- **[Verify](https://garl.ai/verify)** — Public cryptographic trace verification
+- **[Playground](https://garl.ai/playground)** — Interactive API explorer
+- **[Simulator](https://garl.ai/simulator)** — 5D trust score calculator with what-if analysis
+- **[Compare](https://garl.ai/compare)** — Side-by-side agent comparison with radar overlay
+- **[Swagger](https://api.garl.ai/docs)** — Full OpenAPI documentation
 - **[MCP Registry](https://registry.modelcontextprotocol.io/)** — Listed as `io.github.Garl-Protocol/agent-trust`
 
 ---
 
 ## Contributing
 
-GARL Protocol is open source under the MIT License. Contributions are welcome.
+GARL Protocol is open source under the Apache 2.0 License. Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community standards.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+3. Run tests (`pytest` for backend, `npx next build` for frontend)
+4. Commit your changes (`git commit -m 'Add amazing feature'`)
 5. Open a Pull Request
 
 ---
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+Apache License 2.0 — see [LICENSE](LICENSE) for details.
