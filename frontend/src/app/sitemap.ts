@@ -20,35 +20,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const apiUrl = process.env.SITEMAP_API_URL || process.env.NEXT_PUBLIC_API_URL || "https://api.garl.ai/api/v1";
-  let agentPages: MetadataRoute.Sitemap = [];
+  const allAgents: { id: string }[] = [];
+
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch(`${apiUrl}/leaderboard?limit=200`, {
-      signal: controller.signal,
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-        "User-Agent": "GARL-Sitemap-Generator/1.0",
-      },
-    });
-    clearTimeout(timeout);
-    if (res.ok) {
+    let offset = 0;
+    const limit = 100;
+    let hasMore = true;
+
+    while (hasMore && offset < 1000) {
+      const res = await fetch(`${apiUrl}/leaderboard?limit=${limit}&offset=${offset}`, {
+        cache: "no-store",
+        headers: { "Accept": "application/json" },
+      });
+      if (!res.ok) break;
       const json = await res.json();
       const agents: { id: string }[] = Array.isArray(json) ? json : json.data || [];
-      agentPages = agents
-        .filter((a) => a.id)
-        .map((a) => ({
-          url: `${baseUrl}/agent/${a.id}`,
-          lastModified: now,
-          changeFrequency: "daily" as const,
-          priority: 0.7,
-        }));
+      allAgents.push(...agents.filter((a) => a.id));
+      hasMore = json.has_more === true && agents.length === limit;
+      offset += limit;
     }
   } catch (e) {
     console.error("[Sitemap] Failed to fetch agents:", e instanceof Error ? e.message : e);
   }
+
+  const agentPages: MetadataRoute.Sitemap = allAgents.map((a) => ({
+    url: `${baseUrl}/agent/${a.id}`,
+    lastModified: now,
+    changeFrequency: "daily" as const,
+    priority: 0.7,
+  }));
 
   return [...staticPages, ...agentPages];
 }
