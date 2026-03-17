@@ -61,28 +61,52 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "SoftwareApplication",
-              name: "GARL Protocol",
-              alternateName: "Global Agent Reputation Ledger",
-              applicationCategory: "DeveloperApplication",
-              applicationSubCategory: "AI Agent Trust Verification",
-              operatingSystem: "Any",
-              url: "https://garl.ai",
-              description:
-                "The first A2A v1.0 RC compatible trust oracle. Universal trust standard for AI agents with 5-dimensional scoring, ECDSA-secp256k1 signatures, agent identity system, and ERC-8004 format compatibility.",
-              offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-              author: {
-                "@type": "Organization",
+            __html: JSON.stringify([
+              {
+                "@context": "https://schema.org",
+                "@type": "WebSite",
                 name: "GARL Protocol",
                 url: "https://garl.ai",
+                potentialAction: {
+                  "@type": "SearchAction",
+                  target: "https://garl.ai/leaderboard?q={search_term_string}",
+                  "query-input": "required name=search_term_string",
+                },
               },
-              featureList: "5D trust scoring, ECDSA-secp256k1 signatures, agent identity system, MCP Server (20 tools), A2A v1.0 RC, ERC-8004 format compatible, Python SDK, JavaScript SDK, Smart agent routing, GitHub Action trust gate",
-              softwareRequirements: "REST API, MCP client, or A2A-compatible agent",
-              releaseNotes: "https://github.com/Garl-Protocol/garl",
-              license: "https://opensource.org/licenses/MIT",
-            }),
+              {
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                name: "GARL Protocol",
+                alternateName: "Global Agent Reputation Ledger",
+                url: "https://garl.ai",
+                logo: "https://garl.ai/og-image.png",
+                sameAs: [
+                  "https://github.com/Garl-Protocol/garl",
+                ],
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "SoftwareApplication",
+                name: "GARL Protocol",
+                alternateName: "Global Agent Reputation Ledger",
+                applicationCategory: "DeveloperApplication",
+                applicationSubCategory: "AI Agent Trust Verification",
+                operatingSystem: "Any",
+                url: "https://garl.ai",
+                description:
+                  "The first A2A v1.0 RC compatible trust oracle. Universal trust standard for AI agents with 5-dimensional scoring, ECDSA-secp256k1 signatures, agent identity system, and ERC-8004 format compatibility.",
+                offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+                author: {
+                  "@type": "Organization",
+                  name: "GARL Protocol",
+                  url: "https://garl.ai",
+                },
+                featureList: "5D trust scoring, ECDSA-secp256k1 signatures, agent identity system, MCP Server (20 tools), A2A v1.0 RC, ERC-8004 format compatible, Python SDK, JavaScript SDK, Smart agent routing, GitHub Action trust gate",
+                softwareRequirements: "REST API, MCP client, or A2A-compatible agent",
+                releaseNotes: "https://github.com/Garl-Protocol/garl",
+                license: "https://opensource.org/licenses/Apache-2.0",
+              },
+            ]),
           }}
         />
       </head>
@@ -131,6 +155,12 @@ export default function RootLayout({
                   className="font-mono text-xs uppercase tracking-wider text-garl-muted transition-colors hover:text-garl-accent"
                 >
                   Docs
+                </a>
+                <a
+                  href="/simulator"
+                  className="font-mono text-xs uppercase tracking-wider text-garl-muted transition-colors hover:text-garl-accent"
+                >
+                  Simulator
                 </a>
                 <a
                   href="/playground"
@@ -208,7 +238,7 @@ export default function RootLayout({
                   </a>
                 </div>
                 <div className="flex items-center sm:justify-end justify-center text-garl-muted/60">
-                  MIT License · Built for the Agent Economy
+                  Apache 2.0 · Built for the Agent Economy
                 </div>
               </div>
             </div>
