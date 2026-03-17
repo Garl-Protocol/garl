@@ -1,7 +1,6 @@
 import { MetadataRoute } from "next";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = "https://garl.ai";
@@ -20,10 +19,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
+  const apiUrl = process.env.SITEMAP_API_URL || "https://api.garl.ai/api/v1";
   let agentPages: MetadataRoute.Sitemap = [];
   try {
-    const res = await fetch("https://api.garl.ai/api/v1/leaderboard?limit=200", {
+    const res = await fetch(`${apiUrl}/leaderboard?limit=200`, {
       cache: "no-store",
+      headers: { "User-Agent": "GARL-Sitemap-Generator/1.0" },
     });
     if (res.ok) {
       const json = await res.json();
