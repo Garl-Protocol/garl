@@ -26,6 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const timeout = setTimeout(() => controller.abort(), 15000);
     const res = await fetch(`${apiUrl}/leaderboard?limit=200`, {
       signal: controller.signal,
+      cache: "no-store",
       method: "GET",
       headers: {
         "Accept": "application/json",
