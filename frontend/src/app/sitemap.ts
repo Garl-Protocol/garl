@@ -19,13 +19,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
-  const apiUrl = process.env.SITEMAP_API_URL || "https://api.garl.ai/api/v1";
+  const apiUrl = process.env.SITEMAP_API_URL || process.env.NEXT_PUBLIC_API_URL || "https://api.garl.ai/api/v1";
   let agentPages: MetadataRoute.Sitemap = [];
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     const res = await fetch(`${apiUrl}/leaderboard?limit=200`, {
-      cache: "no-store",
-      headers: { "User-Agent": "GARL-Sitemap-Generator/1.0" },
+      signal: controller.signal,
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+        "User-Agent": "GARL-Sitemap-Generator/1.0",
+      },
     });
+    clearTimeout(timeout);
     if (res.ok) {
       const json = await res.json();
       const agents: { id: string }[] = Array.isArray(json) ? json : json.data || [];
@@ -38,8 +45,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           priority: 0.7,
         }));
     }
-  } catch {
-    // API unavailable — return static pages only
+  } catch (e) {
+    console.error("[Sitemap] Failed to fetch agents:", e instanceof Error ? e.message : e);
   }
 
   return [...staticPages, ...agentPages];
