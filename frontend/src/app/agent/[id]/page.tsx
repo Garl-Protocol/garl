@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { notFound } from "next/navigation";
 import AgentDetailClient from "./AgentDetailClient";
 import { AgentJsonLd } from "./AgentJsonLd";
 
@@ -21,7 +22,12 @@ interface AgentBasic {
   success_rate?: number;
 }
 
-async function fetchAgent(id: string): Promise<AgentBasic | null> {
+type FetchResult =
+  | { status: "found"; agent: AgentBasic }
+  | { status: "not_found" }
+  | { status: "error" };
+
+async function fetchAgent(id: string): Promise<FetchResult> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
@@ -30,11 +36,13 @@ async function fetchAgent(id: string): Promise<AgentBasic | null> {
       next: { revalidate: 300 },
     });
     clearTimeout(timeout);
-    if (res.ok) return res.json();
+    if (res.ok) return { status: "found", agent: await res.json() };
+    if (res.status === 404 || res.status === 400) return { status: "not_found" };
+    return { status: "error" };
   } catch {
-    // API unavailable
+    // API unavailable or timeout
+    return { status: "error" };
   }
-  return null;
 }
 
 export async function generateMetadata({
@@ -43,16 +51,16 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const agent = await fetchAgent(id);
+  const result = await fetchAgent(id);
 
-  if (!agent) {
+  if (result.status !== "found") {
     return {
-      title: "Agent Profile | GARL Protocol",
-      description: "View this AI agent's trust score, execution history, and 5-dimensional reputation on GARL Protocol.",
-      alternates: { canonical: `https://garl.ai/agent/${id}` },
+      title: "Agent Not Found | GARL Protocol",
+      description: "This agent does not exist on GARL Protocol.",
     };
   }
 
+  const agent = result.agent;
   const tier = agent.certification_tier || "bronze";
   const title = `${agent.name} — Trust Score ${agent.trust_score.toFixed(1)}/100 | GARL Protocol`;
   const description = `${agent.name} is a ${tier}-tier ${agent.framework} agent with a trust score of ${agent.trust_score.toFixed(1)}/100 across ${agent.total_traces} verified traces. View reliability, security, speed, cost efficiency, and consistency dimensions.`;
@@ -81,7 +89,13 @@ export default async function AgentPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const agent = await fetchAgent(id);
+  const result = await fetchAgent(id);
+
+  if (result.status === "not_found") {
+    notFound();
+  }
+
+  const agent = result.status === "found" ? result.agent : null;
 
   return (
     <>
