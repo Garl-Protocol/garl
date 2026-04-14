@@ -992,6 +992,86 @@ async def badge_svg(agent_id: str):
     )
 
 
+_REPO_SLUG_RE = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
+
+
+@router.get("/badge/repo/{owner}/{repo}.svg", summary="GARL Verified badge for a GitHub repo", tags=["Badges"])
+async def badge_repo_svg(owner: str, repo: str):
+    """SVG badge for the per-repo agent created by the
+    `Garl-Protocol/garl-receipt-action`. Looks up the repo agent by
+    canonical name `gh-{owner}-{repo}` (set by the auto-register call
+    in the action's setup script) and renders a tier+score badge.
+
+    Drop into a README:
+
+        [![GARL Verified](https://api.garl.ai/api/v1/badge/repo/owner/repo.svg)](https://garl.ai/for-code)
+    """
+    if not _REPO_SLUG_RE.match(owner) or not _REPO_SLUG_RE.match(repo):
+        raise HTTPException(status_code=400, detail="Invalid owner/repo slug.")
+
+    expected_name = f"gh-{owner}-{repo}"
+    db = _get_supabase()
+    res = (
+        db.table("agents")
+        .select("id,name,trust_score,certification_tier,total_traces")
+        .eq("name", expected_name)
+        .eq("is_deleted", False)
+        .limit(1)
+        .execute()
+    )
+    rows = res.data or []
+
+    if rows:
+        agent = rows[0]
+        score = float(agent["trust_score"])
+        tier = agent.get("certification_tier", "bronze")
+        traces = int(agent.get("total_traces", 0))
+        verified = " ✓" if traces >= 1 else ""
+        value = f"{score:.1f}"
+    else:
+        # Repo agent not registered yet — show a "not enrolled" badge.
+        tier = "none"
+        value = "—"
+        verified = ""
+
+    tier_colors = {
+        "enterprise": "#a855f7",
+        "gold": "#f59e0b",
+        "silver": "#94a3b8",
+        "bronze": "#92400e",
+        "none": "#525252",
+    }
+    color = tier_colors.get(tier, "#00ff88")
+    label = f"GARL {tier.upper()}" if tier != "none" else "GARL"
+    label_width = len(label) * 7 + 10
+    value_width = len(value + verified) * 7 + 14
+    total_width = label_width + value_width
+
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{total_width}" height="20" role="img" aria-label="{label}: {value}">
+  <title>{label}: {value}{verified} — {html_escape(owner)}/{html_escape(repo)}</title>
+  <linearGradient id="s" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <clipPath id="r"><rect width="{total_width}" height="20" rx="3" fill="#fff"/></clipPath>
+  <g clip-path="url(#r)">
+    <rect width="{label_width}" height="20" fill="#12121a"/>
+    <rect x="{label_width}" width="{value_width}" height="20" fill="{color}"/>
+    <rect width="{total_width}" height="20" fill="url(#s)"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="11">
+    <text x="{label_width/2}" y="14" fill="#e4e4e7">{label}</text>
+    <text x="{label_width + value_width/2}" y="14" fill="#0a0a0f" font-weight="bold">{value}{verified}</text>
+  </g>
+</svg>'''
+
+    return Response(
+        content=svg,
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=300, s-maxage=600, stale-while-revalidate=3600"},
+    )
+
+
 @router.get("/badge/widget.js", summary="Embeddable badge widget JS", tags=["Badges"])
 async def badge_widget_js():
     """Embeddable JS widget: <script src="https://api.garl.ai/api/v1/badge/widget.js" data-agent-id="UUID"></script>"""
