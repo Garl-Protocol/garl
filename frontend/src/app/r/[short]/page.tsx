@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, XCircle, ExternalLink, Shield, Copy } from "lucide-react";
+import { CheckCircle, XCircle, ExternalLink, Shield } from "lucide-react";
+import ReceiptActions from "@/components/ReceiptActions";
 
 export const dynamic = "force-dynamic";
 
@@ -239,7 +240,7 @@ export default async function ReceiptPage({
         {proof?.signature && (
           <>
             <div className="mt-4 mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-garl-muted">
-              <Copy className="h-3 w-3" />
+              <Shield className="h-3 w-3" />
               ECDSA Signature
             </div>
             <code className="block break-all rounded-lg border border-garl-border bg-garl-bg px-3 py-2 font-mono text-[10px] text-garl-muted">
@@ -247,6 +248,18 @@ export default async function ReceiptPage({
             </code>
           </>
         )}
+      </div>
+
+      {/* Share actions (client) */}
+      <div className="mb-6">
+        <ReceiptActions
+          receiptUrl={
+            receipt.receipt_url || `${SITE_URL}/r/${receipt.short_hash || params.short}`
+          }
+          agentName={agentName}
+          shortHash={receipt.short_hash || params.short}
+          verified={verified}
+        />
       </div>
 
       {/* Footer actions */}
@@ -271,13 +284,6 @@ export default async function ReceiptPage({
         >
           Raw JSON ↗
         </a>
-        <div className="ml-auto text-garl-muted/60">
-          Receipt{" "}
-          <code className="font-semibold text-garl-muted">
-            {receipt.short_hash || params.short}
-          </code>{" "}
-          · GARL Protocol
-        </div>
       </div>
     </div>
   );
