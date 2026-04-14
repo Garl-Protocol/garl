@@ -85,33 +85,42 @@ export default function SiteNav() {
         </button>
       </div>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer — full-height solid overlay so page content behind
+          never bleeds through. Wrapped in a fixed overlay that captures
+          clicks outside the nav to close. */}
       {open && (
         <div
-          id="mobile-menu"
-          className="fixed inset-x-0 top-14 z-40 border-b border-garl-border bg-garl-bg/98 backdrop-blur-xl md:hidden"
+          className="fixed inset-0 top-14 z-40 md:hidden"
           onClick={() => setOpen(false)}
+          aria-modal="true"
+          role="dialog"
         >
-          <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4">
-            {LINKS.map((l) => (
+          <div
+            id="mobile-menu"
+            className="h-full overflow-y-auto border-b border-garl-border bg-garl-bg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4">
+              {LINKS.map((l) => (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  className={`rounded-lg px-3 py-3 font-mono text-sm uppercase tracking-wider transition-colors hover:bg-garl-surface hover:text-garl-accent ${
+                    l.accent ? "text-garl-accent" : "text-garl-text"
+                  }`}
+                >
+                  {l.label}
+                </a>
+              ))}
               <a
-                key={l.href}
-                href={l.href}
-                className={`rounded-lg px-3 py-3 font-mono text-sm uppercase tracking-wider transition-colors hover:bg-garl-surface hover:text-garl-accent ${
-                  l.accent ? "text-garl-accent" : "text-garl-text"
-                }`}
+                href="/dashboard"
+                className="mt-2 flex items-center gap-2 rounded-lg border border-garl-accent/30 bg-garl-accent/10 px-3 py-3 font-mono text-xs uppercase tracking-wider text-garl-accent"
               >
-                {l.label}
+                <div className="h-2 w-2 rounded-full bg-garl-accent animate-pulse" />
+                Live · Dashboard
               </a>
-            ))}
-            <a
-              href="/dashboard"
-              className="mt-2 flex items-center gap-2 rounded-lg border border-garl-accent/30 bg-garl-accent/10 px-3 py-3 font-mono text-xs uppercase tracking-wider text-garl-accent"
-            >
-              <div className="h-2 w-2 rounded-full bg-garl-accent animate-pulse" />
-              Live · Dashboard
-            </a>
-          </nav>
+            </nav>
+          </div>
         </div>
       )}
     </header>

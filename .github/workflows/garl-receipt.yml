@@ -19,7 +19,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: GARL Receipt
-        uses: ./integrations/github-action-receipt
+        uses: Garl-Protocol/garl-receipt-action@v1.0.0
         with:
           garl-api-key: ${{ secrets.GARL_API_KEY }}
           garl-agent-id: ${{ secrets.GARL_AGENT_ID }}

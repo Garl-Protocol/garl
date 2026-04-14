@@ -745,7 +745,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: Garl-Protocol/garl/integrations/github-action-receipt@main
+      - uses: Garl-Protocol/garl-receipt-action@v1.0.0
         with:
           garl-api-key: \${{ secrets.GARL_API_KEY }}
           garl-agent-id: \${{ secrets.GARL_AGENT_ID }}`}
@@ -759,12 +759,12 @@ jobs:
           <p className="mt-3 text-xs text-garl-muted">
             Full setup guide:{" "}
             <a
-              href="https://github.com/Garl-Protocol/garl/tree/main/integrations/github-action-receipt"
+              href="https://github.com/Garl-Protocol/garl-receipt-action"
               target="_blank"
               rel="noopener noreferrer"
               className="text-garl-accent underline"
             >
-              integrations/github-action-receipt
+              Garl-Protocol/garl-receipt-action
             </a>
           </p>
         </section>
