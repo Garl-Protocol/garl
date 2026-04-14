@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, XCircle, ExternalLink, Shield } from "lucide-react";
 import ReceiptActions from "@/components/ReceiptActions";
+import Identicon from "@/components/Identicon";
 
 export const dynamic = "force-dynamic";
 
@@ -179,9 +180,7 @@ export default async function ReceiptPage({
             href={`/agent/${receipt.agent_id}`}
             className="group flex items-center gap-3 min-w-0"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-garl-accent/30 bg-garl-accent/10 font-mono text-sm font-bold text-garl-accent">
-              {agentName.slice(0, 1).toUpperCase()}
-            </div>
+            <Identicon seed={receipt.agent_id} name={agentName} size={36} />
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="truncate font-mono text-base font-semibold text-garl-text group-hover:text-garl-accent">
