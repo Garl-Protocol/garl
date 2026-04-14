@@ -1,0 +1,25 @@
+name: GARL Receipt
+# Dogfood: signs every AI-authored commit in this repo's PRs with a
+# cryptographic receipt. Only secrets.* contexts are used; no untrusted
+# PR input is interpolated into shell commands, so workflow-injection
+# risks don't apply here.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  sign-ai-commits:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: GARL Receipt
+        uses: ./integrations/github-action-receipt
+        with:
+          garl-api-key: ${{ secrets.GARL_API_KEY }}
+          garl-agent-id: ${{ secrets.GARL_AGENT_ID }}
