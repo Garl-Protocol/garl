@@ -267,6 +267,18 @@ class GarlClient:
         resp.raise_for_status()
         return resp.json()
 
+    def receipt(self, trace_hash: str) -> dict:
+        """Fetch the public receipt for a trace (no API key required).
+
+        Accepts either a full 64-char SHA-256 hash or a short 8-63 char
+        prefix. Returns the enriched payload including ``receipt_url``
+        (shareable page), ``short_hash``, agent summary, task, duration,
+        ECDSA certificate and public key.
+        """
+        resp = _retry_request(self._client.get, f"/verify/{trace_hash}")
+        resp.raise_for_status()
+        return resp.json()
+
     def check_trust(self, target_agent_id: str) -> dict:
         """A2A: Verify another agent's trustworthiness before delegation."""
         resp = _retry_request(self._client.get, f"/trust/verify?agent_id={target_agent_id}")
@@ -696,6 +708,16 @@ class AsyncGarlClient:
     async def get_history(self, limit: int = 50) -> list[dict]:
         """Return trust score history over time."""
         resp = await self._client.get(f"/agents/{self.agent_id}/history", params={"limit": limit})
+        resp.raise_for_status()
+        return resp.json()
+
+    async def receipt(self, trace_hash: str) -> dict:
+        """Fetch the public receipt for a trace (no API key required).
+
+        Accepts either a full 64-char SHA-256 hash or a short 8-63 char
+        prefix. Returns the enriched payload including ``receipt_url``.
+        """
+        resp = await self._retry(self._client.get, f"/verify/{trace_hash}")
         resp.raise_for_status()
         return resp.json()
 

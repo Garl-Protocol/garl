@@ -172,7 +172,35 @@ export class GarlClient {
     });
 
     if (!res.ok) throw new Error(`GARL API error: ${res.status} ${res.statusText}`);
-    return res.json();
+    const data = await res.json();
+    // Expose camelCase aliases alongside the snake_case fields from the API
+    if (data && typeof data === "object") {
+      if (data.receipt_url && data.receiptUrl === undefined) data.receiptUrl = data.receipt_url;
+      if (data.short_hash && data.shortHash === undefined) data.shortHash = data.short_hash;
+      if (data.trace_hash && data.traceHash === undefined) data.traceHash = data.trace_hash;
+    }
+    return data;
+  }
+
+  /**
+   * Fetch the public receipt for a trace hash (no API key required).
+   * Accepts either a full 64-char SHA-256 hash or a short 8-63 char prefix.
+   * Returns the enriched payload including receiptUrl + receipt_url,
+   * agent summary, task, duration, and ECDSA certificate.
+   *
+   * @param {string} traceHash
+   * @returns {Promise<object>}
+   */
+  async receipt(traceHash) {
+    const res = await retryFetch(`${this.baseUrl}/verify/${traceHash}`, {});
+    if (!res.ok) throw new Error(`GARL API error: ${res.status}`);
+    const data = await res.json();
+    if (data && typeof data === "object") {
+      if (data.receipt_url && data.receiptUrl === undefined) data.receiptUrl = data.receipt_url;
+      if (data.short_hash && data.shortHash === undefined) data.shortHash = data.short_hash;
+      if (data.trace_hash && data.traceHash === undefined) data.traceHash = data.trace_hash;
+    }
+    return data;
   }
 
   async verifyBatch(traces) {
