@@ -125,6 +125,15 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
     }
     new_composite = compute_composite_score(dimensions)
 
+    # Apply Sybil-resistant endorsement bonus on top of the composite.
+    # Each endorsement contributes at most ENDORSEMENT_MULTIPLIER_CAP (2.5)
+    # via compute_endorsement_bonus(), and only Silver+ endorsers from
+    # tenured agents (>=10 traces, score >=60) actually move the needle.
+    # Aggregate is precomputed on agents.endorsement_score at endorse time.
+    endorsement_aggregate = float(agent.get("endorsement_score") or 0)
+    if endorsement_aggregate > 0:
+        new_composite = clamp_score(new_composite + endorsement_aggregate)
+
     trust_delta = rel_delta
 
     anomaly_flags_current = agent.get("anomaly_flags") or []
