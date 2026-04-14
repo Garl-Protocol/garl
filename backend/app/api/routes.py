@@ -336,6 +336,124 @@ async def read_agent(agent_id: str, fields: str = "public"):
     return {k: agent.get(k) for k in _PUBLIC_AGENT_FIELDS if k in agent}
 
 
+@router.get(
+    "/agents/{agent_id}/audit",
+    summary="Audit log export (CSV / JSON-LD) for compliance",
+    tags=["Agents", "Compliance"],
+)
+async def agent_audit_export(
+    agent_id: str,
+    request: Request,
+    response: Response,
+    days: int = 90,
+    format: str = "csv",
+    limit: int = 5000,
+):
+    """Bulk receipt export for compliance evidence (EU AI Act Article 50,
+    NIST AI RMF, internal audits).
+
+    Streams every trace this agent submitted in the trailing ``days``
+    window with its ECDSA-secp256k1 signature attached, capped at
+    ``limit`` rows. Public endpoint — anyone can audit any agent's
+    public ledger history. ``format=csv`` is reviewer-friendly,
+    ``format=jsonld`` returns one ``CertifiedExecutionTrace`` per row
+    matching the existing per-trace certificate envelope.
+    """
+    import csv as _csv
+    from io import StringIO
+    from datetime import datetime, timedelta, timezone
+
+    _validate_uuid(agent_id, "agent_id")
+    _check_rate_limit(_get_client_ip(request), "default", request)
+
+    if days < 1 or days > 365:
+        raise HTTPException(status_code=400, detail="days must be between 1 and 365")
+    if format not in ("csv", "jsonld"):
+        raise HTTPException(status_code=400, detail="format must be 'csv' or 'jsonld'")
+    if limit < 1 or limit > 10000:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 10000")
+
+    agent = get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    db = _get_supabase()
+    res = (
+        db.table("traces")
+        .select(
+            "id,trace_hash,task_description,status,duration_ms,category,"
+            "cost_usd,token_count,certificate,created_at"
+        )
+        .eq("agent_id", agent_id)
+        .gte("created_at", cutoff)
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    rows = res.data or []
+    pubkey = get_public_key_hex()
+
+    if format == "csv":
+        buf = StringIO()
+        writer = _csv.writer(buf)
+        writer.writerow([
+            "trace_id", "trace_hash", "created_at", "status",
+            "category", "duration_ms", "cost_usd", "token_count",
+            "task_description", "ecdsa_signature", "public_key",
+        ])
+        for r in rows:
+            cert = r.get("certificate") or {}
+            proof = (cert.get("proof") if isinstance(cert, dict) else {}) or {}
+            writer.writerow([
+                r.get("id", ""),
+                r.get("trace_hash", ""),
+                r.get("created_at", ""),
+                r.get("status", ""),
+                r.get("category", ""),
+                r.get("duration_ms", 0),
+                r.get("cost_usd", 0),
+                r.get("token_count", 0),
+                (r.get("task_description") or "").replace("\n", " "),
+                proof.get("signature", ""),
+                pubkey,
+            ])
+        body = buf.getvalue()
+        filename = f"garl-audit-{agent_id}-{days}d.csv"
+        response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response.headers["Cache-Control"] = "private, no-store"
+        return Response(content=body, media_type="text/csv; charset=utf-8")
+
+    # JSON-LD: array of CertifiedExecutionTrace envelopes
+    items = []
+    for r in rows:
+        cert = r.get("certificate") or {}
+        items.append({
+            "@type": "CertifiedExecutionTrace",
+            "trace_id": r.get("id"),
+            "trace_hash": r.get("trace_hash"),
+            "created_at": r.get("created_at"),
+            "status": r.get("status"),
+            "category": r.get("category"),
+            "duration_ms": r.get("duration_ms"),
+            "task_description": r.get("task_description"),
+            "certificate": cert,
+        })
+    return {
+        "@context": "https://garl.io/schema/v1",
+        "@type": "AgentAuditReport",
+        "agent_id": agent_id,
+        "agent_name": agent.get("name"),
+        "sovereign_id": agent.get("sovereign_id"),
+        "window_days": days,
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "public_key": pubkey,
+        "trace_count": len(items),
+        "truncated": len(items) >= limit,
+        "traces": items,
+    }
+
+
 @router.get("/agents/{agent_id}/detail", summary="Get agent detail", tags=["Agents"])
 async def read_agent_detail(agent_id: str):
     """Agent detail — public profile with traces, history, and decay projection."""
