@@ -281,6 +281,27 @@ const TOOLS = [
     },
   },
   {
+    name: "garl_receipt",
+    description:
+      "Fetch a public, shareable GARL Receipt for any trace hash. Works without an API key. " +
+      "Accepts either a full 64-char SHA-256 hash or a short 8-63 char prefix (as seen in garl.ai/r/{short} URLs). " +
+      "Returns the shareable receipt URL plus agent name, tier, task description, duration, status and ECDSA signature. " +
+      "Use this after garl_verify to grab a paste-ready proof link, or to inspect any public trace from a URL.",
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {
+        trace_hash: {
+          type: "string",
+          description: "SHA-256 trace hash or 8+ char prefix",
+          minLength: 8,
+          maxLength: 64,
+        },
+      },
+      required: ["trace_hash"],
+    },
+  },
+  {
     name: "garl_simulate_score",
     description:
       "Simulate how submitting a trace would affect an agent's trust score WITHOUT writing to the database. " +
@@ -314,7 +335,33 @@ async function handleToolCall(name, args) {
       if (args.permissions_used) body.permissions_used = args.permissions_used;
       if (args.security_context) body.security_context = args.security_context;
       const result = await garlFetch("/verify", { method: "POST", body: JSON.stringify(body) });
-      return { content: [{ type: "text", text: [`Trace successfully recorded.`, `Trust delta: ${result.trust_delta > 0 ? "+" : ""}${result.trust_delta.toFixed(2)}`, `Certificate ID: ${result.id}`, `Status: ${result.status}`].join("\n") }] };
+      const lines = [
+        `Trace successfully recorded.`,
+        `Trust delta: ${result.trust_delta > 0 ? "+" : ""}${result.trust_delta.toFixed(2)}`,
+        `Certificate ID: ${result.id}`,
+        `Status: ${result.status}`,
+      ];
+      if (result.receipt_url) lines.push(`Receipt: ${result.receipt_url}`);
+      return { content: [{ type: "text", text: lines.join("\n") }] };
+    }
+
+    case "garl_receipt": {
+      if (!args.trace_hash) throw new Error("trace_hash is required.");
+      const hash = String(args.trace_hash).trim();
+      if (hash.length < 8 || hash.length > 64) {
+        throw new Error("trace_hash must be 8-64 characters.");
+      }
+      const r = await garlFetch(`/verify/${encodeURIComponent(hash)}`, { method: "GET" });
+      const parts = [
+        `🔐 GARL Receipt ${r.verified ? "✓ verified" : "✗ UNVERIFIED"}`,
+        `Agent: ${r.agent_name || "unknown"}${r.agent_tier ? ` (${r.agent_tier})` : ""}${r.agent_trust_score !== null && r.agent_trust_score !== undefined ? ` · trust ${Number(r.agent_trust_score).toFixed(1)}` : ""}`,
+        r.task_description ? `Task: ${r.task_description}` : null,
+        r.duration_ms ? `Duration: ${r.duration_ms}ms` : null,
+        r.status ? `Status: ${r.status}` : null,
+        r.receipt_url ? `Receipt: ${r.receipt_url}` : null,
+        r.trace_hash ? `Hash: ${r.trace_hash}` : null,
+      ].filter(Boolean);
+      return { content: [{ type: "text", text: parts.join("\n") }] };
     }
 
     case "garl_verify_batch": {
