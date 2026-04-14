@@ -6,7 +6,9 @@ Four integration levels:
 1. One-liner (simplest):
     import garl
     garl.init("garl_key", "agent-uuid")
-    garl.log_action("Generated REST API", "success", category="coding")
+    r = garl.log_action("Generated REST API", "success",
+                         category="coding", background=False)
+    # r["receipt_url"] -> "https://garl.ai/r/a8f3c2d1"  (shareable)
 
 2. Client (full control):
     from garl import GarlClient
@@ -83,9 +85,13 @@ def log_action(
 
     Runs in background (non-blocking) by default.
     Use background=False to run synchronously and return the certificate.
+    The returned dict includes a ``receipt_url`` — a public shareable
+    page (https://garl.ai/r/{short}) with an ECDSA-signed proof card.
 
     Usage:
-        garl.log_action("Generated API docs", "success", category="coding")
+        r = garl.log_action("Generated API docs", "success",
+                             category="coding", background=False)
+        print(r["receipt_url"])
     """
     if not _default_client:
         logger.warning("GARL not initialized. Call garl.init() first.")
@@ -214,7 +220,14 @@ class GarlClient:
         pii_mask: bool = False,
     ) -> dict:
         """Submit an execution trace and receive a signed certificate.
-        Use pii_mask=True for enterprise PII protection (hashes input/output summaries)."""
+
+        The returned dict includes ``receipt_url`` — a public shareable page
+        (e.g. ``https://garl.ai/r/a8f3c2d1``) rendering a cryptographic proof
+        card with Open Graph preview for Slack/Twitter/GitHub.
+
+        Use pii_mask=True for enterprise PII protection (hashes input/output
+        summaries).
+        """
         payload = {
             "agent_id": self.agent_id,
             "task_description": task,

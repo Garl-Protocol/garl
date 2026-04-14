@@ -155,6 +155,8 @@ class TraceResponse(BaseModel):
     trace_hash: str
     certificate: dict
     created_at: str
+    receipt_url: str | None = None
+    short_hash: str | None = None
 
 
 class LeaderboardEntry(BaseModel):

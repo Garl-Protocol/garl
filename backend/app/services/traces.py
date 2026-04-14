@@ -321,6 +321,11 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
             "timestamp": now,
         })
 
+    from app.core.config import get_settings
+    short = trace_hash[:8]
+    frontend = get_settings().public_frontend_url.rstrip("/")
+    receipt_url = f"{frontend}/r/{short}"
+
     return {
         "id": trace_id,
         "agent_id": req.agent_id,
@@ -332,6 +337,8 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
         "certificate": certificate,
         "certification_tier": new_tier,
         "created_at": now,
+        "short_hash": short,
+        "receipt_url": receipt_url,
     }
 
 

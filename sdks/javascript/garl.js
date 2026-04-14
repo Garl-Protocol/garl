@@ -53,6 +53,14 @@ export function init(apiKey, agentId, baseUrl = "https://api.garl.ai/api/v1") {
   _defaultClient = new GarlClient(apiKey, agentId, baseUrl);
 }
 
+/**
+ * Submit a trace. By default runs in the background (fire-and-forget).
+ * Pass `{ background: false }` to await the response — the returned
+ * object includes `receipt_url`, a public shareable proof page at
+ * https://garl.ai/r/{short} with an Open Graph card for rich previews.
+ *
+ * @returns {Promise<object|null>}
+ */
 export function logAction(task, result = "success", options = {}) {
   if (!_defaultClient) {
     console.warn("GARL not initialized. Call garl.init() first.");
