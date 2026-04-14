@@ -513,6 +513,26 @@ export default function HomePage({
             tiers, and cryptographic proof. No trust without verification.
           </motion.p>
 
+          {/* GARL for Code launch banner */}
+          <motion.a
+            variants={fadeUp}
+            custom={2.5}
+            href="/for-code"
+            className="group mx-auto mb-10 flex max-w-2xl items-center gap-3 rounded-xl border border-garl-accent/40 bg-garl-accent/[0.06] px-5 py-3 text-left transition-colors hover:bg-garl-accent/[0.12]"
+          >
+            <span className="rounded-md border border-garl-accent/40 bg-garl-accent/15 px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-garl-accent">
+              🆕 New
+            </span>
+            <span className="flex-1 text-sm leading-snug text-garl-text">
+              <strong className="text-garl-accent">GARL for Code</strong> —
+              cryptographic proof for AI-generated commits. 5-line GitHub
+              Action. EU AI Act ready.
+            </span>
+            <span className="font-mono text-xs text-garl-accent transition-transform group-hover:translate-x-0.5">
+              Learn more →
+            </span>
+          </motion.a>
+
           <motion.div
             variants={fadeUp}
             custom={3}
