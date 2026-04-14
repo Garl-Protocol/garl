@@ -48,9 +48,9 @@ Stack:
 Live receipt (real data from a monitoring agent running 20 traces/day):
 https://garl.ai/r/6ff83db8
 
-GitHub: https://github.com/Garl-Protocol/garl
+GitHub (protocol): https://github.com/Garl-Protocol/garl
+GitHub (action): https://github.com/Garl-Protocol/garl-receipt-action
 Landing: https://garl.ai/for-code
-Action: https://github.com/Garl-Protocol/garl/tree/main/integrations/github-action-receipt
 
 Feedback welcome — especially from anyone wiring AI provenance into
 regulated pipelines.

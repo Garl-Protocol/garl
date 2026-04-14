@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: Garl-Protocol/garl/integrations/github-action-receipt@v1.1.0
+      - uses: Garl-Protocol/garl-receipt-action@v1.0.0
         with:
           garl-api-key: \${{ secrets.GARL_API_KEY }}
           garl-agent-id: \${{ secrets.GARL_AGENT_ID }}`;
@@ -104,7 +104,7 @@ export default function ForCodePage() {
                 Install in 1 minute →
               </a>
               <a
-                href="https://github.com/Garl-Protocol/garl/tree/main/integrations/github-action-receipt"
+                href="https://github.com/Garl-Protocol/garl-receipt-action"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-lg border border-garl-border bg-garl-surface px-5 py-3 font-mono text-sm text-garl-text transition-colors hover:border-garl-accent/40 hover:text-garl-accent"

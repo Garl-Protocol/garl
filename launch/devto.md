@@ -69,7 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: Garl-Protocol/garl/integrations/github-action-receipt@v1.1.0
+      - uses: Garl-Protocol/garl-receipt-action@v1.0.0
         with:
           garl-api-key: ${{ secrets.GARL_API_KEY }}
           garl-agent-id: ${{ secrets.GARL_AGENT_ID }}
@@ -144,8 +144,8 @@ All part of the same Apache-2.0 monorepo.
 
 - **Landing page:** https://garl.ai/for-code
 - **Live receipt example:** https://garl.ai/r/6ff83db8
-- **GitHub Action:** https://github.com/Garl-Protocol/garl/tree/main/integrations/github-action-receipt
-- **Full repo:** https://github.com/Garl-Protocol/garl
+- **GitHub Action:** https://github.com/Garl-Protocol/garl-receipt-action
+- **Full protocol repo:** https://github.com/Garl-Protocol/garl
 
 Feedback very welcome — especially from teams wiring AI provenance
 into regulated pipelines.

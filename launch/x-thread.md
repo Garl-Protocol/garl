@@ -61,7 +61,7 @@ on GitHub.
 
 📂 .github/workflows/garl-receipt.yml
 
-- uses: Garl-Protocol/garl/integrations/github-action-receipt@v1.1.0
+- uses: Garl-Protocol/garl-receipt-action@v1.0.0
   with:
     garl-api-key: ${{ secrets.GARL_API_KEY }}
     garl-agent-id: ${{ secrets.GARL_AGENT_ID }}

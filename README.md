@@ -52,7 +52,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: Garl-Protocol/garl/integrations/github-action-receipt@v1.1.0
+      - uses: Garl-Protocol/garl-receipt-action@v1.0.0
         with:
           garl-api-key: ${{ secrets.GARL_API_KEY }}
           garl-agent-id: ${{ secrets.GARL_AGENT_ID }}
@@ -70,7 +70,7 @@ Every PR gets a rolling GARL Receipt comment + informational check:
 └── Receipt: https://garl.ai/r/a8f3c2d1
 ```
 
-Setup guide: [`integrations/github-action-receipt`](./integrations/github-action-receipt/README.md) ·
+Setup guide: [`Garl-Protocol/garl-receipt-action`](https://github.com/Garl-Protocol/garl-receipt-action) ·
 Live landing page: [garl.ai/for-code](https://garl.ai/for-code).
 
 ### Path B — For Agents (SDK / MCP)
