@@ -723,7 +723,7 @@ curl -s https://api.garl.ai/api/v1/verify/6ff83db8 | python3 -m json.tool
             <span className="text-garl-accent">16.</span> GitHub Action — AI Code Receipts
           </h2>
           <p className="mb-4 text-sm text-garl-muted">
-            The <code className="text-garl-accent">github-action-receipt</code> action signs every AI-authored commit in a pull
+            The <code className="text-garl-accent">garl-receipt-action</code> signs every AI-authored commit in a pull
             request. It detects Claude Code, Cursor, GitHub Copilot, Aider, and Codex trailers, submits a trace to GARL for each
             qualifying commit, and posts a rolling PR comment + informational GitHub check with receipt URLs.
           </p>
