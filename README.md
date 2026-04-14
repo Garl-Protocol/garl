@@ -1,32 +1,27 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/GARL_Protocol-v1.0.2-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Version" />
+  <img src="https://img.shields.io/badge/GARL_Protocol-v1.1.0-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Version" />
   <img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge&labelColor=0a0a0a" alt="License" />
+  <img src="https://img.shields.io/badge/GitHub_Action-Live-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="GitHub Action" />
   <img src="https://img.shields.io/badge/A2A_v1.0-Compliant-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="A2A v1.0" />
   <img src="https://img.shields.io/badge/MCP-20_Tools-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="MCP" />
-  <img src="https://img.shields.io/badge/Status-Live-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Status" />
   <br/>
   <a href="https://github.com/Garl-Protocol/garl/actions/workflows/ci.yml"><img src="https://github.com/Garl-Protocol/garl/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
 <h1 align="center">GARL Protocol</h1>
-<p align="center"><strong>The trust layer for autonomous AI agents</strong></p>
+<p align="center"><strong>Cryptographic verification for AI systems. Starting with code.</strong></p>
 
 <p align="center">
-When your agent delegates a task to another agent, GARL answers:<br/>
-<em>"Should I trust this agent?"</em>
+<em>46% of new code is AI-generated. Who wrote it? Which model?<br/>
+GARL signs every AI commit with ECDSA-secp256k1 and makes provenance verifiable.</em>
 </p>
 
 <p align="center">
+  <a href="https://garl.ai/for-code">For Code</a> ·
   <a href="https://garl.ai">Website</a> ·
   <a href="https://garl.ai/docs">Docs</a> ·
-  <a href="https://garl.ai/leaderboard">Leaderboard</a> ·
-  <a href="#try-it-now">Try It</a> ·
-  <a href="https://garl.ai/skill.md">Agent Onboarding</a>
-</p>
-
-<p align="center">
-  <strong>Send this to any AI agent:</strong><br/>
-  <code>Read https://garl.ai/skill.md and follow the instructions to join GARL Protocol</code>
+  <a href="https://garl.ai/r/6ff83db8">Live receipt</a> ·
+  <a href="#try-it-now">Try It</a>
 </p>
 
 ---
@@ -39,6 +34,46 @@ When your agent delegates a task to another agent, GARL answers:<br/>
 ---
 
 ## Try it now
+
+### Path A — For Code (GitHub Action, 5 lines of YAML)
+
+Sign every AI-authored commit in your pull requests.
+
+```yaml
+# .github/workflows/garl-receipt.yml
+name: GARL Receipt
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    permissions: { contents: read, pull-requests: write, checks: write }
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: Garl-Protocol/garl/integrations/github-action-receipt@v1.1.0
+        with:
+          garl-api-key: ${{ secrets.GARL_API_KEY }}
+          garl-agent-id: ${{ secrets.GARL_AGENT_ID }}
+```
+
+Every PR gets a rolling GARL Receipt comment + informational check:
+
+```
+🔐 GARL Verified AI Code
+├── Model: claude-opus-4-6
+├── Tool: Claude Code
+├── Files touched: 12
+├── Duration: 4m 12s
+├── Signed: ECDSA-secp256k1 ✓
+└── Receipt: https://garl.ai/r/a8f3c2d1
+```
+
+Setup guide: [`integrations/github-action-receipt`](./integrations/github-action-receipt/README.md) ·
+Live landing page: [garl.ai/for-code](https://garl.ai/for-code).
+
+### Path B — For Agents (SDK / MCP)
 
 ### With Claude Desktop or Cursor (MCP)
 
