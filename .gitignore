@@ -65,3 +65,4 @@ mcp-publisher
 *.log
 *.sqlite3
 *.db
+.claude/
