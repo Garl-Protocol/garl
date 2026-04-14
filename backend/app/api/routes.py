@@ -508,21 +508,53 @@ async def agent_erc8004_feedback(agent_id: str, request: Request):
 
 # --- Public Trace Verification (No API key required) ---
 
-@router.get("/verify/{trace_hash}", summary="Verify trace by hash (public)", tags=["Trust & Verification"])
+_HEX_RE = re.compile(r"^[0-9a-f]+$")
+
+
+@router.get("/verify/{trace_hash}", summary="Verify trace by hash or short hash (public)", tags=["Trust & Verification"])
 async def public_verify_trace(trace_hash: str, request: Request):
     """Public endpoint: verify a trace's ECDSA signature by its hash.
-    No API key required — anyone can verify any trace's authenticity."""
+
+    Accepts either the full 64-character SHA-256 hex hash or a short prefix
+    (8-63 chars) for shareable receipt URLs. Short prefixes are resolved via
+    prefix match; ambiguous prefixes return 409.
+
+    No API key required — anyone can verify any trace's authenticity.
+    """
     _check_rate_limit(_get_client_ip(request), "default", request)
 
-    if not trace_hash or len(trace_hash) != 64:
-        raise HTTPException(status_code=400, detail="Invalid trace hash. Must be a 64-character SHA-256 hex string.")
+    hash_input = (trace_hash or "").strip().lower()
+    if not hash_input or len(hash_input) < 8 or len(hash_input) > 64 or not _HEX_RE.match(hash_input):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid trace hash. Must be 8-64 lowercase hex characters (SHA-256 prefix or full hash).",
+        )
 
     db = _get_supabase()
-    res = db.table("traces").select("*").eq("trace_hash", trace_hash).execute()
-    if not res.data:
+
+    if len(hash_input) == 64:
+        res = db.table("traces").select("*").eq("trace_hash", hash_input).execute()
+        matches = res.data or []
+    else:
+        res = (
+            db.table("traces")
+            .select("*")
+            .like("trace_hash", f"{hash_input}%")
+            .limit(2)
+            .execute()
+        )
+        matches = res.data or []
+        if len(matches) > 1:
+            raise HTTPException(
+                status_code=409,
+                detail="Ambiguous hash prefix — multiple traces match. Use a longer prefix.",
+            )
+
+    if not matches:
         raise HTTPException(status_code=404, detail="Trace not found")
 
-    trace = res.data[0]
+    trace = matches[0]
+    full_hash = trace.get("trace_hash", "")
 
     trace_data = {
         "trace_id": trace["id"],
@@ -537,14 +569,33 @@ async def public_verify_trace(trace_hash: str, request: Request):
     certificate = sign_trace(trace_data)
     is_valid = verify_signature(certificate)
 
+    # Enrich with agent summary for receipt cards / OG rendering
+    agent_row = db.table("agents").select(
+        "name,framework,certification_tier,trust_score"
+    ).eq("id", trace["agent_id"]).limit(1).execute()
+    agent = (agent_row.data or [{}])[0]
+
+    frontend_url = get_settings().public_frontend_url.rstrip("/")
+    short = full_hash[:8] if full_hash else hash_input[:8]
+    receipt_url = f"{frontend_url}/r/{short}" if short else None
+
     return {
         "verified": is_valid,
-        "trace_hash": trace_hash,
+        "trace_hash": full_hash or hash_input,
         "trace_id": trace["id"],
         "agent_id": trace["agent_id"],
+        "agent_name": agent.get("name"),
+        "agent_framework": agent.get("framework"),
+        "agent_tier": agent.get("certification_tier"),
+        "agent_trust_score": float(agent["trust_score"]) if agent.get("trust_score") is not None else None,
+        "task_description": trace.get("task_description"),
         "status": trace.get("status"),
         "category": trace.get("category"),
+        "duration_ms": trace.get("duration_ms"),
+        "runtime_env": trace.get("runtime_env") or None,
         "created_at": trace.get("created_at"),
+        "receipt_url": receipt_url,
+        "short_hash": short,
         "certificate": certificate,
         "public_key": get_public_key_hex(),
     }

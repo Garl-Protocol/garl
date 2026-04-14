@@ -51,6 +51,8 @@ def mock_supabase_for_routes():
         mock_table.in_.return_value = mock_table
         mock_table.or_.return_value = mock_table
         mock_table.gt.return_value = mock_table
+        mock_table.like.return_value = mock_table
+        mock_table.ilike.return_value = mock_table
         mock_table.execute.return_value = mock_res
         return mock_table
 

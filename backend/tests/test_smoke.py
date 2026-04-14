@@ -20,55 +20,126 @@ client = TestClient(app)
 # ============================================================
 
 class TestPublicVerifyEndpoint:
-    """Tests for the new GET /api/v1/verify/{trace_hash} public endpoint."""
+    """Tests for the public GET /api/v1/verify/{trace_hash} receipt endpoint."""
 
-    def test_verify_invalid_hash_format(self, mock_supabase_for_routes):
+    @staticmethod
+    def _wire_mock(mock_db, traces, agent=None):
+        def table_side_effect(table_name):
+            mock_table = MagicMock()
+            mock_res = MagicMock()
+            if table_name == "traces":
+                mock_res.data = traces
+            elif table_name == "agents":
+                mock_res.data = [agent] if agent else []
+            else:
+                mock_res.data = []
+            mock_res.count = len(mock_res.data)
+            mock_table.select.return_value = mock_table
+            mock_table.eq.return_value = mock_table
+            mock_table.like.return_value = mock_table
+            mock_table.limit.return_value = mock_table
+            mock_table.execute.return_value = mock_res
+            return mock_table
+        mock_db.table.side_effect = table_side_effect
+
+    def test_verify_invalid_hash_format_nonhex(self, mock_supabase_for_routes):
+        # 'tooshort' is 8 chars but contains non-hex letters
         response = client.get("/api/v1/verify/tooshort")
         assert response.status_code == 400
         assert "Invalid trace hash" in response.json()["detail"]
 
+    def test_verify_below_min_length(self, mock_supabase_for_routes):
+        response = client.get("/api/v1/verify/abc123")  # 6 hex chars, too short
+        assert response.status_code == 400
+
+    def test_verify_above_max_length(self, mock_supabase_for_routes):
+        response = client.get(f"/api/v1/verify/{'a' * 65}")
+        assert response.status_code == 400
+
     def test_verify_nonexistent_trace(self, mock_supabase_for_routes):
-        fake_hash = "a" * 64
-        response = client.get(f"/api/v1/verify/{fake_hash}")
+        self._wire_mock(mock_supabase_for_routes, traces=[])
+        response = client.get(f"/api/v1/verify/{'a' * 64}")
         assert response.status_code == 404
 
-    def test_verify_valid_trace(self, mock_supabase_for_routes):
-        mock_db = mock_supabase_for_routes
-        trace_data = {
+    def test_verify_valid_full_hash_with_enrichment(self, mock_supabase_for_routes):
+        trace = {
             "id": "trace-123",
             "agent_id": "agent-456",
-            "task_description": "Test task",
+            "task_description": "Wrote README",
             "status": "success",
             "duration_ms": 1000,
             "category": "coding",
             "trust_score_after": 52.5,
             "trace_hash": "b" * 64,
+            "runtime_env": "langchain",
             "created_at": "2026-03-11T00:00:00Z",
         }
-
-        def table_side_effect(table_name):
-            mock_table = MagicMock()
-            mock_res = MagicMock()
-            if table_name == "traces":
-                mock_res.data = [trace_data]
-            else:
-                mock_res.data = []
-            mock_res.count = 1 if table_name == "traces" else 0
-            mock_table.select.return_value = mock_table
-            mock_table.eq.return_value = mock_table
-            mock_table.execute.return_value = mock_res
-            return mock_table
-
-        mock_db.table.side_effect = table_side_effect
+        agent = {
+            "name": "CodeBot",
+            "framework": "langchain",
+            "certification_tier": "silver",
+            "trust_score": 68.4,
+        }
+        self._wire_mock(mock_supabase_for_routes, traces=[trace], agent=agent)
 
         response = client.get(f"/api/v1/verify/{'b' * 64}")
         assert response.status_code == 200
         data = response.json()
         assert data["verified"] is True
         assert data["trace_hash"] == "b" * 64
+        assert data["short_hash"] == "b" * 8
         assert data["agent_id"] == "agent-456"
+        assert data["agent_name"] == "CodeBot"
+        assert data["agent_tier"] == "silver"
+        assert data["agent_trust_score"] == 68.4
+        assert data["task_description"] == "Wrote README"
+        assert data["duration_ms"] == 1000
+        assert data["runtime_env"] == "langchain"
+        assert data["receipt_url"].endswith("/r/bbbbbbbb")
         assert "certificate" in data
         assert "public_key" in data
+
+    def test_verify_short_hash_prefix_match(self, mock_supabase_for_routes):
+        trace = {
+            "id": "t1", "agent_id": "a1",
+            "task_description": "x", "status": "success", "duration_ms": 100,
+            "category": "other", "trust_score_after": 50.0,
+            "trace_hash": "deadbeef" + ("0" * 56),
+            "created_at": "2026-03-11T00:00:00Z",
+        }
+        self._wire_mock(mock_supabase_for_routes, traces=[trace])
+        response = client.get("/api/v1/verify/deadbeef")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["trace_hash"].startswith("deadbeef")
+        assert data["short_hash"] == "deadbeef"
+
+    def test_verify_short_hash_ambiguous_returns_409(self, mock_supabase_for_routes):
+        traces = [
+            {"id": "t1", "agent_id": "a1", "task_description": "a",
+             "status": "success", "duration_ms": 1, "category": "other",
+             "trust_score_after": 50.0, "trace_hash": "abcd1234" + ("0" * 56),
+             "created_at": "2026-03-11T00:00:00Z"},
+            {"id": "t2", "agent_id": "a2", "task_description": "b",
+             "status": "success", "duration_ms": 1, "category": "other",
+             "trust_score_after": 50.0, "trace_hash": "abcd1234" + ("1" * 56),
+             "created_at": "2026-03-11T00:00:00Z"},
+        ]
+        self._wire_mock(mock_supabase_for_routes, traces=traces)
+        response = client.get("/api/v1/verify/abcd1234")
+        assert response.status_code == 409
+
+    def test_verify_short_hash_uppercase_normalized(self, mock_supabase_for_routes):
+        trace = {
+            "id": "t1", "agent_id": "a1", "task_description": "x",
+            "status": "success", "duration_ms": 1, "category": "other",
+            "trust_score_after": 50.0, "trace_hash": "deadbeef" + ("0" * 56),
+            "created_at": "2026-03-11T00:00:00Z",
+        }
+        self._wire_mock(mock_supabase_for_routes, traces=[trace])
+        response = client.get("/api/v1/verify/DEADBEEF")
+        assert response.status_code == 200
+        assert response.json()["short_hash"] == "deadbeef"
 
 
 class TestFeedWithCertificateInfo:

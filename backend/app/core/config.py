@@ -17,6 +17,8 @@ class Settings(BaseSettings):
 
     read_auth_enabled: bool = True
 
+    public_frontend_url: str = "https://garl.ai"
+
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:3001"]
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
