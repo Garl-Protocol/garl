@@ -71,11 +71,12 @@ export async function GET(
   const hash = (receipt?.trace_hash || short).slice(0, 16);
   const trustScore = receipt?.agent_trust_score;
 
-  // Receipt OG cards are immutable per short hash — let CDN cache hard.
-  const headers = {
-    "Cache-Control":
-      "public, max-age=300, s-maxage=86400, stale-while-revalidate=86400, immutable",
-  };
+  // Receipt OG cards are immutable per short hash. ImageResponse from
+  // next/og already sets `Cache-Control: public, immutable, no-transform,
+  // max-age=31536000` by default — which is exactly the right policy for
+  // content-addressed images. Don't pass our own `headers` option here:
+  // doing so appends to the default, producing a malformed two-directive
+  // Cache-Control header in the response.
 
   return new ImageResponse(
     (
@@ -266,7 +267,7 @@ export async function GET(
         </div>
       </div>
     ),
-    { width: 1200, height: 630, headers },
+    { width: 1200, height: 630 },
   );
 }
 

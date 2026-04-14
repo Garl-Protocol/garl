@@ -16,6 +16,17 @@ os.environ["SIGNING_PRIVATE_KEY_HEX"] = (
 os.environ["DEBUG"] = "true"
 
 
+def pytest_configure(config):
+    """Register custom markers so PytestUnknownMarkWarning stops firing
+    on @pytest.mark.e2e and the CI filter `-m "not e2e"` is meaningful.
+    """
+    config.addinivalue_line(
+        "markers",
+        "e2e: end-to-end tests that hit the live api.garl.ai surface "
+        "(skipped by default in CI; run with `pytest -m e2e`).",
+    )
+
+
 @pytest.fixture
 def mock_supabase():
     """
