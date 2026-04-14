@@ -71,6 +71,12 @@ export async function GET(
   const hash = (receipt?.trace_hash || short).slice(0, 16);
   const trustScore = receipt?.agent_trust_score;
 
+  // Receipt OG cards are immutable per short hash — let CDN cache hard.
+  const headers = {
+    "Cache-Control":
+      "public, max-age=300, s-maxage=86400, stale-while-revalidate=86400, immutable",
+  };
+
   return new ImageResponse(
     (
       <div
@@ -260,7 +266,7 @@ export async function GET(
         </div>
       </div>
     ),
-    { width: 1200, height: 630 },
+    { width: 1200, height: 630, headers },
   );
 }
 

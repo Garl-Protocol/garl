@@ -44,8 +44,10 @@ type Receipt = {
 
 async function fetchReceipt(short: string): Promise<Receipt | null> {
   try {
+    // Receipts are immutable per short hash; cache hard at the framework
+    // level too so repeat hits never re-fetch the backend.
     const res = await fetch(`${API_BASE}/verify/${short}`, {
-      next: { revalidate: 60 },
+      next: { revalidate: 86400 },
     });
     if (!res.ok) return null;
     return (await res.json()) as Receipt;
