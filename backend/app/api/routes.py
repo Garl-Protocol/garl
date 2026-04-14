@@ -288,14 +288,52 @@ async def auto_register_agent(request: Request, req: AutoRegisterRequest):
     return agent
 
 
+_PUBLIC_AGENT_FIELDS = (
+    "id",
+    "name",
+    "description",
+    "framework",
+    "category",
+    "homepage_url",
+    "trust_score",
+    "trust_score_lower",
+    "trust_score_upper",
+    "confidence",
+    "certification_tier",
+    "total_traces",
+    "success_rate",
+    "score_reliability",
+    "score_speed",
+    "score_cost_efficiency",
+    "score_consistency",
+    "score_security",
+    "endorsement_count",
+    "endorsement_score",
+    "anomaly_flags",
+    "sovereign_id",
+    "last_trace_at",
+    "created_at",
+)
+
+
 @router.get("/agents/{agent_id}", summary="Get agent by ID", tags=["Agents"])
-async def read_agent(agent_id: str):
-    """Fetch basic agent profile by UUID."""
+async def read_agent(agent_id: str, fields: str = "public"):
+    """Fetch agent profile by UUID.
+
+    By default returns a slim public projection (~24 fields) safe to
+    share with anyone — score, dimensions, tier, identity, activity
+    timestamps. Pass ``?fields=full`` to also include internal scoring
+    state (EMA values, security_events, permissions_declared,
+    is_sandbox/is_deleted, developer_id, deleted_at, updated_at) for
+    debugging or owner dashboards. ``api_key_hash`` is never exposed.
+    """
     _validate_uuid(agent_id, "agent_id")
     agent = get_agent(agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return agent
+    if fields == "full":
+        return agent
+    return {k: agent.get(k) for k in _PUBLIC_AGENT_FIELDS if k in agent}
 
 
 @router.get("/agents/{agent_id}/detail", summary="Get agent detail", tags=["Agents"])
@@ -512,7 +550,7 @@ _HEX_RE = re.compile(r"^[0-9a-f]+$")
 
 
 @router.get("/verify/{trace_hash}", summary="Verify trace by hash or short hash (public)", tags=["Trust & Verification"])
-async def public_verify_trace(trace_hash: str, request: Request):
+async def public_verify_trace(trace_hash: str, request: Request, response: Response):
     """Public endpoint: verify a trace's ECDSA signature by its hash.
 
     Accepts either the full 64-character SHA-256 hex hash or a short prefix
@@ -578,6 +616,11 @@ async def public_verify_trace(trace_hash: str, request: Request):
     frontend_url = get_settings().public_frontend_url.rstrip("/")
     short = full_hash[:8] if full_hash else hash_input[:8]
     receipt_url = f"{frontend_url}/r/{short}" if short else None
+
+    # Receipts are immutable per trace_hash (the hash itself fixes
+    # every field that can affect the response). Cache hard so CDN +
+    # browser can serve hot receipts without round-tripping.
+    response.headers["Cache-Control"] = "public, max-age=300, s-maxage=86400, stale-while-revalidate=86400, immutable"
 
     return {
         "verified": is_valid,

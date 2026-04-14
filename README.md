@@ -290,9 +290,14 @@ Interactive API explorer: [api.garl.ai/docs](https://api.garl.ai/docs) (Swagger)
 
 GARL Protocol is open source under the Apache 2.0 License. Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community standards.
 
+**Requirements:** **Python 3.10+** for the backend (PEP 604 union syntax),
+**Node 18+** for the frontend. macOS users: the system `python3` is 3.9
+and will fail backend tests — install 3.10+ via `pyenv` / `brew install python@3.12`
+and invoke explicitly (`python3.12 -m pytest tests/`).
+
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Run tests (`pytest` for backend, `npx next build` for frontend)
+3. Run tests (`python3.12 -m pytest` for backend, `npx next build` for frontend)
 4. Commit your changes (`git commit -m 'Add amazing feature'`)
 5. Open a Pull Request
 
