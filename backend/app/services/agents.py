@@ -3,6 +3,7 @@ import hmac
 import secrets
 import hashlib
 import logging
+import threading
 from datetime import datetime, timezone
 
 from app.core.supabase_client import get_supabase
@@ -63,12 +64,25 @@ def _apply_lazy_decay(agent: dict, db) -> dict:
         updated["certification_tier"] = new_tier
         agent["certification_tier"] = new_tier
         updated["updated_at"] = now.isoformat()
-        try:
-            db.table("agents").update(updated).eq("id", agent["id"]).execute()
-        except Exception:
-            pass
+        # Decay writeback is advisory — the in-memory agent we return is
+        # already correct for this response. Fire the UPDATE on a daemon
+        # thread so the caller doesn't pay the Postgres round-trip on
+        # every /agents/{id} read for the 100+ dormant agents in the
+        # ledger. If the write drops (container recycle mid-flight), the
+        # next read simply recomputes the same decay.
+        _aid = agent["id"]
+        threading.Thread(
+            target=_writeback_decay, args=(_aid, updated), daemon=True
+        ).start()
 
     return agent
+
+
+def _writeback_decay(agent_id: str, updated: dict) -> None:
+    try:
+        get_supabase().table("agents").update(updated).eq("id", agent_id).execute()
+    except Exception as e:  # pragma: no cover — background best-effort
+        logger.debug("lazy decay writeback failed for %s: %s", agent_id, e)
 
 
 def register_agent(req: AgentRegisterRequest, developer_id: str | None = None) -> dict:
