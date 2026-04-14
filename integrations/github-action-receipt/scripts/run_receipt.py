@@ -175,9 +175,15 @@ def list_commits(event: dict[str, Any]) -> list[dict[str, Any]]:
 # GARL API
 # ──────────────────────────────────────────────────────────────────
 
+USER_AGENT = "garl-receipt-action/1.1 (+https://garl.ai/for-code)"
+
+
 def http_json(url: str, method: str = "GET", headers: dict[str, str] | None = None, body: Any = None) -> tuple[int, Any]:
     data = None
-    hdrs = {"Accept": "application/json"}
+    hdrs = {
+        "Accept": "application/json",
+        "User-Agent": USER_AGENT,  # avoid Cloudflare default-UA bans (error 1010)
+    }
     if headers:
         hdrs.update(headers)
     if body is not None:

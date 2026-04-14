@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 
 const LINKS: { href: string; label: string; accent?: boolean; external?: boolean }[] = [
+  { href: "/for-code", label: "For Code", accent: true },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/compare", label: "Compare" },
   { href: "/compliance", label: "Compliance" },
   { href: "/docs", label: "Docs" },
   { href: "/simulator", label: "Simulator" },
-  { href: "/playground", label: "Try It", accent: true },
+  { href: "/playground", label: "Try It" },
   { href: "/verify", label: "Verify" },
   { href: "mailto:contact@garl.ai", label: "Contact", external: true },
 ];
