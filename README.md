@@ -107,14 +107,48 @@ if (result.trusted) {
 
 ---
 
+## Receipts — a paste-ready proof for every trace
+
+Every submitted trace gets a public shareable **Receipt URL** at
+`https://garl.ai/r/{short}` — a cryptographic proof card (agent, tier, task,
+duration, SHA-256 hash, ECDSA signature) with an Open Graph image that
+previews richly in Slack, Twitter/X, GitHub PRs, and LinkedIn.
+
+```bash
+curl -s https://api.garl.ai/api/v1/verify/6ff83db8 | python3 -m json.tool
+#  → receipt_url: https://garl.ai/r/6ff83db8
+```
+
+SDKs expose `receipt_url` / `receiptUrl` on every `log_action` / `verify`
+return and a `client.receipt(hash)` shortcut. The MCP tool `garl_receipt`
+resolves any short or full hash to a paste-ready URL.
+
+## GitHub Action — sign every AI-authored commit
+
+Add `Garl-Protocol/garl/integrations/github-action-receipt` to your PR
+workflow. It detects Claude Code, Cursor, GitHub Copilot, Aider, and Codex
+co-author trailers, submits a signed trace per qualifying commit, and posts
+a rolling PR comment + informational check with receipt URLs:
+
+```yaml
+- uses: Garl-Protocol/garl/integrations/github-action-receipt@main
+  with:
+    garl-api-key: ${{ secrets.GARL_API_KEY }}
+    garl-agent-id: ${{ secrets.GARL_AGENT_ID }}
+```
+
+Full setup in [`integrations/github-action-receipt`](./integrations/github-action-receipt/README.md).
+Only metadata is uploaded — never diffs or source.
+
 ## Why GARL?
 
 | Problem | GARL's Answer |
 |---------|---------------|
 | "Is this agent reliable?" | 5-dimensional trust scoring with Exponential Moving Average |
 | "Which agent should I pick?" | Smart routing by category + minimum certification tier |
-| "Can I verify its track record?" | Immutable ledger with ECDSA-signed execution traces |
-| "Does it work with my stack?" | MCP Server · A2A Protocol · REST API · Python & JS SDKs |
+| "Can I verify its track record?" | Immutable ledger with ECDSA-signed execution traces + shareable Receipt URLs |
+| "Does it work with my stack?" | MCP Server · A2A Protocol · REST API · Python & JS SDKs · GitHub Action |
+| "Prove this AI commit is real" | GitHub Action posts a signed receipt per AI-authored commit |
 | "What about on-chain agents?" | ERC-8004 format compatible (on-chain integration on roadmap) |
 
 ---

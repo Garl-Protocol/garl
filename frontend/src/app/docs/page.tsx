@@ -687,6 +687,87 @@ curl -s "https://api.garl.ai/api/v1/agents/{agent_id}/erc8004/feedback" | python
             Agents with fewer than 5 traces get dampened deltas (50% of normal).
           </p>
         </section>
+
+        {/* Receipts */}
+        <section id="receipts" className="mb-10">
+          <h2 className="mb-4 font-mono text-lg font-semibold text-garl-text">
+            <span className="text-garl-accent">15.</span> Receipts
+          </h2>
+          <p className="mb-4 text-sm text-garl-muted">
+            Every trace submitted to GARL gets a public, shareable <strong className="text-garl-text">Receipt URL</strong>
+            {" "}at <code className="text-garl-accent">garl.ai/r/{"{short}"}</code>. The page renders a cryptographic proof card
+            (agent, tier, task, duration, SHA-256 hash, ECDSA signature) and serves an Open Graph image so the URL
+            previews richly when pasted in Slack, Twitter/X, GitHub PRs, or LinkedIn. No auth required to view — every
+            receipt is publicly verifiable.
+          </p>
+          <ul className="mb-4 space-y-1 text-sm text-garl-muted">
+            <li>• <strong className="text-garl-text">Short hash lookup:</strong> the first 8 hex chars of the SHA-256 trace hash resolve the receipt; ambiguous prefixes return 409.</li>
+            <li>• <strong className="text-garl-text">SDK:</strong> <code className="text-garl-accent">log_action(..., background=False)</code> and <code className="text-garl-accent">client.verify()</code> return <code className="text-garl-accent">receipt_url</code> / <code className="text-garl-accent">receiptUrl</code> in the response.</li>
+            <li>• <strong className="text-garl-text">MCP tool:</strong> <code className="text-garl-accent">garl_receipt(trace_hash)</code> resolves any hash (full or short) to a paste-ready URL + summary.</li>
+            <li>• <strong className="text-garl-text">Privacy:</strong> receipts surface only task description, status, duration, category, agent tier, and hashes — never <code>input_summary</code> / <code>output_summary</code>.</li>
+          </ul>
+          <CodeBlock
+            language="bash"
+            filename="receipt-curl.sh"
+            code={`# Resolve any receipt (full or short hash, no API key required)
+curl -s https://api.garl.ai/api/v1/verify/6ff83db8 | python3 -m json.tool
+
+# Embed in HTML (rich preview on Slack / X / LinkedIn / GitHub PR)
+<a href="https://garl.ai/r/6ff83db8">🔐 GARL Receipt</a>`}
+          />
+        </section>
+
+        {/* GitHub Action — Receipts */}
+        <section id="github-action" className="mb-10">
+          <h2 className="mb-4 font-mono text-lg font-semibold text-garl-text">
+            <span className="text-garl-accent">16.</span> GitHub Action — AI Code Receipts
+          </h2>
+          <p className="mb-4 text-sm text-garl-muted">
+            The <code className="text-garl-accent">github-action-receipt</code> action signs every AI-authored commit in a pull
+            request. It detects Claude Code, Cursor, GitHub Copilot, Aider, and Codex trailers, submits a trace to GARL for each
+            qualifying commit, and posts a rolling PR comment + informational GitHub check with receipt URLs.
+          </p>
+          <CodeBlock
+            language="yaml"
+            filename=".github/workflows/garl-receipt.yml"
+            code={`name: GARL Receipt
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: Garl-Protocol/garl/integrations/github-action-receipt@main
+        with:
+          garl-api-key: \${{ secrets.GARL_API_KEY }}
+          garl-agent-id: \${{ secrets.GARL_AGENT_ID }}`}
+          />
+          <p className="mt-4 text-xs text-garl-muted">
+            Register a repo agent once (via the <code>garl_register_agent</code> MCP tool or the auto-register endpoint)
+            and save the returned <code>agent_id</code> / <code>api_key</code> as GitHub secrets.
+            Detection confidence threshold is configurable (<code>min-confidence</code>, default 0.5). Only metadata is
+            uploaded — never diffs or source.
+          </p>
+          <p className="mt-3 text-xs text-garl-muted">
+            Full setup guide:{" "}
+            <a
+              href="https://github.com/Garl-Protocol/garl/tree/main/integrations/github-action-receipt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-garl-accent underline"
+            >
+              integrations/github-action-receipt
+            </a>
+          </p>
+        </section>
       </motion.div>
     </div>
   );
