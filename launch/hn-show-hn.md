@@ -15,9 +15,10 @@ https://garl.ai/for-code
 **Text field:**
 
 ```
-46% of new code is AI-generated, but git history only records the human
-author — not the model, not the prompt, not the verifier. We built a
-GitHub Action that signs every AI-authored commit with ECDSA-secp256k1
+Nearly half of all new code on GitHub is AI-touched (Octoverse 2025),
+but git history only records the human author — not the model, not the
+prompt, not the verifier. We built a GitHub Action (and a companion
+GitHub App) that signs every AI-authored commit with ECDSA-secp256k1
 and posts a verifiable receipt on the PR.
 
 Detects Claude Code, Cursor, GitHub Copilot, Aider, and Codex via
@@ -31,11 +32,15 @@ Five lines of YAML to install. Two repo secrets. No diffs or source
 are uploaded — only commit SHA, subject, file-count, detected tool,
 and confidence. Apache 2.0, full monorepo on GitHub.
 
-Why now: EU AI Act Article 50 provenance obligations land August 2026.
-Enterprises are going to need audit-ready AI-code provenance, and
-there wasn't an open-source primitive for it — SLSA/Sigstore target
-build artifacts, C2PA targets media, and the existing "AI Provenance
-Protocol" spec is spec-only, not a product.
+Why now: California SB 942 (AI Transparency Act) is in force since
+Jan 1, 2026. The EU AI Act Code of Practice on AI-generated content
+(final June 2026, applicable alongside Article 50 in August 2026)
+wants machine-readable disclosure. ISO/IEC 42001 Annex B is already
+audited against. Enterprises need AI-code provenance today, and there
+wasn't an open-source primitive for it — SLSA/Sigstore target build
+artifacts, C2PA targets media. GARL emits an in-toto predicate
+(`garl/ai-authorship/v1`) so existing supply-chain tooling can consume
+the same receipt via `cosign verify-blob` or any Rekor-aware verifier.
 
 Stack:
 - FastAPI + Supabase/Postgres (backend)
@@ -43,7 +48,9 @@ Stack:
 - Composite GitHub Action (bash + Python stdlib, zero build step)
 - ECDSA-secp256k1 signatures (same curve as Ethereum, natively
   verifiable by ERC-8004 consumers)
-- Python + JS SDKs, MCP server (20 tools) for Claude Desktop / Cursor
+- Python + JS SDKs, MCP server (12 named tools + batch variants) for
+  Claude Desktop / Cursor, plus `garl-verify` CLI for offline receipt
+  verification (`pip install garl-protocol`)
 
 Live receipt (real data from a monitoring agent running 20 traces/day):
 https://garl.ai/r/6ff83db8

@@ -14,17 +14,32 @@ GARL for Code: cryptographic receipts for every AI-generated commit
 
 ## Body
 
-In 2026, 46% of new code is AI-generated. Claude Code, Cursor, GitHub
-Copilot, Aider, Codex — every modern IDE invites an agent into the
-commit. But `git log` only remembers who typed `git commit`. It
-doesn't remember which model wrote the lines, which prompt produced
-them, or whether a human reviewer ever saw the diff before it merged.
+In 2026, nearly half of all new code on GitHub is AI-touched (per the
+Octoverse 2025 report; 80% of new devs pick up Copilot in their first
+week). Claude Code, Cursor, GitHub Copilot, Aider, Codex — every
+modern IDE invites an agent into the commit. But `git log` only
+remembers who typed `git commit`. It doesn't remember which model
+wrote the lines, which prompt produced them, or whether a human
+reviewer ever saw the diff before it merged.
 
-That gap is about to become expensive. The EU AI Act's Article 50
-provenance obligations land **August 2, 2026**, with fines up to
-€35M / 7% of global turnover for non-compliance. Procurement
-questionnaires are already starting to ask "can you prove this output
-came from a specific model?" Most teams can't.
+That gap is about to become expensive. Three instruments are
+converging:
+
+- **California SB 942 (AI Transparency Act)** — in force since
+  **Jan 1, 2026**. Requires machine-detectable provenance for AI
+  content served to California users.
+- **EU AI Act Code of Practice on AI-generated content** — final
+  guidance expected **June 2026**, applicable alongside Article 50
+  in August 2026. Article 50 itself targets deepfakes + public-interest
+  text, but the Code of Practice is where code-specific transparency
+  obligations are most likely to land. Signed machine-readable
+  disclosures are the preferred shape.
+- **ISO/IEC 42001:2023 Annex B** — AI management system audit
+  evidence. Already live; Microsoft 365 Copilot is certified; enterprise
+  procurement gates reference it.
+
+Procurement questionnaires are already starting to ask "can you prove
+this output came from a specific model?" Most teams can't.
 
 So we built **GARL for Code** — an open-source GitHub Action that
 signs every AI-authored commit with ECDSA-secp256k1 and posts a
@@ -43,7 +58,7 @@ sticky comment + an informational GitHub check:
 ├── Tool: Claude Code
 ├── Files touched: 12
 ├── Duration: 4m 12s
-├── Signed: ECDSA-secp256k1 ✓
+├── Signed: ECDSA-secp256k1 (RFC 6979 deterministic) ✓
 └── Receipt: https://garl.ai/r/a8f3c2d1
 ```
 
@@ -85,10 +100,9 @@ The detection layer is deliberately conservative:
 
 | Signal | Confidence |
 |---|---|
-| `Co-Authored-By: ... Claude / Cursor / Copilot / Aider / Codex` | 1.0 |
-| `Generated with [Claude Code]` | 0.9 |
-| Explicit model name (`claude-opus-4-6`, `gpt-4.1-mini`, …) | 0.6–0.7 |
-| `🤖 Generated with ...` emoji marker | 0.6 |
+| `Co-Authored-By: ... Claude / Cursor / Copilot / Aider / Codex` | 0.95 |
+| `Generated with [Claude Code]` body marker | 0.85 |
+| Explicit model name (`claude-opus-4-6`, `gpt-4.1-mini`, …) | 0.55 |
 | Bare `cursor` heuristic | 0.4 |
 
 Commits below `min-confidence` (default 0.5) are listed in the summary
@@ -114,29 +128,46 @@ task description, status, duration, category, and hashes — never
 
 Three forces are colliding:
 
-1. **Scale:** 92% of US developers use AI tools daily. Half of all
-   new code is AI-generated. The provenance gap grows every week.
-2. **Regulation:** EU AI Act Article 50. NIST AI Agent Standards work.
-   Procurement questionnaires. The "who wrote it?" question is
-   stopping being optional.
+1. **Scale:** Octoverse 2025 — 80% of new devs pick up Copilot in the
+   first week, sub-44% of AI-generated code is accepted unchanged. The
+   provenance gap grows every week.
+2. **Regulation:** CA SB 942 is already active. The EU AI Act Code of
+   Practice lands in June 2026. ISO/IEC 42001 Annex B is already
+   audited against today. The "who wrote it?" question stopped being
+   optional in January.
 3. **Tooling vacuum:** SLSA / Sigstore sign *build artifacts*. C2PA
-   signs *media*. The existing "AI Provenance Protocol" is a spec,
-   not a product. Nobody was signing AI-authored source commits.
+   signs *media*. GitHub Artifact Attestations sign *artifacts*. Nobody
+   was signing AI-authored *source commits* as its own event. GARL
+   ships the in-toto predicate `garl/ai-authorship/v1` so the existing
+   supply-chain toolchain can consume the same receipt.
 
 GARL for Code is the open-source primitive for that gap.
 
-### Related — for agent developers
+### What you also get (the rest of the surface)
 
-GARL for Code is the first "vertical" of the broader GARL Protocol:
-an open trust layer for AI agents. If you're building agents instead
-of shipping code, there's also:
+The Action is the front door; GARL ships the rest of the stack too:
 
-- A Python SDK (`garl-protocol`) and a JavaScript SDK (`@garl-protocol/sdk`)
-  for submitting traces and querying trust scores
-- An MCP server (`@garl-protocol/mcp-server`) with 20 tools for Claude
-  Desktop / Cursor
-- A public REST API with rate-limited reads, ECDSA-signed traces, and
-  an immutable Postgres ledger
+- **`garl-verify` CLI.** `pip install garl-protocol` gives you a binary
+  that verifies any receipt offline against the canonical key registry
+  — "don't trust, verify". Refuses self-vouched keys.
+- **Compliance export.** `GET /api/v1/agents/{id}/audit?format=...` in
+  `csv`, `jsonld`, `in-toto` (DSSE), `slsa-v1.1`, `ca-sb942`,
+  `iso42001-annexb`, or `c2pa` (Content Credentials adjacent).
+- **Policy gate.** `POST /api/v1/policy/check` lets a CI job score a
+  set of receipts against a declarative policy (min score, min tier,
+  required/forbidden models, signing-epoch requirement) without
+  re-implementing rule logic.
+- **Sigstore Rekor anchor.** Opt-in env flag
+  `ENABLE_REKOR_ANCHOR=true` double-anchors every signature in the
+  Sigstore transparency log. Your verifier can `cosign verify-blob`
+  against it.
+- **PR Bot (GitHub App).** If you don't want to touch YAML, install the
+  App at `github.com/apps/garl-pr-bot` — fork-PR safe, HMAC-gated,
+  same sticky comment.
+
+Agent-reputation endpoints (`/trust/*`, `/a2a/*`, `/erc8004/*`) are
+still supported but carry explicit `Deprecation:` + `Sunset:
+2027-04-15` headers — the pivot is to code.
 
 All part of the same Apache-2.0 monorepo.
 
@@ -145,6 +176,10 @@ All part of the same Apache-2.0 monorepo.
 - **Landing page:** https://garl.ai/for-code
 - **Live receipt example:** https://garl.ai/r/6ff83db8
 - **GitHub Action:** https://github.com/Garl-Protocol/garl-receipt-action
+- **GitHub Marketplace listing:** https://github.com/marketplace/actions/garl-receipt
+- **PR Bot (GitHub App):** https://github.com/apps/garl-pr-bot
+- **Public key registry (JWKS-style):** https://api.garl.ai/.well-known/garl-keys.json
+- **`garl-verify` CLI on PyPI:** https://pypi.org/project/garl-protocol/
 - **Full protocol repo:** https://github.com/Garl-Protocol/garl
 
 Feedback very welcome — especially from teams wiring AI provenance

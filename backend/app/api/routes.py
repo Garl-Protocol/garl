@@ -376,8 +376,9 @@ async def agent_audit_export(
     format: str = "csv",
     limit: int = 5000,
 ):
-    """Bulk receipt export for compliance evidence (EU AI Act Article 50,
-    NIST AI RMF, internal audits).
+    """Bulk receipt export for compliance evidence (EU AI Act Code of
+    Practice on AI-generated content, California SB 942 AI Transparency
+    Act, ISO/IEC 42001:2023 Annex B, NIST AI RMF, and internal audits).
 
     Streams every trace this agent submitted in the trailing ``days``
     window with its ECDSA-secp256k1 signature attached, capped at

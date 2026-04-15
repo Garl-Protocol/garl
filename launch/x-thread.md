@@ -9,7 +9,7 @@
 ## Tweet 1 (lead, attaches OG preview)
 
 ```
-46% of new code is AI-generated.
+Nearly half of all new code on GitHub is AI-touched (Octoverse 2025).
 
 Git says who typed `git commit`.
 It doesn't say which model wrote it.
@@ -17,7 +17,7 @@ It doesn't say which model wrote it.
 We fixed that.
 
 GARL for Code — cryptographic receipts for every AI-authored commit.
-Open source. 5-line GitHub Action.
+Open source. 5-line GitHub Action or one-click GitHub App.
 
 Live demo → garl.ai/r/6ff83db8
 ```
@@ -35,14 +35,16 @@ Each commit gets a shareable receipt URL:
 🔐 GARL Verified AI Code
 ├── Model: claude-opus-4-6
 ├── Files touched: 12
-├── Signed: ECDSA-secp256k1 ✓
+├── Signed: ECDSA-secp256k1 (RFC 6979) ✓
 └── Receipt: garl.ai/r/a8f3c2d1
 ```
 
 ## Tweet 3 (why it matters)
 
 ```
-EU AI Act Article 50 provenance obligations land Aug 2026.
+CA SB 942 live since Jan 2026.
+EU AI Act Code of Practice applicable Aug 2026.
+ISO 42001 Annex B already audited against.
 
 SLSA / Sigstore sign build artifacts.
 C2PA signs media.
