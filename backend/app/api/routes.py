@@ -980,6 +980,147 @@ async def agent_erc8004_feedback(agent_id: str, request: Request):
 _HEX_RE = re.compile(r"^[0-9a-f]+$")
 
 
+_TIER_ORDER = ("bronze", "silver", "gold", "enterprise")
+
+
+@router.post(
+    "/policy/check",
+    summary="Evaluate a declarative policy against a set of receipts",
+    tags=["Trust & Verification", "Compliance"],
+)
+async def policy_check(request: Request, body: dict):
+    """Stateless policy gate for CI/CD pipelines.
+
+    Accepts ``{"policy": {...}, "receipts": [<trace_hash or short_hash>, ...]}``
+    and returns a pass/fail evaluation with per-receipt reasons. Designed
+    to be called from GitHub Actions, GitLab CI, or any build runner:
+    the action does not need to re-implement policy logic.
+
+    **Policy fields (all optional, conjunctive):**
+
+    - ``min_score``: minimum agent trust score (0-100)
+    - ``min_tier``: one of ``bronze|silver|gold|enterprise``
+    - ``require_model_disclosure``: if true, each receipt must carry at
+      least one entry in ``metadata.models``
+    - ``allowed_models``: list of model names (e.g.
+      ``["claude-opus-4-6", "claude-sonnet-4-6"]``) — at least one must
+      appear in each receipt's models
+    - ``forbidden_models``: list; none may appear in any receipt
+    - ``require_signing_epoch``: ``"original"`` to reject pre-v0.3
+      unsigned-legacy traces
+    """
+    _check_rate_limit(_get_client_ip(request), "default", request)
+
+    policy = (body or {}).get("policy") or {}
+    receipts = (body or {}).get("receipts") or []
+    if not isinstance(receipts, list) or not receipts:
+        raise HTTPException(status_code=400, detail="receipts must be a non-empty list")
+    if len(receipts) > 100:
+        raise HTTPException(status_code=400, detail="max 100 receipts per call")
+
+    min_score = policy.get("min_score")
+    min_tier = policy.get("min_tier")
+    require_disclosure = bool(policy.get("require_model_disclosure", False))
+    allowed_models = policy.get("allowed_models")
+    forbidden_models = policy.get("forbidden_models")
+    require_epoch = policy.get("require_signing_epoch")
+
+    if min_tier is not None and min_tier not in _TIER_ORDER:
+        raise HTTPException(
+            status_code=400,
+            detail=f"min_tier must be one of {', '.join(_TIER_ORDER)}",
+        )
+
+    db = None  # lazy — only touch Supabase when a valid hash needs lookup
+    evaluations = []
+    for rcpt in receipts:
+        if not isinstance(rcpt, str):
+            continue
+        h = rcpt.strip().lower()
+        if not _HEX_RE.match(h) or len(h) < 8 or len(h) > 64:
+            evaluations.append({
+                "receipt": rcpt,
+                "pass": False,
+                "reasons": ["invalid_hash_format"],
+            })
+            continue
+        if db is None:
+            db = _get_supabase()
+        if len(h) == 64:
+            res = db.table("traces").select("*").eq("trace_hash", h).limit(1).execute()
+        else:
+            res = db.table("traces").select("*").like("trace_hash", f"{h}%").limit(2).execute()
+        rows = res.data or []
+        if not rows:
+            evaluations.append({"receipt": rcpt, "pass": False, "reasons": ["receipt_not_found"]})
+            continue
+        if len(rows) > 1:
+            evaluations.append({"receipt": rcpt, "pass": False, "reasons": ["ambiguous_hash_prefix"]})
+            continue
+        trace = rows[0]
+        reasons: list[str] = []
+
+        agent_row = db.table("agents").select(
+            "id,name,trust_score,certification_tier"
+        ).eq("id", trace["agent_id"]).limit(1).execute()
+        agent = (agent_row.data or [{}])[0]
+
+        score = float(agent.get("trust_score") or 0)
+        tier = agent.get("certification_tier") or "bronze"
+
+        if min_score is not None and score < float(min_score):
+            reasons.append(f"score_below_min ({score} < {min_score})")
+
+        if min_tier is not None:
+            try:
+                if _TIER_ORDER.index(tier) < _TIER_ORDER.index(min_tier):
+                    reasons.append(f"tier_below_min ({tier} < {min_tier})")
+            except ValueError:
+                reasons.append("unknown_tier")
+
+        md = trace.get("metadata") or {}
+        models = md.get("models") if isinstance(md, dict) else None
+        model_names = [m.get("name") for m in (models or []) if isinstance(m, dict) and m.get("name")]
+
+        if require_disclosure and not model_names:
+            reasons.append("no_model_disclosure")
+
+        if allowed_models:
+            if not any(m in allowed_models for m in model_names):
+                reasons.append("no_allowed_model_present")
+
+        if forbidden_models:
+            bad = [m for m in model_names if m in forbidden_models]
+            if bad:
+                reasons.append(f"forbidden_model_present ({','.join(bad)})")
+
+        if require_epoch:
+            cert = trace.get("certificate") or {}
+            epoch = "original" if cert else "pre-v0.3-unsigned-legacy"
+            if require_epoch == "original" and epoch != "original":
+                reasons.append("signing_epoch_not_original")
+
+        evaluations.append({
+            "receipt": rcpt,
+            "trace_hash": trace.get("trace_hash"),
+            "agent_id": agent.get("id"),
+            "agent_name": agent.get("name"),
+            "score": score,
+            "tier": tier,
+            "models": model_names,
+            "pass": not reasons,
+            "reasons": reasons,
+        })
+
+    overall = all(e.get("pass") for e in evaluations) and len(evaluations) == len(receipts)
+    return {
+        "pass": overall,
+        "policy": policy,
+        "evaluation_count": len(evaluations),
+        "evaluations": evaluations,
+    }
+
+
 @router.get("/keys", summary="Public signing key registry", tags=["Trust & Verification"])
 async def list_public_keys(response: Response):
     """Mirror of /.well-known/garl-keys.json for API-prefix consumers.

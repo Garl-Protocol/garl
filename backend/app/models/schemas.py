@@ -107,6 +107,21 @@ class ToolCall(BaseModel):
     duration_ms: int | None = None
 
 
+class ModelAttestation(BaseModel):
+    """One AI model that contributed to this execution.
+
+    Optional — multiple entries allow a single receipt to attest that
+    a PR was co-authored by e.g. Claude Code + Copilot + Cursor."""
+    name: str = Field(..., max_length=100)
+    version: str | None = Field(default=None, max_length=100)
+    detection_confidence: float | None = Field(default=None, ge=0, le=1)
+    role: str | None = Field(
+        default=None,
+        max_length=40,
+        description="e.g. 'primary-author', 'reviewer', 'test-generator'",
+    )
+
+
 class TraceSubmitRequest(BaseModel):
     agent_id: str
     task_description: str = Field(..., max_length=1000)
@@ -114,6 +129,10 @@ class TraceSubmitRequest(BaseModel):
     duration_ms: int = Field(..., ge=0)
     input_summary: str = Field(default="", max_length=500)
     output_summary: str = Field(default="", max_length=500)
+    models: list[ModelAttestation] | None = Field(
+        default=None,
+        description="AI models that co-authored this execution (for multi-model PR attestation).",
+    )
 
     @field_validator("task_description", "input_summary", "output_summary", mode="before")
     @classmethod

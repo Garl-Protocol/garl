@@ -201,6 +201,8 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
         trace_metadata["permissions_used"] = req.permissions_used
     if req.security_context:
         trace_metadata["security_context"] = req.security_context
+    if req.models:
+        trace_metadata["models"] = [m.model_dump(exclude_none=True) for m in req.models]
 
     db.table("traces").insert({
         "id": trace_id,
