@@ -3,43 +3,43 @@ import "./globals.css";
 import SiteNav from "@/components/SiteNav";
 
 const description =
-  "The first A2A v1.0 RC compatible trust oracle. Proof-of-Trust for the Agent Economy. Every agent execution indexed, scored, and publicly verified.";
+  "Cryptographic verification for AI systems. Starting with code. Every AI-authored commit signed with ECDSA-secp256k1 and anchored on an immutable ledger — verifiable provenance for the AI-generated code era.";
 
 export const metadata: Metadata = {
-  title: "GARL Protocol - Global Agent Reputation Ledger",
+  title: "GARL Protocol — Cryptographic verification for AI code",
   description,
   keywords: [
-    "AI agents",
-    "reputation",
-    "trust score",
-    "agent economy",
-    "A2A protocol",
-    "agent-to-agent",
-    "agent trust API",
-    "A2A compatible",
-    "agent reputation ledger",
+    "AI code provenance",
+    "AI commit signing",
+    "AI-generated code verification",
+    "cryptographic receipt",
+    "ECDSA secp256k1",
+    "ai authorship attestation",
+    "GitHub Action AI receipt",
+    "AI code audit trail",
+    "EU AI Act compliance",
+    "CA SB 942 AI transparency",
+    "ISO 42001 audit evidence",
+    "supply chain provenance",
+    "SLSA predicate",
+    "in-toto attestation",
+    "agent reputation",
     "MCP server",
-    "agent verification",
-    "ERC-8004",
-    "blockchain-ready agent trust",
-    "multi-agent trust",
-    "agent delegation",
-    "AI agent reputation",
   ],
   metadataBase: new URL("https://garl.ai"),
   alternates: { canonical: "/" },
   openGraph: {
-    title: "GARL Protocol — The Universal Trust Standard for AI Agents",
+    title: "GARL Protocol — Cryptographic verification for AI code",
     description,
     url: "https://garl.ai",
     siteName: "GARL Protocol",
     type: "website",
     locale: "en_US",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "GARL Protocol" }],
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "GARL Protocol — signed receipts for AI-authored commits" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "GARL Protocol — The Universal Trust Standard for AI Agents",
+    title: "GARL Protocol — Cryptographic verification for AI code",
     description,
     images: ["/og-image.png"],
   },
@@ -78,33 +78,32 @@ export default function RootLayout({
                 "@context": "https://schema.org",
                 "@type": "Organization",
                 name: "GARL Protocol",
-                alternateName: "Global Agent Reputation Ledger",
                 url: "https://garl.ai",
                 logo: "https://garl.ai/og-image.png",
                 sameAs: [
                   "https://github.com/Garl-Protocol/garl",
+                  "https://github.com/marketplace/actions/garl-receipt",
                 ],
               },
               {
                 "@context": "https://schema.org",
                 "@type": "SoftwareApplication",
                 name: "GARL Protocol",
-                alternateName: "Global Agent Reputation Ledger",
                 applicationCategory: "DeveloperApplication",
-                applicationSubCategory: "AI Agent Trust Verification",
+                applicationSubCategory: "AI Code Provenance",
                 operatingSystem: "Any",
                 url: "https://garl.ai",
                 description:
-                  "The first A2A v1.0 RC compatible trust oracle. Universal trust standard for AI agents with 5-dimensional scoring, ECDSA-secp256k1 signatures, agent identity system, and ERC-8004 format compatibility.",
+                  "Cryptographic verification for AI-authored code. Every commit from Claude Code, Cursor, Copilot, Aider, and Codex gets an ECDSA-secp256k1 signed receipt anchored on an immutable ledger — provenance evidence for EU AI Act, California SB 942, and ISO 42001 Annex B audits.",
                 offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
                 author: {
                   "@type": "Organization",
                   name: "GARL Protocol",
                   url: "https://garl.ai",
                 },
-                featureList: "5D trust scoring, ECDSA-secp256k1 signatures, agent identity system, MCP Server (20 tools), A2A v1.0 RC, ERC-8004 format compatible, Python SDK, JavaScript SDK, Smart agent routing, GitHub Action trust gate",
-                softwareRequirements: "REST API, MCP client, or A2A-compatible agent",
-                releaseNotes: "https://github.com/Garl-Protocol/garl",
+                featureList: "Signed AI-commit receipts, GitHub Action for Claude Code/Cursor/Copilot/Aider/Codex, ECDSA-secp256k1 ledger, compliance export (CSV/JSON-LD/SLSA), MCP Server, Python & JavaScript SDKs, public verify endpoint, agent reputation scoring",
+                softwareRequirements: "GitHub repository, REST API client, MCP client, or A2A-compatible agent",
+                releaseNotes: "https://github.com/Garl-Protocol/garl/releases",
                 license: "https://opensource.org/licenses/Apache-2.0",
               },
             ]),
@@ -159,7 +158,7 @@ export default function RootLayout({
                   </a>
                 </div>
                 <div className="flex items-center sm:justify-end justify-center text-garl-muted/60">
-                  Apache 2.0 · Built for the Agent Economy
+                  Apache 2.0 · Provenance for AI-authored code
                 </div>
               </div>
             </div>

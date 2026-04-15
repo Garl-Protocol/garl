@@ -14,9 +14,17 @@ settings = get_settings()
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="Global Agent Reputation Ledger — Sovereign Trust Layer for the Agent Economy",
+    description=(
+        "GARL Protocol — cryptographic verification for AI-authored code. "
+        "Signed receipts for every AI-generated commit with ECDSA-secp256k1 "
+        "and an immutable ledger. Provenance evidence for EU AI Act, "
+        "California SB 942, and ISO/IEC 42001 Annex B."
+    ),
     docs_url="/docs",
     redoc_url="/redoc",
+    servers=[
+        {"url": "https://api.garl.ai", "description": "Canonical production registry"},
+    ],
 )
 
 app.add_middleware(
@@ -236,9 +244,10 @@ async def well_known_agent(agent_id: str = Query(default=None)):
 
     return {
         "name": "GARL Protocol",
-        "description": "Global Agent Reputation Ledger — The Universal Trust Standard for AI Agents. "
-                       "Five-dimensional trust scoring, DID-based sovereign identity, certification tiers, "
-                       "smart routing, and GDPR-compliant agent lifecycle management.",
+        "description": "GARL Protocol — cryptographic verification for AI-authored code. "
+                       "ECDSA-secp256k1 signed receipts for every AI-generated commit, "
+                       "immutable ledger, compliance export for EU AI Act / CA SB 942 / "
+                       "ISO 42001. Agent reputation scoring available as a secondary surface.",
         "version": settings.app_version,
         "protocol": "garl/v1",
         "url": "https://garl.ai",
