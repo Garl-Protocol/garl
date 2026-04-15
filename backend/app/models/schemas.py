@@ -48,6 +48,11 @@ class AgentRegisterRequest(BaseModel):
         default=None,
         description="List of permissions the agent declares it uses (e.g. file_read, web_request)"
     )
+    developer_handle: str | None = Field(
+        default=None,
+        max_length=200,
+        description="Opaque developer identifier (GitHub handle, email, org slug). Stored as a SHA-256 hash — plaintext is never persisted.",
+    )
 
     @field_validator("description", "framework", mode="before")
     @classmethod
@@ -66,6 +71,11 @@ class AutoRegisterRequest(BaseModel):
         default=None,
         max_length=256,
         description="Optional runtime proof token to verify agent is a real runtime"
+    )
+    developer_handle: str | None = Field(
+        default=None,
+        max_length=200,
+        description="Opaque developer identifier, hashed on write.",
     )
 
     @field_validator("description", "framework", mode="before")

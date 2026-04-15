@@ -234,6 +234,7 @@ async def auto_register_agent(request: Request, req: AutoRegisterRequest):
         framework=req.framework,
         category=req.category,
         description=req.description or f"Auto-registered {req.framework} agent",
+        developer_handle=req.developer_handle,
     )
     try:
         agent = register_agent(full_req)
