@@ -60,6 +60,7 @@ from app.core.signing import (
     sign_trace,
     get_key_registry,
     get_active_key_id,
+    derive_key_id,
 )
 from app.core.cache import cache_get, cache_set
 
@@ -393,8 +394,11 @@ async def agent_audit_export(
 
     if days < 1 or days > 365:
         raise HTTPException(status_code=400, detail="days must be between 1 and 365")
-    if format not in ("csv", "jsonld"):
-        raise HTTPException(status_code=400, detail="format must be 'csv' or 'jsonld'")
+    if format not in ("csv", "jsonld", "in-toto", "slsa-v1.1"):
+        raise HTTPException(
+            status_code=400,
+            detail="format must be one of csv, jsonld, in-toto, slsa-v1.1",
+        )
     if limit < 1 or limit > 10000:
         raise HTTPException(status_code=400, detail="limit must be between 1 and 10000")
 
@@ -449,7 +453,129 @@ async def agent_audit_export(
         response.headers["Cache-Control"] = "private, no-store"
         return Response(content=body, media_type="text/csv; charset=utf-8")
 
-    # JSON-LD: array of CertifiedExecutionTrace envelopes
+    import base64 as _b64
+    active_key_id = derive_key_id(pubkey)
+
+    if format == "in-toto":
+        # Array of DSSE envelopes wrapping in-toto v1 Statements with
+        # the garl/ai-authorship-v1 predicate. Signatures are the
+        # existing per-trace ECDSA signatures (base64-encoded here per
+        # DSSE rather than hex).
+        envelopes = []
+        for r in rows:
+            cert = r.get("certificate") or {}
+            proof = (cert.get("proof") if isinstance(cert, dict) else {}) or {}
+            statement = {
+                "_type": "https://in-toto.io/Statement/v1",
+                "subject": [{
+                    "name": f"garl-trace:{r.get('id')}",
+                    "digest": {"sha256": r.get("trace_hash", "")},
+                }],
+                "predicateType": "https://garl.ai/ai-authorship/v1",
+                "predicate": {
+                    "agent_id": agent_id,
+                    "agent_name": agent.get("name"),
+                    "task_description": r.get("task_description"),
+                    "status": r.get("status"),
+                    "category": r.get("category"),
+                    "duration_ms": r.get("duration_ms"),
+                    "cost_usd": float(r.get("cost_usd") or 0),
+                    "token_count": r.get("token_count", 0),
+                    "signed_at_unix": proof.get("created"),
+                    "signing_epoch": "original" if cert else "pre-v0.3-unsigned-legacy",
+                    "canonical_registry": "https://api.garl.ai",
+                },
+            }
+            payload_bytes = json.dumps(
+                statement, sort_keys=True, separators=(",", ":")
+            ).encode()
+            sig_hex = proof.get("signature", "")
+            try:
+                sig_b64 = _b64.b64encode(bytes.fromhex(sig_hex)).decode() if sig_hex else ""
+            except ValueError:
+                sig_b64 = ""
+            envelopes.append({
+                "payloadType": "application/vnd.in-toto+json",
+                "payload": _b64.b64encode(payload_bytes).decode(),
+                "signatures": [{
+                    "keyid": proof.get("key_id") or active_key_id,
+                    "sig": sig_b64,
+                }],
+            })
+        return {
+            "@type": "GarlAuditReport.InToto",
+            "agent_id": agent_id,
+            "agent_name": agent.get("name"),
+            "window_days": days,
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "predicate_type": "https://garl.ai/ai-authorship/v1",
+            "key_registry_url": "https://api.garl.ai/.well-known/garl-keys.json",
+            "envelope_count": len(envelopes),
+            "truncated": len(envelopes) >= limit,
+            "envelopes": envelopes,
+        }
+
+    if format == "slsa-v1.1":
+        # In-toto Statement v1 with SLSA v1.1 Provenance predicate.
+        # Emits per-trace statements; consumers can then sign them
+        # with cosign / rekor / their own signer.
+        statements = []
+        for r in rows:
+            cert = r.get("certificate") or {}
+            proof = (cert.get("proof") if isinstance(cert, dict) else {}) or {}
+            statements.append({
+                "_type": "https://in-toto.io/Statement/v1",
+                "subject": [{
+                    "name": f"garl-trace:{r.get('id')}",
+                    "digest": {"sha256": r.get("trace_hash", "")},
+                }],
+                "predicateType": "https://slsa.dev/provenance/v1",
+                "predicate": {
+                    "buildDefinition": {
+                        "buildType": "https://garl.ai/ai-authorship/v1",
+                        "externalParameters": {
+                            "agent_id": agent_id,
+                            "category": r.get("category"),
+                            "task": r.get("task_description"),
+                        },
+                        "internalParameters": {
+                            "scoring_method": "exponential_moving_average",
+                            "trust_score_after": r.get("status"),
+                        },
+                    },
+                    "runDetails": {
+                        "builder": {
+                            "id": f"garl-agent:{agent.get('name') or agent_id}",
+                            "version": {"garl": "v1"},
+                        },
+                        "metadata": {
+                            "invocationId": r.get("id"),
+                            "startedOn": r.get("created_at"),
+                            "finishedOn": r.get("created_at"),
+                        },
+                    },
+                    "garl": {
+                        "signing_epoch": "original" if cert else "pre-v0.3-unsigned-legacy",
+                        "key_id": proof.get("key_id") or active_key_id,
+                        "signature_hex": proof.get("signature"),
+                        "duration_ms": r.get("duration_ms"),
+                    },
+                },
+            })
+        return {
+            "@type": "GarlAuditReport.SLSAv1_1",
+            "agent_id": agent_id,
+            "agent_name": agent.get("name"),
+            "window_days": days,
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "predicate_type": "https://slsa.dev/provenance/v1",
+            "key_registry_url": "https://api.garl.ai/.well-known/garl-keys.json",
+            "statement_count": len(statements),
+            "truncated": len(statements) >= limit,
+            "statements": statements,
+        }
+
+    # JSON-LD: array of CertifiedExecutionTrace envelopes (default)
     items = []
     for r in rows:
         cert = r.get("certificate") or {}
@@ -473,6 +599,8 @@ async def agent_audit_export(
         "window_days": days,
         "exported_at": datetime.now(timezone.utc).isoformat(),
         "public_key": pubkey,
+        "key_id": active_key_id,
+        "key_registry_url": "https://api.garl.ai/.well-known/garl-keys.json",
         "trace_count": len(items),
         "truncated": len(items) >= limit,
         "traces": items,

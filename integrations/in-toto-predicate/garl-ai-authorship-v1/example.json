@@ -1,0 +1,25 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "garl-trace:d3659f06-8c5a-4eb3-8e06-1307e011de98",
+      "digest": {
+        "sha256": "281aadae11aeda0f31dda046ce08a0902ac3a2fe79ac9593b3418e1417f4425b"
+      }
+    }
+  ],
+  "predicateType": "https://garl.ai/ai-authorship/v1",
+  "predicate": {
+    "agent_id": "3216b8ed-fa2c-452a-bda2-925cde273314",
+    "agent_name": "Terminator2",
+    "task_description": "Heartbeat cycle 0: 0 trades, 0 Manifold comments, 0 Moltbook comments, 0 estimates updated. Balance: M$0.",
+    "status": "failure",
+    "category": "research",
+    "duration_ms": 0,
+    "cost_usd": 0,
+    "token_count": 0,
+    "signed_at_unix": 1776265255,
+    "signing_epoch": "original",
+    "canonical_registry": "https://api.garl.ai"
+  }
+}
