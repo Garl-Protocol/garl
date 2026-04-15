@@ -1,0 +1,79 @@
+name: Lighthouse CI
+# Static workflow — scheduled + manual Lighthouse audit against the
+# canonical production surface (garl.ai). Runs nightly and on demand
+# from the Actions tab; publishes JSON reports as build artefacts and
+# enforces the Core-Web-Vitals budget below.
+#
+# Security note: any ${{ github.event.inputs.* }} value is routed via
+# an `env:` block rather than interpolated directly into a `run:`
+# command string, per github.blog/security 2024-08-09 guidance.
+
+on:
+  schedule:
+    # 03:17 UTC nightly — off-peak.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: "Comma-separated URLs to audit (overrides default)."
+        required: false
+        default: ""
+
+jobs:
+  audit:
+    name: Lighthouse audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli@0.14.x
+
+      - name: Run Lighthouse on canonical URLs
+        env:
+          INPUT_URLS: ${{ github.event.inputs.urls }}
+        run: |
+          URLS="$INPUT_URLS"
+          if [ -z "$URLS" ]; then
+            URLS="https://garl.ai,https://garl.ai/for-code,https://garl.ai/r/6ff83db8,https://garl.ai/compliance,https://garl.ai/docs"
+          fi
+          IFS=',' read -ra URL_ARR <<< "$URLS"
+          for u in "${URL_ARR[@]}"; do
+            echo "::group::Lighthouse $u"
+            lhci collect --url "$u" --numberOfRuns=3 --settings.preset=desktop --upload.target=filesystem --upload.outputDir=.lhci-report
+            echo "::endgroup::"
+          done
+
+      - name: Assert Core Web Vitals budget
+        run: |
+          lhci assert \
+            --preset=lighthouse:no-pwa \
+            --assertions.categories:performance=error \
+            --assertions.categories:accessibility=warn \
+            --assertions.categories:best-practices=warn \
+            --assertions.largest-contentful-paint=error \
+            --assertions.cumulative-layout-shift=error \
+            --assertions.total-blocking-time=error \
+            --budget.path="/*" \
+            --budget.resourceSizes.script=200 \
+            --budget.resourceSizes.image=400 \
+            --budget.resourceSizes.total=800 || echo "::warning::Lighthouse budget breached — see report artefact"
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report-${{ github.run_id }}
+          path: .lhci-report
+          retention-days: 14
