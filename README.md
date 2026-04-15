@@ -288,7 +288,7 @@ Interactive API explorer: [api.garl.ai/docs](https://api.garl.ai/docs) (Swagger)
 
 ## Contributing
 
-GARL Protocol is open source under the Apache 2.0 License. Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community standards.
+GARL Protocol is open source under the Apache 2.0 License. Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community standards. Every commit must be DCO-signed (`git commit -s`).
 
 **Requirements:** **Python 3.10+** for the backend (PEP 604 union syntax),
 **Node 18+** for the frontend. macOS users: the system `python3` is 3.9
@@ -298,8 +298,18 @@ and invoke explicitly (`python3.12 -m pytest tests/`).
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Run tests (`python3.12 -m pytest` for backend, `npx next build` for frontend)
-4. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Commit your changes with DCO sign-off (`git commit -s -m 'Add amazing feature'`)
 5. Open a Pull Request
+
+---
+
+## Canonical registry, self-hosting, and marks
+
+- **Canonical registry**: `https://api.garl.ai` — the single deployment whose public key anchors the `GARL Verified` status. Public keys are published at [`/.well-known/garl-keys.json`](https://api.garl.ai/.well-known/garl-keys.json).
+- **Self-hosting is supported** and documented in [`docs/self-host.md`](docs/self-host.md). Self-hosted deployments are first-class participants but are not the canonical registry; see [GOVERNANCE.md](GOVERNANCE.md).
+- **Trademark policy**: [TRADEMARK.md](TRADEMARK.md). The source code is Apache 2.0; the GARL name and logo are project marks and subject to the policy.
+
+Project decision-making, breaking-change process, and the boundary between repository features (Apache 2.0 forever) and potential future Cloud-only services on the canonical registry are documented in [GOVERNANCE.md](GOVERNANCE.md).
 
 ---
 
