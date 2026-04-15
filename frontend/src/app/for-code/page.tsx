@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "GARL for Code — Cryptographic proof for AI-generated commits",
     description:
-      "5-line GitHub Action. EU AI Act ready. Open source. Signs every Claude Code / Cursor / Copilot commit with ECDSA-secp256k1.",
+      "5-line GitHub Action. EU AI Act + California SB 942 + ISO 42001 evidence. Open source. Signs every Claude Code / Cursor / Copilot commit with ECDSA-secp256k1.",
     url: "https://garl.ai/for-code",
     siteName: "GARL Protocol",
     type: "article",
@@ -170,8 +170,8 @@ export default function ForCodePage() {
             {
               title: "Compliance clock",
               body:
-                "The EU AI Act's Article 50 provenance obligations land August 2026. Audit-ready AI provenance is becoming a procurement requirement, not a nice-to-have.",
-              badge: "EU AI Act · Aug 2026",
+                "California SB 942 AI Transparency Act is live since 1 Jan 2026. The EU AI Act Code of Practice on AI-generated content lands in August 2026. ISO/IEC 42001 Annex B demands traceable AI logs. Audit-ready AI provenance is already a procurement requirement.",
+              badge: "CA · EU · ISO 42001",
             },
             {
               title: "Reviewer fatigue",
@@ -283,7 +283,7 @@ export default function ForCodePage() {
             { t: "Signed PR check", d: "Informational `GARL Receipt` check run on every PR — never blocks, always visible." },
             { t: "Receipt URL", d: "Public, shareable garl.ai/r/{short} page per commit, with agent and ECDSA proof." },
             { t: "Rich previews", d: "Auto-generated 1200×630 Open Graph cards so receipts render beautifully in Slack, X, LinkedIn." },
-            { t: "Audit trail", d: "Immutable ledger record with who/what/when — ready for EU AI Act Article 50 provenance." },
+            { t: "Audit trail", d: "Immutable ledger record with who/what/when — exports for CA SB 942, EU AI Act Code of Practice, and ISO 42001 Annex B audits." },
           ].map((f) => (
             <div
               key={f.t}

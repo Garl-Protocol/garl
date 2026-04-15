@@ -394,10 +394,13 @@ async def agent_audit_export(
 
     if days < 1 or days > 365:
         raise HTTPException(status_code=400, detail="days must be between 1 and 365")
-    if format not in ("csv", "jsonld", "in-toto", "slsa-v1.1"):
+    _VALID_AUDIT_FORMATS = (
+        "csv", "jsonld", "in-toto", "slsa-v1.1", "ca-sb942", "iso42001-annexb", "c2pa",
+    )
+    if format not in _VALID_AUDIT_FORMATS:
         raise HTTPException(
             status_code=400,
-            detail="format must be one of csv, jsonld, in-toto, slsa-v1.1",
+            detail=f"format must be one of {', '.join(_VALID_AUDIT_FORMATS)}",
         )
     if limit < 1 or limit > 10000:
         raise HTTPException(status_code=400, detail="limit must be between 1 and 10000")
@@ -573,6 +576,163 @@ async def agent_audit_export(
             "statement_count": len(statements),
             "truncated": len(statements) >= limit,
             "statements": statements,
+        }
+
+    if format == "ca-sb942":
+        # California SB 942 — AI Transparency Act evidence (active
+        # since 1 Jan 2026). Each record carries the AI system name,
+        # generation timestamp, and a machine-detectable provenance
+        # pointer (the GARL receipt URL + ECDSA signature).
+        records = []
+        frontend = get_settings().public_frontend_url.rstrip("/")
+        for r in rows:
+            cert = r.get("certificate") or {}
+            proof = (cert.get("proof") if isinstance(cert, dict) else {}) or {}
+            short = (r.get("trace_hash") or "")[:8]
+            records.append({
+                "record_type": "ai_generated_content_disclosure",
+                "ai_system_name": f"{agent.get('name') or 'garl-agent'} (framework={agent.get('framework') or 'custom'})",
+                "ai_system_version": "v1",
+                "generation_date": r.get("created_at"),
+                "content_type": "source-code-commit-or-change",
+                "content_identifier": r.get("trace_hash"),
+                "content_summary": r.get("task_description"),
+                "generation_method": "ai_autonomous_or_assisted",
+                "provenance": {
+                    "receipt_url": f"{frontend}/r/{short}" if short else None,
+                    "verify_url": f"https://api.garl.ai/api/v1/verify/{r.get('trace_hash','')}",
+                    "signature_algorithm": "ECDSA-secp256k1",
+                    "signature_hex": proof.get("signature"),
+                    "key_id": proof.get("key_id") or active_key_id,
+                    "key_registry_url": "https://api.garl.ai/.well-known/garl-keys.json",
+                    "signing_epoch": "original" if cert else "pre-v0.3-unsigned-legacy",
+                },
+            })
+        return {
+            "@type": "GarlAuditReport.CaliforniaSB942",
+            "regulation": "California SB 942 (AI Transparency Act)",
+            "regulation_url": "https://leginfo.legislature.ca.gov/faces/billTextClient.xhtml?bill_id=202320240SB942",
+            "regulation_effective": "2026-01-01",
+            "agent_id": agent_id,
+            "agent_name": agent.get("name"),
+            "window_days": days,
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "record_count": len(records),
+            "truncated": len(records) >= limit,
+            "records": records,
+        }
+
+    if format == "iso42001-annexb":
+        # ISO/IEC 42001:2023 Annex B — AI management system evidence.
+        # Controls we're mapping per record:
+        #   A.6.2 (AI system lifecycle), A.6.2.5 (AI system verification),
+        #   A.7.2 (Data quality), A.8.3 (Information for interested parties).
+        records = []
+        for r in rows:
+            cert = r.get("certificate") or {}
+            proof = (cert.get("proof") if isinstance(cert, dict) else {}) or {}
+            records.append({
+                "evidence_type": "ai_system_execution_record",
+                "controls": ["A.6.2", "A.6.2.5", "A.7.2", "A.8.3"],
+                "ai_system": {
+                    "id": agent_id,
+                    "name": agent.get("name"),
+                    "sovereign_id": agent.get("sovereign_id"),
+                },
+                "execution": {
+                    "trace_id": r.get("id"),
+                    "started_on": r.get("created_at"),
+                    "status": r.get("status"),
+                    "category": r.get("category"),
+                    "duration_ms": r.get("duration_ms"),
+                    "task": r.get("task_description"),
+                },
+                "data_provenance": {
+                    "content_hash_algorithm": "SHA-256",
+                    "content_hash": r.get("trace_hash"),
+                    "signature_algorithm": "ECDSA-secp256k1",
+                    "signature_hex": proof.get("signature"),
+                    "key_id": proof.get("key_id") or active_key_id,
+                    "signing_epoch": "original" if cert else "pre-v0.3-unsigned-legacy",
+                    "verifier_registry": "https://api.garl.ai/.well-known/garl-keys.json",
+                },
+            })
+        return {
+            "@type": "GarlAuditReport.ISO42001AnnexB",
+            "standard": "ISO/IEC 42001:2023 Annex B",
+            "standard_url": "https://www.iso.org/standard/42001",
+            "controls_covered": ["A.6.2", "A.6.2.5", "A.7.2", "A.8.3"],
+            "agent_id": agent_id,
+            "agent_name": agent.get("name"),
+            "window_days": days,
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "record_count": len(records),
+            "truncated": len(records) >= limit,
+            "records": records,
+        }
+
+    if format == "c2pa":
+        # C2PA-inspired Content Credentials manifests for code — one
+        # manifest per trace, each describing a generative action with
+        # the agent as claim_generator. This is a C2PA-adjacent shape,
+        # not a strict C2PA 2.x binary manifest (those require JUMBF);
+        # the envelope keys mirror the core C2PA vocabulary so tools
+        # familiar with C2PA can consume it directly.
+        manifests = []
+        for r in rows:
+            cert = r.get("certificate") or {}
+            proof = (cert.get("proof") if isinstance(cert, dict) else {}) or {}
+            manifests.append({
+                "@context": "https://c2pa.org/schemas/v2",
+                "claim_generator": f"GARL-Protocol/{agent.get('name') or 'agent'}",
+                "claim_generator_version": "garl/v1",
+                "instance_id": r.get("id"),
+                "format": "application/vnd.garl.code-change+json",
+                "assertions": [
+                    {
+                        "label": "c2pa.actions",
+                        "data": {
+                            "actions": [
+                                {
+                                    "action": "c2pa.created",
+                                    "when": r.get("created_at"),
+                                    "softwareAgent": agent.get("name"),
+                                    "digitalSourceType": (
+                                        "http://cv.iptc.org/newscodes/digitalsourcetype/"
+                                        "algorithmicallyGenerated"
+                                    ),
+                                    "parameters": {
+                                        "task": r.get("task_description"),
+                                        "category": r.get("category"),
+                                    },
+                                }
+                            ]
+                        },
+                    },
+                    {
+                        "label": "c2pa.hash.data",
+                        "alg": "sha256",
+                        "hash": r.get("trace_hash"),
+                    },
+                ],
+                "signature": {
+                    "alg": "ES256K",
+                    "sig": proof.get("signature"),
+                    "key_id": proof.get("key_id") or active_key_id,
+                    "key_registry_url": "https://api.garl.ai/.well-known/garl-keys.json",
+                },
+            })
+        return {
+            "@type": "GarlAuditReport.C2PA",
+            "profile": "C2PA-adjacent Content Credentials for source code",
+            "profile_note": "Code-domain extension; not a C2PA 2.x JUMBF manifest",
+            "agent_id": agent_id,
+            "agent_name": agent.get("name"),
+            "window_days": days,
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "manifest_count": len(manifests),
+            "truncated": len(manifests) >= limit,
+            "manifests": manifests,
         }
 
     # JSON-LD: array of CertifiedExecutionTrace envelopes (default)
