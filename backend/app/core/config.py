@@ -4,9 +4,13 @@ from pydantic_settings import BaseSettings
 from functools import lru_cache
 
 
+_PROD_DEFAULT_ORIGINS = ("https://garl.ai", "https://www.garl.ai")
+_DEV_DEFAULT_ORIGINS = ("http://localhost:3000", "http://localhost:3001")
+
+
 class Settings(BaseSettings):
     app_name: str = "GARL Protocol"
-    app_version: str = "1.0.2"
+    app_version: str = "1.1.0"
     debug: bool = False
 
     supabase_url: str = ""
@@ -19,17 +23,16 @@ class Settings(BaseSettings):
 
     public_frontend_url: str = "https://garl.ai"
 
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:3001"]
+    cors_origins: list[str] = list(_DEV_DEFAULT_ORIGINS)
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
     def get_cors_origins(self) -> list[str]:
         env_origins = os.environ.get("ALLOWED_ORIGINS", "")
-        if env_origins:
-            extra = [o.strip() for o in env_origins.split(",") if o.strip()]
-            merged = list(set(self.cors_origins + extra))
-            return merged
-        return self.cors_origins
+        env_list = [o.strip() for o in env_origins.split(",") if o.strip()]
+        if self.debug:
+            return list(dict.fromkeys(env_list + list(_DEV_DEFAULT_ORIGINS)))
+        return env_list or list(_PROD_DEFAULT_ORIGINS)
 
 
 @lru_cache
