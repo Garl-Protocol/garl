@@ -269,6 +269,41 @@ export default function ForCodePage() {
         </div>
       </section>
 
+      {/* PR Bot install */}
+      <section className="relative mx-auto max-w-6xl px-4 py-10">
+        <div className="rounded-2xl border border-garl-accent/30 bg-garl-accent/[0.04] p-6 md:flex md:items-center md:gap-6">
+          <div className="flex-1">
+            <div className="mb-2 inline-block rounded border border-garl-accent/40 bg-garl-accent/15 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-garl-accent">
+              New · GARL PR Bot
+            </div>
+            <h3 className="mb-2 text-xl font-semibold text-garl-text">
+              Don&apos;t want to touch YAML? Install the GitHub App.
+            </h3>
+            <p className="text-[14px] leading-relaxed text-garl-muted">
+              One-click GitHub App posts the same sticky receipt comment on every PR
+              — including fork PRs, which the Action workflow cannot authenticate.
+              HMAC-gated, per-repo rate-limited, non-blocking. Perfect for org-wide
+              rollouts without per-repo secret wrangling.
+            </p>
+          </div>
+          <div className="mt-4 flex flex-col gap-2 md:mt-0">
+            <a
+              href="https://github.com/apps/garl-pr-bot/installations/new"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-garl-accent px-4 py-2.5 font-mono text-sm font-semibold text-garl-bg hover:glow-green-strong"
+            >
+              <Github className="h-4 w-4" />
+              Add GARL PR Bot
+            </a>
+            <a
+              href="https://github.com/Garl-Protocol/garl/tree/main/integrations/pr-bot"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-garl-border px-4 py-2.5 font-mono text-xs text-garl-muted hover:border-garl-accent/40"
+            >
+              App manifest + self-host
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* What you get */}
       <section className="relative mx-auto max-w-6xl px-4 py-16">
         <div className="mb-6 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-garl-accent">

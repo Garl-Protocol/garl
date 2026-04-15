@@ -141,6 +141,10 @@ app.include_router(router)
 app.include_router(a2a_router)
 app.include_router(mcp_router)
 
+from app.api.pr_bot_routes import pr_bot_router  # noqa: E402  (import order kept
+app.include_router(pr_bot_router)                # intentionally — the router
+                                                 # needs the main app ready.)
+
 
 @app.get("/")
 async def root():
