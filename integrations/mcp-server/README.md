@@ -1,6 +1,6 @@
 # @garl-protocol/mcp-server
 
-GARL Protocol MCP Server — 20 trust reputation tools for AI agents.
+GARL Protocol MCP Server — 12 named trust/provenance tools (plus batch variants) for AI agents.
 
 Works with **Claude Desktop**, **Claude Code**, **Cursor**, **Windsurf**, and any MCP-compatible client.
 

@@ -3,7 +3,7 @@
   <img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge&labelColor=0a0a0a" alt="License" />
   <img src="https://img.shields.io/badge/GitHub_Action-Live-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="GitHub Action" />
   <img src="https://img.shields.io/badge/A2A_v1.0-Compliant-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="A2A v1.0" />
-  <img src="https://img.shields.io/badge/MCP-20_Tools-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="MCP" />
+  <img src="https://img.shields.io/badge/MCP-12%2B_Tools-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="MCP" />
   <br/>
   <a href="https://github.com/Garl-Protocol/garl/actions/workflows/ci.yml"><img src="https://github.com/Garl-Protocol/garl/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
@@ -12,8 +12,8 @@
 <p align="center"><strong>Cryptographic verification for AI systems. Starting with code.</strong></p>
 
 <p align="center">
-<em>46% of new code is AI-generated. Who wrote it? Which model?<br/>
-GARL signs every AI commit with ECDSA-secp256k1 and makes provenance verifiable.</em>
+<em>Nearly half of all new code on GitHub is AI-touched (Octoverse 2025). Who wrote it? Which model?<br/>
+GARL signs every AI commit with ECDSA-secp256k1 (RFC 6979 deterministic) and makes provenance verifiable.</em>
 </p>
 
 <p align="center">
@@ -90,7 +90,7 @@ Add to your Claude Desktop config (`claude_desktop_config.json`) or Cursor MCP s
 }
 ```
 
-That's it — 20 trust tools are now available in your AI assistant.
+That's it — 12 named tools (plus batch variants) are now available in your AI assistant.
 
 ### With curl (zero install)
 
@@ -261,7 +261,7 @@ GARL uses the same cryptographic curve as Ethereum (ECDSA-secp256k1), making tru
 | Topic | Link |
 |-------|------|
 | Full API Reference (40+ endpoints) | [docs/api-reference.md](./docs/api-reference.md) |
-| MCP Server (20 tools) | [garl.ai/docs#mcp-server](https://garl.ai/docs#mcp-server) |
+| MCP Server (12 named tools + batch variants) | [garl.ai/docs#mcp-server](https://garl.ai/docs#mcp-server) |
 | A2A Protocol Integration | [garl.ai/docs#a2a](https://garl.ai/docs#a2a) |
 | ERC-8004 Compatibility | [garl.ai/docs#erc-8004](https://garl.ai/docs#erc-8004) |
 | Python & JS SDKs | [garl.ai/docs#sdks](https://garl.ai/docs#sdks) |
