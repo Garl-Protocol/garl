@@ -204,6 +204,18 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
     if req.models:
         trace_metadata["models"] = [m.model_dump(exclude_none=True) for m in req.models]
 
+    # v14 migration drops the tool_calls / proof_of_result / runtime_env
+    # columns — they were 0% populated after a 30-day production window.
+    # Keep the request-schema fields accepted (backward-compat), but park
+    # any supplied values under metadata.* for future use. The DB insert
+    # only writes the surviving columns.
+    if req.runtime_env:
+        trace_metadata["runtime_env"] = req.runtime_env
+    if tool_calls_raw:
+        trace_metadata["tool_calls"] = tool_calls_raw
+    if req.proof_of_result:
+        trace_metadata["proof_of_result"] = req.proof_of_result
+
     db.table("traces").insert({
         "id": trace_id,
         "agent_id": req.agent_id,
@@ -216,12 +228,9 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
         "trust_delta": trust_delta,
         "certificate": certificate,
         "metadata": trace_metadata,
-        "runtime_env": req.runtime_env,
-        "tool_calls": tool_calls_raw,
         "cost_usd": cost,
         "token_count": tokens,
         "trace_hash": trace_hash,
-        "proof_of_result": req.proof_of_result,
         "created_at": now,
     }).execute()
 
