@@ -44,6 +44,31 @@ app.add_middleware(
 _A2A_SUPPORTED_VERSIONS = {"1.0"}
 _A2A_PATHS = {"/a2a"}
 
+# Endpoints that belong to the pre-pivot agent-reputation surface.
+# We keep them live but add Deprecation / Sunset headers so integrators
+# have a clear signal and migration window. Sunset is 12 months out
+# from the Phase 7 rollout.
+_DEPRECATED_PATH_PREFIXES = (
+    "/api/v1/trust/",
+    "/api/v1/a2a/",
+    "/api/v1/erc8004/",
+    "/api/v1/erc8004",
+    "/a2a",
+)
+_DEPRECATION_SUNSET = "Thu, 15 Apr 2027 00:00:00 GMT"
+_DEPRECATION_LINK = '<https://garl.ai/for-code>; rel="successor-version"'
+
+
+@app.middleware("http")
+async def deprecated_endpoints_middleware(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if any(path.startswith(p) for p in _DEPRECATED_PATH_PREFIXES):
+        response.headers["Deprecation"] = "true"
+        response.headers["Sunset"] = _DEPRECATION_SUNSET
+        response.headers["Link"] = _DEPRECATION_LINK
+    return response
+
 
 @app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
