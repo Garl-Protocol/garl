@@ -35,6 +35,15 @@ def _make_signed_cert(payload_extra=None):
     return signing.sign_trace(data), signing.get_public_key_hex(), signing.get_active_key_id()
 
 
+class TestKeyIdDerivation:
+    def test_derives_key_id_when_cert_missing_it(self, cli):
+        kid = cli._derive_key_id_from_pk("b7c8a722a026fd417eea90cc2fe83a99c2db5376a87f4c1611fc641a643f7cc3a9c68eb1e5743a10677cbfd548dcedef5064bc845aadf7df1046eef4ac9a3e8f")
+        assert kid == "8c6e8f25ef3bf704"
+
+    def test_unknown_on_bad_hex(self, cli):
+        assert cli._derive_key_id_from_pk("NOT_HEX") == "(unknown)"
+
+
 class TestArgParsing:
     def test_url_extraction(self, cli):
         assert cli._extract_hash_or_url("https://garl.ai/r/abc") == ("url", "https://garl.ai/r/abc")
