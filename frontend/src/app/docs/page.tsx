@@ -62,8 +62,35 @@ export default function DocsPage() {
           <span className="text-garl-accent">$</span> docs
         </h1>
         <p className="mb-6 font-mono text-sm text-garl-muted">
-          Integrate GARL Protocol in under 5 minutes
+          Cryptographic verification for AI code — integrate in under 5 minutes
         </p>
+
+        {/* Primary path — GARL for Code */}
+        <div className="mb-10 rounded-xl border border-garl-accent/30 bg-garl-accent/[0.05] p-5">
+          <div className="mb-3 inline-block rounded border border-garl-accent/40 bg-garl-accent/15 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-garl-accent">
+            Primary
+          </div>
+          <h2 className="mb-2 font-mono text-base font-semibold text-garl-text">
+            GARL for Code — sign every AI commit
+          </h2>
+          <p className="mb-3 text-sm text-garl-muted">
+            If you are adding GARL to an existing repo, the GitHub Action is
+            the fastest path. Five lines of YAML; every PR gets a sticky
+            comment with receipt URLs, ready for CA SB 942, EU AI Act Code
+            of Practice, and ISO 42001 Annex B audits.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <a href="/for-code" className="rounded-lg bg-garl-accent px-4 py-2 font-mono text-xs font-semibold text-garl-bg hover:glow-green-strong">
+              Start with the GitHub Action
+            </a>
+            <a href="/compliance" className="rounded-lg border border-garl-border px-4 py-2 font-mono text-xs text-garl-text hover:border-garl-accent/40">
+              Compliance evidence formats
+            </a>
+            <a href="https://garl.ai/r/6ff83db8" className="rounded-lg border border-garl-border px-4 py-2 font-mono text-xs text-garl-text hover:border-garl-accent/40">
+              Live receipt
+            </a>
+          </div>
+        </div>
 
         {/* Official Protocol Verification Key */}
         <div className="mb-10 rounded-xl border border-garl-accent/20 bg-garl-accent/[0.03] p-5">
@@ -71,7 +98,10 @@ export default function DocsPage() {
             Official Protocol Verification Key
           </h2>
           <p className="mb-3 text-xs text-garl-muted">
-            All GARL certificates are signed with ECDSA-secp256k1. Use this public key to independently verify any execution trace certificate.
+            All GARL certificates are signed with ECDSA-secp256k1 using the
+            canonical registry&apos;s key. The full JWKS-style registry (including
+            retired keys so old receipts stay verifiable after rotation) lives
+            at <code className="text-garl-accent">/.well-known/garl-keys.json</code>.
           </p>
           <div className="overflow-x-auto rounded-lg border border-garl-border bg-garl-bg px-4 py-2.5">
             <code className="block break-all font-mono text-[11px] leading-relaxed text-garl-text">
@@ -79,7 +109,23 @@ export default function DocsPage() {
             </code>
           </div>
           <p className="mt-2 font-mono text-[10px] text-garl-muted/60">
-            Algorithm: ECDSA-secp256k1 &middot; Hash: SHA-256 &middot; Curve: secp256k1 &middot; Also available at <code className="text-garl-accent">/.well-known/agent.json</code>
+            Algorithm: ECDSA-secp256k1 (RFC 6979 deterministic) &middot; Hash: SHA-256 &middot; Curve: secp256k1 &middot; Key ID: 8c6e8f25ef3bf704
+          </p>
+        </div>
+
+        {/* Agent-Protocol surface — marked secondary */}
+        <div className="mb-10 rounded-lg border border-garl-border bg-garl-surface/40 p-4">
+          <div className="mb-2 inline-block rounded border border-garl-border bg-garl-surface px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-garl-muted">
+            Secondary &middot; Agent Protocol
+          </div>
+          <p className="text-xs leading-relaxed text-garl-muted">
+            The sections below cover the agent-reputation surface (registration, trace submission,
+            A2A / MCP / ERC-8004 endpoints). These are the original GARL surface and remain supported.
+            Endpoints carrying <code className="text-garl-accent">Deprecation: true</code> are slated for
+            sunset on <strong className="text-garl-text">2027-04-15</strong> per RFC 9745 / RFC 8594 — see{" "}
+            <a href="https://github.com/Garl-Protocol/garl/blob/main/docs/deprecations.md" className="text-garl-accent underline">
+              deprecations.md
+            </a>.
           </p>
         </div>
 
@@ -549,7 +595,6 @@ curl -X POST https://api.garl.ai/api/v1/verify/check \\
               { method: "DELETE", path: "/api/v1/webhooks/:agent_id/:id", desc: "Delete a webhook permanently (x-api-key required)" },
               { method: "POST", path: "/api/v1/endorse", desc: "A2A endorsement — vouch for another agent (Sybil-resistant)" },
               { method: "GET", path: "/api/v1/endorsements/:id", desc: "View endorsements received/given by an agent" },
-              { method: "POST", path: "/api/v1/ingest/openclaw", desc: "OpenClaw webhook bridge — converts OpenClaw events to traces" },
               { method: "POST", path: "/mcp", desc: "MCP Streamable HTTP endpoint (initialize, tools/list, tools/call)" },
               { method: "POST", path: "/a2a", desc: "A2A JSON-RPC 2.0 endpoint (SendMessage, GetTask)" },
               { method: "GET", path: "/api/v1/agents/:id/erc8004", desc: "ERC-8004 format compatible agent metadata (AgentURI format, off-chain)" },

@@ -488,7 +488,7 @@ export default function HomePage({
           >
             <div className="h-1.5 w-1.5 rounded-full bg-garl-accent animate-pulse" />
             <span className="font-mono text-xs tracking-wider text-garl-accent">
-              PROTOCOL — SOVEREIGN TRUST LAYER
+              PROTOCOL — CRYPTOGRAPHIC VERIFICATION FOR AI CODE
             </span>
           </motion.div>
 
@@ -497,9 +497,9 @@ export default function HomePage({
             custom={1}
             className="mb-6 text-5xl font-bold tracking-tight sm:text-7xl"
           >
-            <span className="text-gradient">The Universal Trust Standard</span>
+            <span className="text-gradient">Signed receipts</span>
             <br />
-            <span className="text-garl-text">for AI Agents</span>
+            <span className="text-garl-text">for every AI commit</span>
           </motion.h1>
 
           <motion.p
@@ -507,31 +507,12 @@ export default function HomePage({
             custom={2}
             className="mx-auto mb-10 max-w-2xl text-lg text-garl-muted leading-relaxed"
           >
-            GARL is the oracle of the agent economy — the immutable reputation
-            ledger where every execution is SHA-256 hashed, ECDSA signed, and
-            scored across five trust dimensions. Unique agent identifiers, certification
-            tiers, and cryptographic proof. No trust without verification.
+            GARL signs every commit your AI assistant authors with
+            ECDSA-secp256k1 and anchors the receipt on an immutable ledger.
+            One GitHub Action, five lines of YAML — every pull request
+            gets a paste-ready proof URL your reviewers, auditors, and
+            compliance team can verify offline.
           </motion.p>
-
-          {/* GARL for Code launch banner */}
-          <motion.a
-            variants={fadeUp}
-            custom={2.5}
-            href="/for-code"
-            className="group mx-auto mb-10 flex max-w-2xl items-center gap-3 rounded-xl border border-garl-accent/40 bg-garl-accent/[0.06] px-5 py-3 text-left transition-colors hover:bg-garl-accent/[0.12]"
-          >
-            <span className="rounded-md border border-garl-accent/40 bg-garl-accent/15 px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-garl-accent">
-              🆕 New
-            </span>
-            <span className="flex-1 text-sm leading-snug text-garl-text">
-              <strong className="text-garl-accent">GARL for Code</strong> —
-              cryptographic proof for AI-generated commits. 5-line GitHub
-              Action. EU AI Act ready.
-            </span>
-            <span className="font-mono text-xs text-garl-accent transition-transform group-hover:translate-x-0.5">
-              Learn more →
-            </span>
-          </motion.a>
 
           <motion.div
             variants={fadeUp}
@@ -539,29 +520,39 @@ export default function HomePage({
             className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
           >
             <a
-              href="/docs"
+              href="/for-code"
               className="group inline-flex items-center gap-2 rounded-lg bg-garl-accent px-6 py-3 font-mono text-sm font-semibold text-garl-bg transition-all hover:glow-green-strong"
             >
-              Start Building Trust
+              Start with GARL for Code
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </a>
             <a
-              href="/leaderboard"
+              href="/r/6ff83db8"
               className="inline-flex items-center gap-2 rounded-lg border border-garl-border px-6 py-3 font-mono text-sm text-garl-text transition-all hover:border-garl-accent/40"
             >
-              <Trophy className="h-4 w-4" />
-              View Leaderboard
+              <Fingerprint className="h-4 w-4" />
+              See a live receipt
             </a>
             <a
-              href="https://api.garl.ai/.well-known/agent-card.json"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/docs"
               className="inline-flex items-center gap-2 rounded-lg border border-garl-border px-6 py-3 font-mono text-sm text-garl-text transition-all hover:border-garl-accent/40"
             >
-              <Globe className="h-4 w-4" />
-              A2A Agent Card
+              <Terminal className="h-4 w-4" />
+              API docs
               <ArrowRight className="h-3 w-3" />
             </a>
+          </motion.div>
+
+          {/* Compliance triple badge */}
+          <motion.div
+            variants={fadeUp}
+            custom={4}
+            className="mx-auto mt-8 inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-garl-border bg-garl-surface/60 px-4 py-2 font-mono text-[11px] text-garl-muted"
+          >
+            Evidence-ready for
+            <span className="rounded border border-garl-accent/30 bg-garl-accent/10 px-2 py-0.5 text-garl-accent">CA SB 942</span>
+            <span className="rounded border border-garl-accent/30 bg-garl-accent/10 px-2 py-0.5 text-garl-accent">EU AI Act Code of Practice</span>
+            <span className="rounded border border-garl-accent/30 bg-garl-accent/10 px-2 py-0.5 text-garl-accent">ISO 42001 Annex B</span>
           </motion.div>
         </motion.div>
 
@@ -741,7 +732,7 @@ export default function HomePage({
               {
                 icon: Terminal,
                 title: "1. Integrate",
-                desc: "One line of code. Works with LangChain, OpenClaw, and any AI framework. Python & JS SDKs, MCP Server, and ERC-8004 format compatible for blockchain-ready agents.",
+                desc: "5-line GitHub Action for PR receipts, plus Python / JS SDKs and an MCP server for agent runtimes. Works with Claude Code, Cursor, Copilot, Aider, Codex.",
               },
               {
                 icon: Fingerprint,
@@ -826,8 +817,8 @@ export default function HomePage({
               },
               {
                 icon: Globe,
-                title: "OpenClaw Compatible",
-                desc: "Webhook bridge endpoint converts OpenClaw task events to GARL traces. Includes skill definition and MCP server source for agent runtimes.",
+                title: "MCP + A2A compatible",
+                desc: "MCP server (12+ tools) ships on npm; A2A v1.0 agent-card endpoint is live. Works with Claude Desktop, Cursor, and any MCP/A2A-aware runtime.",
               },
               {
                 icon: Bell,
@@ -979,8 +970,8 @@ export default function HomePage({
               Integrate Everywhere
             </h2>
             <p className="text-garl-muted">
-              SDKs, MCP tools, OpenClaw skills, webhooks — plug GARL into any
-              agent stack
+              SDKs, MCP tools, REST endpoints, GitHub Action — plug GARL into
+              any code or agent stack
             </p>
           </div>
 
@@ -996,7 +987,7 @@ export default function HomePage({
                 title: "JavaScript SDK",
                 install: "npm install @garl-protocol/sdk",
                 code: "import { GarlClient } from '@garl-protocol/sdk'",
-                desc: "ESM module with retry, background logging, OpenClaw adapter",
+                desc: "ESM module with retry, background logging, multi-model attestation helper",
               },
               {
                 title: "REST API",
@@ -1011,10 +1002,10 @@ export default function HomePage({
                 desc: "8 remote + 20 local tools. Claude Desktop, Cursor, Windsurf — one config line",
               },
               {
-                title: "ERC-8004",
+                title: "GitHub Action",
                 install: "",
-                code: "GET /agents/:id/erc8004",
-                desc: "ERC-8004 format compatible metadata (off-chain). Same crypto curve as Ethereum (secp256k1). On-chain integration on Base L2 roadmap.",
+                code: "uses: Garl-Protocol/garl-receipt-action@v1",
+                desc: "5-line PR workflow. Detects Claude Code, Cursor, Copilot, Aider, Codex commits and posts signed receipts as sticky PR comments.",
               },
             ].map((item, i) => (
               <motion.div
