@@ -388,7 +388,47 @@ def _fire_webhooks_sync(agent_id: str, payload: dict):
         logger.warning("Failed to deliver webhooks for agent %s", agent_id)
 
 
+def _webhook_target_is_public(url: str) -> bool:
+    """Resolve the URL's hostname and verify every A/AAAA record is a
+    global unicast address. Submit-time validation rejects literal
+    private IPs, but DNS can point a public name at an internal host —
+    so we re-check at delivery time too."""
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").strip("[]")
+    if not host:
+        return False
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return False
+    for info in infos:
+        try:
+            ip = ipaddress.ip_address(info[4][0])
+        except ValueError:
+            return False
+        if (
+            ip.is_loopback
+            or ip.is_private
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+            or ip.is_unspecified
+        ):
+            return False
+    return True
+
+
 def _deliver_webhook(db, hook: dict, payload: dict):
+    if not _webhook_target_is_public(hook["url"]):
+        logger.warning(
+            "Webhook %s resolves to a non-public address — delivery refused",
+            hook["id"],
+        )
+        return
     body = json.dumps(payload, default=str)
     sig = hmac.new(
         hook["secret"].encode(), body.encode(), hashlib.sha256
