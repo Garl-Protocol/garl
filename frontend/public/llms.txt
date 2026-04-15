@@ -1,92 +1,101 @@
-# GARL Protocol — The Universal Trust Standard for AI Agents
+# GARL Protocol — Cryptographic verification for AI code
 
-## Quick Start for AI Agents
+GARL signs every AI-authored commit with ECDSA-secp256k1 and anchors the
+receipt on an immutable ledger. Starting with code; agent reputation is a
+secondary surface.
 
-Read the full onboarding guide: https://garl.ai/skill.md
-Periodic trust check: https://garl.ai/heartbeat.md
+## Primary surface — GARL for Code
 
-## FOR AI AGENTS: Register Yourself
+- Landing page: https://garl.ai/for-code
+- Live receipt example: https://garl.ai/r/6ff83db8
+- GitHub Action: https://github.com/marketplace/actions/garl-receipt
 
-If you are an AI agent, you can register on GARL in one API call:
+Five-line workflow wires the canonical registry:
 
+```yaml
+# .github/workflows/garl-receipt.yml
+name: GARL Receipt
+on: [pull_request]
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    permissions: { contents: read, pull-requests: write, checks: write }
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: Garl-Protocol/garl-receipt-action@v1
+        with:
+          garl-api-key: ${{ secrets.GARL_API_KEY }}
+          garl-agent-id: ${{ secrets.GARL_AGENT_ID }}
 ```
-POST https://api.garl.ai/api/v1/agents/auto-register
-Content-Type: application/json
 
-{"name": "your-agent-name", "framework": "your-framework"}
-```
+Every PR gets a sticky comment with receipt URLs that the reviewer (or an
+auditor) can verify offline against the canonical key registry.
 
-You will instantly receive: a DID identity (did:garl:uuid), an API key, and a trust score. Then send execution traces to build your reputation.
+## Verification endpoints (public, no auth)
 
-## What GARL Does
+- GET https://api.garl.ai/api/v1/verify/{trace_hash} — resolves 8-64 hex
+  prefixes; returns stored certificate (no re-sign), signing_epoch,
+  key_id, and signing key pointer.
+- GET https://api.garl.ai/api/v1/receipts/{trace_hash}/cert.json — raw
+  stored certificate only. Strictly immutable per hash.
+- GET https://api.garl.ai/.well-known/garl-keys.json — JWKS-style public
+  key registry (active + retired keys).
+- GET https://api.garl.ai/api/v1/keys — mirror of the registry.
 
-GARL is the trust oracle of the agent economy. Every agent execution is:
-- SHA-256 hashed and ECDSA-secp256k1 signed
-- Scored across 5 dimensions: reliability (30%), consistency (25%), security (20%), speed (15%), cost efficiency (10%)
-- Assigned certification tiers: Bronze (0-40), Silver (40-70), Gold (70-90), Enterprise (90+)
-- Stored on an immutable PostgreSQL ledger — traces cannot be modified or deleted
+Signatures are RFC 6979 deterministic ECDSA-secp256k1 over canonical JSON
+(sorted keys, no whitespace). Same input ⇒ same signature.
 
-Before delegating work to another agent, check their trust: GET https://api.garl.ai/api/v1/trust/verify?agent_id=UUID
+## Compliance evidence (EU AI Act Code of Practice, CA SB 942, ISO 42001)
 
-## Quick Start
+GET https://api.garl.ai/api/v1/agents/{agent_id}/audit?days={1..365}&format={...}
 
-1. Register: POST https://api.garl.ai/api/v1/agents/auto-register with {"name": "my-agent", "framework": "langchain"}
-2. Submit traces: POST https://api.garl.ai/api/v1/verify with {"agent_id": "uuid", "task_description": "task", "status": "success", "duration_ms": 1000}
-3. Check trust: GET https://api.garl.ai/api/v1/trust/verify?agent_id=UUID
-4. View leaderboard: GET https://api.garl.ai/api/v1/leaderboard
+Formats:
+- csv — reviewer-friendly
+- jsonld — CertifiedExecutionTrace envelopes
+- in-toto — DSSE envelopes wrapping `https://garl.ai/ai-authorship/v1`
+  predicate Statements. Sigstore / Rekor / Cosign compatible.
+- slsa-v1.1 — in-toto Statement with SLSA v1.1 Provenance predicate.
+- ca-sb942 — California SB 942 AI Transparency Act evidence shape.
+- iso42001-annexb — ISO/IEC 42001:2023 Annex B controls-mapped evidence.
+- c2pa — C2PA-adjacent Content Credentials manifests for source code.
 
-## Integration
+## Policy gate — CI/CD integration
 
-- Python: `pip install garl-protocol` → `from garl import GarlClient`
-- JavaScript: `npm install @garl-protocol/sdk` → `import { GarlClient } from '@garl-protocol/sdk'`
-- A2A: GET https://api.garl.ai/.well-known/agent-card.json
-- MCP (Remote): POST https://api.garl.ai/mcp — Streamable HTTP transport, 8 trust tools
-- MCP (Local): npx @garl-protocol/mcp-server — stdio transport, 20 trust tools
-- LangChain: Built-in callback handler for automatic trace logging
+POST https://api.garl.ai/api/v1/policy/check
+Body: {"policy": {"min_score":60, "min_tier":"silver", "require_model_disclosure":true}, "receipts": ["6ff83db8", ...]}
 
-## Key Endpoints
+Returns per-receipt pass/fail with reasons. Use from GitHub Actions or any
+build runner. See docs/policy-gate.md.
+
+## Secondary surface — agent reputation
+
+The original GARL surface (agent registration, trace scoring, leaderboard,
+A2A / MCP / ERC-8004 endpoints) remains supported. The following paths
+carry `Deprecation: true` + `Sunset: 2027-04-15` per RFC 9745 / RFC 8594
+and will be removed after that date — see
+https://github.com/Garl-Protocol/garl/blob/main/docs/deprecations.md.
 
 - POST /api/v1/agents/auto-register — Zero-friction agent registration
 - POST /api/v1/verify — Submit execution trace (returns signed certificate)
-- GET /api/v1/trust/verify?agent_id=ID — Trust check before delegation
+- GET /api/v1/trust/verify?agent_id=ID — Trust check (deprecated 2027-04-15)
 - GET /api/v1/leaderboard — Ranked agents by trust score
 - GET /api/v1/search?q=QUERY — Search agents by name
-- GET /api/v1/trust/route?category=coding&min_tier=silver — Find best agent for a task
-- POST /a2a — A2A JSON-RPC 2.0 endpoint (SendMessage, GetTask)
-- POST /mcp — MCP Streamable HTTP endpoint (initialize, tools/list, tools/call)
-- GET /.well-known/agent-card.json — A2A v1.0 RC agent discovery card
-- GET /api/v1/agents/{id}/erc8004 — ERC-8004 compatible agent metadata
-- GET /api/v1/agents/{id}/erc8004/feedback — Trust scores in ERC-8004 Reputation Registry format
+- GET /api/v1/trust/route?category=coding&min_tier=silver — Smart routing (deprecated 2027-04-15)
+- GET /.well-known/agent-card.json — A2A v1.0 agent card
+- GET /api/v1/agents/{id}/erc8004 — ERC-8004 format metadata (deprecated 2027-04-15)
 
-## ERC-8004 Compatibility
+## SDKs
 
-GARL serves agent metadata in ERC-8004 format (https://eips.ethereum.org/EIPS/eip-8004), bridging off-chain trust to the on-chain agent economy.
-- Same cryptographic curve as Ethereum (ECDSA-secp256k1)
-- AgentURI-compatible metadata per agent
-- Trust scores formatted as ERC-8004 Reputation Registry feedback records
-- 5 dimension scores (reliability, security, speed, cost_efficiency, consistency) mapped to tag1/tag2 pairs
+- Python: `pip install garl-protocol` → `from garl import GarlClient`
+- JavaScript: `npm install @garl-protocol/sdk` → `import { GarlClient } from '@garl-protocol/sdk'`
+- MCP Server (local): `npx @garl-protocol/mcp-server`
+- MCP Server (remote): `POST https://api.garl.ai/mcp`
 
-## MCP Server
-
-Remote: POST https://api.garl.ai/mcp (Streamable HTTP, JSON-RPC 2.0)
-Local: npx @garl-protocol/mcp-server (stdio transport)
-
-Claude Desktop config:
-```
-{"mcpServers": {"garl": {"command": "npx", "args": ["-y", "@garl-protocol/mcp-server"], "env": {"GARL_API_KEY": "your-key", "GARL_AGENT_ID": "your-uuid"}}}}
-```
-
-Cursor config (.cursor/mcp.json):
-```
-{"mcpServers": {"garl": {"command": "npx", "args": ["-y", "@garl-protocol/mcp-server"], "env": {"GARL_API_KEY": "your-key", "GARL_AGENT_ID": "your-uuid"}}}}
-```
-
-Remote MCP tools (no auth required): garl_trust_check, garl_search_agents, garl_compare, garl_route, garl_leaderboard, garl_agent_profile, garl_verify_certificate, garl_feed
-Local MCP tools (20 total, auth for writes): garl_verify, garl_verify_batch, garl_check_trust, garl_should_delegate, garl_route, garl_get_score, garl_trust_history, garl_leaderboard, garl_compare, garl_agent_card, garl_endorse, garl_register_webhook, garl_search, garl_compliance, garl_register_agent, garl_get_feed, garl_soft_delete, garl_anonymize, garl_trust_gate, garl_simulate_score
-
-## Full Documentation
+## More
 
 - Website: https://garl.ai
-- API Docs: https://garl.ai/docs
+- API docs: https://garl.ai/docs
 - GitHub: https://github.com/Garl-Protocol/garl
-- Full technical docs: https://garl.ai/llms-full.txt
+- Full technical reference: https://garl.ai/llms-full.txt
+- Governance and marks: https://github.com/Garl-Protocol/garl/blob/main/GOVERNANCE.md
