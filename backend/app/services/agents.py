@@ -99,6 +99,13 @@ def register_agent(req: AgentRegisterRequest, developer_id: str | None = None) -
     sovereign_id = _generate_sovereign_id(agent_id)
     now = datetime.now(timezone.utc).isoformat()
 
+    # If the caller supplied a developer_handle (GitHub handle, email, etc.)
+    # we persist only its SHA-256 hash. Plaintext is discarded — the stored
+    # value is an opaque sybil-detection handle, not a PII store.
+    handle = getattr(req, "developer_handle", None)
+    if handle and not developer_id:
+        developer_id = "devh_" + hashlib.sha256(handle.strip().lower().encode()).hexdigest()[:32]
+
     agent_data = {
         "id": agent_id,
         "name": req.name,
@@ -122,8 +129,10 @@ def register_agent(req: AgentRegisterRequest, developer_id: str | None = None) -
         "endorsement_count": 0,
         "sovereign_id": sovereign_id,
         "certification_tier": "bronze",
-        "permissions_declared": req.permissions_declared or [],
-        "security_events": [],
+        # security_events and permissions_declared columns were dropped in
+        # migration v15 — they stayed 0% populated across 131 production
+        # agents. Any supplied value on the request is ignored (kept in
+        # the schema for backward-compat only).
         "is_deleted": False,
         "is_sandbox": req.is_sandbox,
         "homepage_url": req.homepage_url,
