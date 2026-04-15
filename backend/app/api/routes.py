@@ -1121,6 +1121,53 @@ async def policy_check(request: Request, body: dict):
     }
 
 
+@router.get(
+    "/receipts/{trace_hash}/cert.json",
+    summary="Raw stored certificate (no re-sign)",
+    tags=["Trust & Verification"],
+)
+async def receipt_raw_certificate(trace_hash: str, request: Request, response: Response):
+    """Return the certificate exactly as it was stored at trace-submission
+    time — no re-signing. Provides a stable, canonical URL that consumers
+    can hash or archive without worrying about signature drift.
+
+    Accepts the same hash / short-hash grammar as /verify (8-64 hex).
+    Returns 404 if no original signature exists (pre-v0.3 legacy). Use
+    /verify for the richer envelope with signing_epoch disclosure.
+    """
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    h = (trace_hash or "").strip().lower()
+    if not h or len(h) < 8 or len(h) > 64 or not _HEX_RE.match(h):
+        raise HTTPException(status_code=400, detail="Invalid trace hash")
+
+    db = _get_supabase()
+    if len(h) == 64:
+        res = db.table("traces").select("trace_hash,certificate").eq("trace_hash", h).limit(1).execute()
+    else:
+        res = (
+            db.table("traces")
+            .select("trace_hash,certificate")
+            .like("trace_hash", f"{h}%")
+            .limit(2)
+            .execute()
+        )
+    rows = res.data or []
+    if not rows:
+        raise HTTPException(status_code=404, detail="Receipt not found")
+    if len(rows) > 1:
+        raise HTTPException(status_code=409, detail="Ambiguous hash prefix")
+
+    cert = rows[0].get("certificate") or {}
+    if not (isinstance(cert, dict) and cert.get("proof")):
+        raise HTTPException(
+            status_code=404,
+            detail="No original certificate stored for this trace (pre-v0.3 legacy). Use /verify for the signing_epoch disclosure.",
+        )
+
+    response.headers["Cache-Control"] = "public, max-age=300, s-maxage=86400, immutable"
+    return cert
+
+
 @router.get("/keys", summary="Public signing key registry", tags=["Trust & Verification"])
 async def list_public_keys(response: Response):
     """Mirror of /.well-known/garl-keys.json for API-prefix consumers.
@@ -1176,31 +1223,42 @@ async def public_verify_trace(trace_hash: str, request: Request, response: Respo
     trace = matches[0]
     full_hash = trace.get("trace_hash", "")
 
-    trace_data = {
-        "trace_id": trace["id"],
-        "agent_id": trace["agent_id"],
-        "task_description": trace.get("task_description", ""),
-        "status": trace.get("status", ""),
-        "duration_ms": trace.get("duration_ms", 0),
-        "category": trace.get("category", "other"),
-        "trust_score_after": float(trace.get("trust_score_after", 50)),
-    }
-
-    certificate = sign_trace(trace_data)
-    is_valid = verify_signature(certificate)
-
-    # Disclose whether the stored row carries the original signature or
-    # predates v0.3 (when signing began). Consumers can use this to gate
-    # their own chain-of-custody guarantees — the response certificate
-    # is always a freshly-minted signature for verification convenience,
-    # but only `signing_epoch == "original"` implies unbroken custody.
     stored_cert = trace.get("certificate") or {}
-    if not stored_cert or stored_cert == {}:
-        signing_epoch = "pre-v0.3-unsigned-legacy"
-        original_signed_at = None
-    else:
+    has_original = (
+        isinstance(stored_cert, dict)
+        and stored_cert.get("proof")
+        and isinstance(stored_cert["proof"], dict)
+        and stored_cert["proof"].get("signature")
+    )
+
+    if has_original:
+        # Return the original signature — chain of custody intact. No
+        # re-sign (the previous behaviour produced a fresh non-deterministic
+        # signature on every call and overwrote trust_score_after with 50.0
+        # because the column doesn't exist — both fixed in one go).
+        certificate = stored_cert
         signing_epoch = "original"
         original_signed_at = (stored_cert.get("proof") or {}).get("created")
+    else:
+        # pre-v0.3 legacy: no original signature ever existed. Surface the
+        # raw payload without a fake signature so downstream consumers can
+        # reason about chain-of-custody honestly via signing_epoch.
+        certificate = {
+            "@context": "https://garl.io/schema/v1",
+            "@type": "CertifiedExecutionTrace",
+            "payload": {
+                "trace_id": trace["id"],
+                "agent_id": trace["agent_id"],
+                "task_description": trace.get("task_description", ""),
+                "status": trace.get("status", ""),
+                "duration_ms": trace.get("duration_ms", 0),
+                "category": trace.get("category", "other"),
+            },
+        }
+        signing_epoch = "pre-v0.3-unsigned-legacy"
+        original_signed_at = None
+
+    is_valid = bool(has_original and verify_signature(certificate))
 
     # Enrich with agent summary for receipt cards / OG rendering
     agent_row = db.table("agents").select(
