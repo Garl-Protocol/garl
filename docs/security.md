@@ -5,8 +5,17 @@ GARL Protocol is designed with defense-in-depth principles. Every layer — from
 ## Cryptographic Integrity
 
 - **ECDSA Certificates**: Every execution trace is signed with secp256k1, producing a tamper-proof certificate with SHA-256 content hash
-- **Immutable Traces**: PostgreSQL triggers prevent `UPDATE` and `DELETE` on `traces` and `reputation_history` tables
+- **Immutable Traces**: PostgreSQL triggers prevent `UPDATE` and `DELETE` on `traces`, `reputation_history`, and `endorsements` tables
 - **API Key Hashing**: Keys are stored as SHA-256 hashes — plaintext keys are never persisted
+- **Public Key Registry**: Every certificate carries a deterministic `proof.key_id` (first 16 hex of SHA-256 over the public key). Clients verifying a receipt should resolve that `key_id` against the **canonical registry** at `https://api.garl.ai/.well-known/garl-keys.json` (mirrored at `/api/v1/keys`). Retired keys remain listed — receipts issued before a rotation stay verifiable.
+- **Signing Epoch Disclosure**: `GET /verify/{hash}` responses include `signing_epoch` ∈ `{"original", "pre-v0.3-unsigned-legacy"}`. Only `"original"` implies unbroken cryptographic chain-of-custody from the moment of trace submission. Pre-v0.3 traces pre-date the signing pipeline and are marked as such — the certificate returned for those traces is a post-hoc re-signature for verification convenience, not an original chain-of-custody proof.
+
+### Key Rotation Procedure
+
+1. Generate a new secp256k1 private key and set `SIGNING_PRIVATE_KEY_HEX` to the new value.
+2. Append the previous public key (and the ISO timestamp of rotation) to the `GARL_RETIRED_KEYS_JSON` environment variable — JSON array of `[{"public_key_hex": "...", "retired_at": "YYYY-MM-DDTHH:MM:SSZ", "note": "..."}]`.
+3. Restart the backend. New receipts are signed by the new key; old receipts continue to verify against their retired `key_id`.
+4. The registry endpoint updates automatically on next request (cached 5 minutes at the CDN edge).
 
 ## API Security
 

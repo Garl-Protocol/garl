@@ -53,7 +53,14 @@ from app.services.agents import (
     generate_scorecard,
 )
 from app.services.traces import submit_trace
-from app.core.signing import verify_signature, get_public_key_hex, sign_payload, sign_trace
+from app.core.signing import (
+    verify_signature,
+    get_public_key_hex,
+    sign_payload,
+    sign_trace,
+    get_key_registry,
+    get_active_key_id,
+)
 from app.core.cache import cache_get, cache_set
 
 router = APIRouter(prefix="/api/v1", tags=["GARL Protocol"])
@@ -685,6 +692,16 @@ async def agent_erc8004_feedback(agent_id: str, request: Request):
 _HEX_RE = re.compile(r"^[0-9a-f]+$")
 
 
+@router.get("/keys", summary="Public signing key registry", tags=["Trust & Verification"])
+async def list_public_keys(response: Response):
+    """Mirror of /.well-known/garl-keys.json for API-prefix consumers.
+
+    Returns the active signer public key plus any retired keys (by
+    ``key_id``) so clients can verify older receipts after rotation."""
+    response.headers["Cache-Control"] = "public, max-age=300, s-maxage=3600"
+    return get_key_registry()
+
+
 @router.get("/verify/{trace_hash}", summary="Verify trace by hash or short hash (public)", tags=["Trust & Verification"])
 async def public_verify_trace(trace_hash: str, request: Request, response: Response):
     """Public endpoint: verify a trace's ECDSA signature by its hash.
@@ -743,6 +760,19 @@ async def public_verify_trace(trace_hash: str, request: Request, response: Respo
     certificate = sign_trace(trace_data)
     is_valid = verify_signature(certificate)
 
+    # Disclose whether the stored row carries the original signature or
+    # predates v0.3 (when signing began). Consumers can use this to gate
+    # their own chain-of-custody guarantees — the response certificate
+    # is always a freshly-minted signature for verification convenience,
+    # but only `signing_epoch == "original"` implies unbroken custody.
+    stored_cert = trace.get("certificate") or {}
+    if not stored_cert or stored_cert == {}:
+        signing_epoch = "pre-v0.3-unsigned-legacy"
+        original_signed_at = None
+    else:
+        signing_epoch = "original"
+        original_signed_at = (stored_cert.get("proof") or {}).get("created")
+
     # Enrich with agent summary for receipt cards / OG rendering
     agent_row = db.table("agents").select(
         "name,framework,certification_tier,trust_score"
@@ -777,6 +807,10 @@ async def public_verify_trace(trace_hash: str, request: Request, response: Respo
         "short_hash": short,
         "certificate": certificate,
         "public_key": get_public_key_hex(),
+        "key_id": get_active_key_id(),
+        "signing_epoch": signing_epoch,
+        "original_signed_at": original_signed_at,
+        "key_registry_url": "https://api.garl.ai/.well-known/garl-keys.json",
     }
 
 

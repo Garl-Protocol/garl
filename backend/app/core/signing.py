@@ -1,6 +1,7 @@
 import hashlib
 import json
 import logging
+import os
 import time
 from ecdsa import SigningKey, VerifyingKey, SECP256k1, BadSignatureError
 from ecdsa.errors import MalformedPointError
@@ -44,6 +45,73 @@ def get_public_key_hex() -> str:
     return _get_signing_key().get_verifying_key().to_string().hex()
 
 
+def derive_key_id(public_key_hex: str) -> str:
+    """Deterministic fingerprint — first 16 hex chars of SHA-256(pubkey)."""
+    return hashlib.sha256(bytes.fromhex(public_key_hex)).hexdigest()[:16]
+
+
+def get_active_key_id() -> str:
+    return derive_key_id(get_public_key_hex())
+
+
+def _load_retired_keys() -> list[dict]:
+    """Optional env var GARL_RETIRED_KEYS_JSON — JSON array of:
+    [{"public_key_hex": "...", "retired_at": "2026-...", "note": "..."}]
+    Each entry gets a deterministic key_id derived from public_key_hex."""
+    raw = os.environ.get("GARL_RETIRED_KEYS_JSON", "").strip()
+    if not raw:
+        return []
+    try:
+        entries = json.loads(raw)
+    except json.JSONDecodeError:
+        logger.warning("GARL_RETIRED_KEYS_JSON is not valid JSON — ignoring")
+        return []
+    if not isinstance(entries, list):
+        return []
+    out: list[dict] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        pk = entry.get("public_key_hex", "").strip()
+        if not pk:
+            continue
+        out.append(
+            {
+                "key_id": derive_key_id(pk),
+                "public_key_hex": pk,
+                "status": "retired",
+                "algorithm": "ECDSA-secp256k1",
+                "retired_at": entry.get("retired_at"),
+                "note": entry.get("note"),
+            }
+        )
+    return out
+
+
+def get_key_registry() -> dict:
+    """Public key registry document. Used by /.well-known/garl-keys.json
+    and /api/v1/keys. Clients verifying an older receipt should resolve
+    ``proof.key_id`` against this registry instead of trusting a
+    hard-coded key — this is the only way key rotation stays observable."""
+    active_pk = get_public_key_hex()
+    return {
+        "protocol": "garl",
+        "algorithm": "ECDSA-secp256k1",
+        "hash_algorithm": "SHA-256",
+        "canonical_registry": "https://api.garl.ai",
+        "keys": [
+            {
+                "key_id": derive_key_id(active_pk),
+                "public_key_hex": active_pk,
+                "status": "active",
+                "algorithm": "ECDSA-secp256k1",
+            },
+            *_load_retired_keys(),
+        ],
+        "generated_at": int(time.time()),
+    }
+
+
 def sign_payload(payload: dict) -> tuple[str, str]:
     """Sign an arbitrary JSON payload; return (signature_hex, content_hash_hex)."""
     sk = _get_signing_key()
@@ -59,6 +127,7 @@ def sign_trace(trace_data: dict) -> dict:
     canonical = json.dumps(trace_data, sort_keys=True, separators=(",", ":"))
     digest = hashlib.sha256(canonical.encode()).digest()
     signature = sk.sign_digest(digest).hex()
+    public_key_hex = get_public_key_hex()
 
     return {
         "@context": "https://garl.io/schema/v1",
@@ -67,7 +136,8 @@ def sign_trace(trace_data: dict) -> dict:
         "proof": {
             "type": "ECDSA-secp256k1",
             "created": int(time.time()),
-            "publicKey": get_public_key_hex(),
+            "key_id": derive_key_id(public_key_hex),
+            "publicKey": public_key_hex,
             "signature": signature,
         },
     }
