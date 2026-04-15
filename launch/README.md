@@ -15,13 +15,11 @@ Files in this folder:
 
 ## Current state (at draft time)
 
-- Tag: `v1.1.0` live on GitHub ✓
+- Tag: `v1.1.0` live on GitHub ✓ (audit follow-ups shipped on `main` as individual commits)
 - npm: `@garl-protocol/mcp-server@1.2.0`, `@garl-protocol/sdk@1.1.0` published ✓
-- PyPI: `garl-protocol 1.1.0` **wheel built, not yet uploaded** (awaiting
-  credentials)
-- GitHub Action: working, dogfooded against PR #2 ✓
-- GitHub Marketplace: **awaiting UI-only publish step** (edit
-  release → check "Publish this Action to the GitHub Marketplace")
+- PyPI: **`garl-protocol 1.2.0` published ✓** — ships `garl-verify` offline receipt CLI
+- GitHub Action: working, dogfooded against PR #2 ✓ (Marketplace live at `actions/garl-receipt`)
+- Main branch: protection enabled (Backend Tests + Frontend Build required, CODEOWNERS, 1 review)
 - Live receipt example: https://garl.ai/r/6ff83db8
 - Landing page: https://garl.ai/for-code
 

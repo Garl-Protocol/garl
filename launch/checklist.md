@@ -2,9 +2,8 @@
 
 ## 48 hours before
 
-- [ ] PyPI package `garl-protocol 1.1.0` uploaded (wheel is already built in
-      `sdks/python/dist/`; run `twine upload dist/*` once token is in
-      `~/.pypirc` or `TWINE_PASSWORD`).
+- [x] PyPI package `garl-protocol 1.2.0` uploaded ✓ (`pip install garl-protocol==1.2.0`).
+      1.2.0 ships the `garl-verify` offline receipt CLI alongside the SDK.
 - [ ] GitHub Marketplace: edit the v1.1.0 release, check
       "Publish this Action to the GitHub Marketplace", pick the category
       ("Continuous integration" + "Security" recommended), confirm icon.
