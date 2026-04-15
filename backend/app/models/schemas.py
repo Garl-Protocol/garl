@@ -217,6 +217,53 @@ class A2ATrustResponse(BaseModel):
     last_active: str | None
 
 
+def _validate_public_webhook_url(value: str) -> str:
+    """Reject webhook URLs that could target internal infrastructure (SSRF).
+
+    Checks, in order: HTTPS scheme, hostname present, blocked hostname
+    list (localhost + cloud metadata endpoints), and — when the hostname
+    is an IP literal — ipaddress-module classification (loopback, link-
+    local, private, reserved, multicast, unspecified). DNS names are
+    allowed since we also guard at delivery time via `_fire_webhooks_sync`."""
+    import ipaddress
+    from urllib.parse import urlparse
+
+    if not isinstance(value, str) or not value.startswith("https://"):
+        raise ValueError("Webhook URL must use HTTPS scheme")
+    parsed = urlparse(value)
+    host = (parsed.hostname or "").strip().lower()
+    if not host:
+        raise ValueError("Webhook URL must include a hostname")
+
+    _BLOCKED_HOSTS = {
+        "localhost", "localhost.localdomain", "ip6-localhost", "ip6-loopback",
+        "metadata.google.internal",           # GCP metadata
+        "metadata.goog",                      # GCP metadata (new)
+        "instance-data",                      # AWS metadata classic
+        "metadata.azure.com",                 # Azure metadata
+    }
+    if host in _BLOCKED_HOSTS or host.endswith(".localhost"):
+        raise ValueError("Webhook URL must not point to a loopback or metadata host")
+
+    # IP-literal hosts: canonicalise then apply full classification.
+    try:
+        ip = ipaddress.ip_address(host.strip("[]"))
+    except ValueError:
+        # hostname is a domain name — accept (delivery-time guard also runs)
+        return value
+
+    if (
+        ip.is_loopback
+        or ip.is_private
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_multicast
+        or ip.is_unspecified
+    ):
+        raise ValueError("Webhook URL must not target a private/reserved IP address")
+    return value
+
+
 class WebhookRegisterRequest(BaseModel):
     agent_id: str
     url: str = Field(..., max_length=500)
@@ -225,14 +272,7 @@ class WebhookRegisterRequest(BaseModel):
     @field_validator("url", mode="before")
     @classmethod
     def validate_webhook_url(cls, v: str) -> str:
-        if not v.startswith("https://"):
-            raise ValueError("Webhook URL must use HTTPS scheme")
-        from urllib.parse import urlparse
-        parsed = urlparse(v)
-        blocked = {"localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "[::1]"}
-        if parsed.hostname and (parsed.hostname in blocked or parsed.hostname.startswith("10.") or parsed.hostname.startswith("192.168.") or parsed.hostname.startswith("172.")):
-            raise ValueError("Webhook URL must not point to private/internal addresses")
-        return v
+        return _validate_public_webhook_url(v)
 
 
 class BatchTraceRequest(BaseModel):
@@ -254,6 +294,13 @@ class WebhookUpdateRequest(BaseModel):
     is_active: bool | None = None
     url: str | None = Field(default=None, max_length=500)
     events: list[str] | None = None
+
+    @field_validator("url", mode="before")
+    @classmethod
+    def validate_webhook_url(cls, v):
+        if v is None:
+            return v
+        return _validate_public_webhook_url(v)
 
 
 class RouteRequest(BaseModel):
