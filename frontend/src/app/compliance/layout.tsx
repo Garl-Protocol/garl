@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Agent Compliance Report | GARL Protocol",
+  title: "Compliance evidence export | GARL Protocol",
   description:
-    "CISO-ready compliance report for AI agents. Cryptographic verification, trust history, anomaly detection, and certification tier details.",
+    "Signed-receipt evidence for EU AI Act (Code of Practice, Aug 2026), California SB 942 (active since 1 Jan 2026), and ISO/IEC 42001 Annex B. Export as CSV, JSON-LD, in-toto, SLSA v1.1, ca-sb942, iso42001-annexb, or c2pa.",
   alternates: { canonical: "https://garl.ai/compliance" },
   openGraph: {
-    title: "Agent Compliance Report | GARL Protocol",
+    title: "Compliance evidence for AI-authored code | GARL Protocol",
     description:
-      "CISO-ready compliance report for AI agents with cryptographic verification.",
+      "EU AI Act + CA SB 942 + ISO 42001 Annex B evidence bundles, signed with ECDSA-secp256k1.",
     url: "https://garl.ai/compliance",
   },
 };
