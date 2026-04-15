@@ -1,0 +1,23 @@
+{
+  "name": "GARL PR Bot",
+  "url": "https://garl.ai/for-code",
+  "hook_attributes": {
+    "url": "https://api.garl.ai/api/v1/pr-bot/webhook",
+    "active": true
+  },
+  "redirect_url": "https://garl.ai/for-code?garl-pr-bot=installed",
+  "callback_urls": [
+    "https://garl.ai/for-code?garl-pr-bot=installed"
+  ],
+  "public": true,
+  "default_permissions": {
+    "contents": "read",
+    "pull_requests": "write",
+    "checks": "write",
+    "metadata": "read"
+  },
+  "default_events": [
+    "pull_request"
+  ],
+  "description": "Posts a sticky 'AI-authored %' receipt comment on every pull request. Fork-PR safe. Signs provenance with ECDSA-secp256k1 against the canonical GARL key registry. Non-blocking — this is evidence, not a gate."
+}
