@@ -1,3 +1,6 @@
+import logging
+import uuid as _uuid
+
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -8,6 +11,8 @@ from app.api.a2a import a2a_router
 from app.api.mcp import mcp_router
 from app.services.agents import get_agent_card, get_leaderboard
 from app.core.signing import get_public_key_hex
+
+_log = logging.getLogger("garl")
 
 settings = get_settings()
 
@@ -85,6 +90,26 @@ async def a2a_version_middleware(request: Request, call_next):
                 },
             )
     return await call_next(request)
+
+
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception):
+    # Never leak exception repr to the client. Log full details server-side with
+    # a correlation id the caller can quote when reporting an incident.
+    correlation_id = str(_uuid.uuid4())
+    _log.exception(
+        "unhandled_exception correlation_id=%s path=%s method=%s",
+        correlation_id,
+        request.url.path,
+        request.method,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Internal server error",
+            "correlation_id": correlation_id,
+        },
+    )
 
 
 app.include_router(router)

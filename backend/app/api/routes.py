@@ -317,22 +317,40 @@ _PUBLIC_AGENT_FIELDS = (
 
 
 @router.get("/agents/{agent_id}", summary="Get agent by ID", tags=["Agents"])
-async def read_agent(agent_id: str, fields: str = "public"):
+async def read_agent(
+    agent_id: str,
+    response: Response,
+    fields: str = "public",
+    x_api_key: str | None = Header(default=None),
+):
     """Fetch agent profile by UUID.
 
     By default returns a slim public projection (~24 fields) safe to
     share with anyone — score, dimensions, tier, identity, activity
-    timestamps. Pass ``?fields=full`` to also include internal scoring
-    state (EMA values, security_events, permissions_declared,
-    is_sandbox/is_deleted, developer_id, deleted_at, updated_at) for
-    debugging or owner dashboards. ``api_key_hash`` is never exposed.
+    timestamps. Pass ``?fields=full`` together with an ``x-api-key``
+    header whose hash matches the agent's ``api_key_hash`` to receive
+    the full response (EMA values, security_events, permissions,
+    sandbox/deleted flags, developer_id). ``api_key_hash`` itself is
+    never exposed. Unauthenticated ``?fields=full`` requests silently
+    fall back to the slim projection and carry ``Deprecation: true``
+    plus a ``Sunset`` header so integrators can migrate before a hard
+    cut.
     """
     _validate_uuid(agent_id, "agent_id")
     agent = get_agent(agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+
     if fields == "full":
-        return agent
+        stored_hash = agent.get("api_key_hash") or ""
+        provided_hash = (
+            hashlib.sha256(x_api_key.encode()).hexdigest() if x_api_key else ""
+        )
+        if stored_hash and provided_hash and hmac.compare_digest(stored_hash, provided_hash):
+            return agent
+        response.headers["Deprecation"] = "true"
+        response.headers["Sunset"] = "Thu, 15 Oct 2026 00:00:00 GMT"
+        response.headers["Link"] = '<https://garl.ai/docs#fields-full-auth>; rel="deprecation"'
     return {k: agent.get(k) for k in _PUBLIC_AGENT_FIELDS if k in agent}
 
 
@@ -780,8 +798,6 @@ async def verify_trace(request: Request, req: TraceSubmitRequest, x_api_key: str
         raise HTTPException(status_code=404, detail=str(e))
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/verify/batch", summary="Submit batch traces", tags=["Trust & Verification"])
@@ -1491,8 +1507,6 @@ async def ingest_openclaw(request: Request, payload: OpenClawIngestPayload, x_ap
         raise HTTPException(status_code=404, detail=str(e))
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 # --- Agent Search ---

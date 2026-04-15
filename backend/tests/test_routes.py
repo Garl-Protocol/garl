@@ -123,12 +123,12 @@ class TestRootEndpoint:
     """GET / endpoint tests."""
 
     def test_protocol_info(self, client):
-        """GET / returns protocol info and version 1.0.0."""
+        """GET / returns protocol info and version."""
         resp = client.get("/")
         assert resp.status_code == 200
         data = resp.json()
         assert data["protocol"] == "GARL"
-        assert data["version"] == "1.0.2"
+        assert data["version"] == "1.1.0"
         assert "docs" in data
 
 
