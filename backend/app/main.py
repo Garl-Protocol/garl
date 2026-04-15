@@ -1,7 +1,7 @@
 import logging
 import uuid as _uuid
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -10,7 +10,7 @@ from app.api.routes import router
 from app.api.a2a import a2a_router
 from app.api.mcp import mcp_router
 from app.services.agents import get_agent_card, get_leaderboard
-from app.core.signing import get_public_key_hex
+from app.core.signing import get_public_key_hex, get_key_registry
 
 _log = logging.getLogger("garl")
 
@@ -136,6 +136,17 @@ async def health():
 @app.get("/api/v1/health")
 async def health_v1():
     return {"status": "healthy", "version": settings.app_version, "protocol": "garl"}
+
+
+@app.get("/.well-known/garl-keys.json")
+async def well_known_garl_keys(response: Response):
+    """Public key registry (JWKS-style) for offline receipt verification.
+
+    Receipts issued by this registry carry ``proof.key_id``; verifiers
+    should resolve that id against the ``keys`` array here. Retired keys
+    remain listed so old receipts stay verifiable after rotation."""
+    response.headers["Cache-Control"] = "public, max-age=300, s-maxage=3600"
+    return get_key_registry()
 
 
 @app.get("/.well-known/agent-card.json")
