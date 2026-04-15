@@ -113,20 +113,29 @@ def get_key_registry() -> dict:
 
 
 def sign_payload(payload: dict) -> tuple[str, str]:
-    """Sign an arbitrary JSON payload; return (signature_hex, content_hash_hex)."""
+    """Sign an arbitrary JSON payload; return (signature_hex, content_hash_hex).
+
+    Uses RFC 6979 deterministic ECDSA — the same payload always produces
+    the same signature. Protects against nonce-reuse on weak RNGs and
+    lets callers idempotently re-derive signatures for the same data.
+    """
     sk = _get_signing_key()
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     digest = hashlib.sha256(canonical.encode()).digest()
-    signature = sk.sign_digest(digest).hex()
+    signature = sk.sign_digest_deterministic(digest, hashfunc=hashlib.sha256).hex()
     return signature, digest.hex()
 
 
 def sign_trace(trace_data: dict) -> dict:
-    """Sign a trace payload and return a Proof-of-Success certificate."""
+    """Sign a trace payload and return a Proof-of-Success certificate.
+
+    Uses RFC 6979 deterministic ECDSA — identical trace_data always
+    yields the identical signature bytes.
+    """
     sk = _get_signing_key()
     canonical = json.dumps(trace_data, sort_keys=True, separators=(",", ":"))
     digest = hashlib.sha256(canonical.encode()).digest()
-    signature = sk.sign_digest(digest).hex()
+    signature = sk.sign_digest_deterministic(digest, hashfunc=hashlib.sha256).hex()
     public_key_hex = get_public_key_hex()
 
     return {

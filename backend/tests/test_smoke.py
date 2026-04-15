@@ -62,6 +62,14 @@ class TestPublicVerifyEndpoint:
         assert response.status_code == 404
 
     def test_verify_valid_full_hash_with_enrichment(self, mock_supabase_for_routes):
+        from app.core import signing as _s
+        _s._signing_key = None
+        original_cert = _s.sign_trace({
+            "trace_id": "trace-123",
+            "agent_id": "agent-456",
+            "trust_score_after": 52.5,
+            "task_description": "Wrote README",
+        })
         trace = {
             "id": "trace-123",
             "agent_id": "agent-456",
@@ -72,6 +80,7 @@ class TestPublicVerifyEndpoint:
             "trust_score_after": 52.5,
             "trace_hash": "b" * 64,
             "runtime_env": "langchain",
+            "certificate": original_cert,
             "created_at": "2026-03-11T00:00:00Z",
         }
         agent = {
@@ -86,6 +95,7 @@ class TestPublicVerifyEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["verified"] is True
+        assert data["signing_epoch"] == "original"
         assert data["trace_hash"] == "b" * 64
         assert data["short_hash"] == "b" * 8
         assert data["agent_id"] == "agent-456"
@@ -98,6 +108,8 @@ class TestPublicVerifyEndpoint:
         assert data["receipt_url"].endswith("/r/bbbbbbbb")
         assert "certificate" in data
         assert "public_key" in data
+        # stored cert is returned byte-for-byte, not re-signed
+        assert data["certificate"]["proof"]["signature"] == original_cert["proof"]["signature"]
 
     def test_verify_short_hash_prefix_match(self, mock_supabase_for_routes):
         trace = {
