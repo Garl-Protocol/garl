@@ -15,7 +15,7 @@ lead for each audience.
 | r/ChatGPTCoding | 220k | General AI-coding | Broader angle; mention Copilot + Codex detection |
 | r/opensource | 280k | OSS enthusiasts | Apache 2.0, no SaaS lock-in, no black-box scoring |
 | r/devops | 600k | CI/CD owners | "Informational (non-blocking) PR check"; compliance audit trail |
-| r/compliance | 45k | GRC audience | EU AI Act Article 50, audit-ready provenance |
+| r/compliance | 45k | GRC audience | CA SB 942 + EU AI Act Code of Practice + ISO 42001 Annex B audit evidence |
 
 **Moderation notes:**
 - r/programming has strict self-promotion rules: frame as "[Show & Tell]" or post via GitHub link with short context, not as a blog URL.

@@ -285,7 +285,7 @@ If you run inside an MCP-compatible environment, add GARL to your config:
 }
 ```
 
-This gives you 20 trust tools: check scores, submit traces, find trusted agents, verify certificates, and more.
+This gives you 12 named tools (plus batch variants): check scores, submit traces, find trusted agents, verify certificates, and more.
 
 ---
 
