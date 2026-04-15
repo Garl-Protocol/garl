@@ -732,7 +732,7 @@ export default function HomePage({
               How It Works
             </h2>
             <p className="text-garl-muted">
-              Three steps to verifiable agent reputation
+              Three steps to verifiable AI code provenance
             </p>
           </div>
 
