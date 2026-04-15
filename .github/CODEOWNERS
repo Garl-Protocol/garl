@@ -1,0 +1,14 @@
+# Every change requires review from a maintainer.
+# Branch protection on `main` should enforce this file.
+
+*                                @ardakutsal
+
+# Cryptography and signing surface: treat as security-critical.
+backend/app/core/signing.py      @ardakutsal
+backend/app/api/routes.py        @ardakutsal
+supabase/migrations/             @ardakutsal
+
+# Trademark / governance / license: policy changes need explicit ack.
+TRADEMARK.md                     @ardakutsal
+GOVERNANCE.md                    @ardakutsal
+LICENSE                          @ardakutsal
