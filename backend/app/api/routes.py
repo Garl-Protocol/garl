@@ -1299,6 +1299,7 @@ async def public_verify_trace(trace_hash: str, request: Request, response: Respo
         "signing_epoch": signing_epoch,
         "original_signed_at": original_signed_at,
         "key_registry_url": "https://api.garl.ai/.well-known/garl-keys.json",
+        "rekor": ((certificate.get("proof") or {}).get("rekor") if isinstance(certificate, dict) else None),
     }
 
 

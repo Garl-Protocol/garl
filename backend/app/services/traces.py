@@ -11,6 +11,7 @@ import httpx
 
 from app.core.supabase_client import get_supabase
 from app.core.signing import sign_trace
+from app.core import rekor as _rekor
 from app.services.reputation import (
     compute_reliability_delta_ema,
     compute_security_score,
@@ -192,6 +193,21 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
     }
 
     certificate = sign_trace(trace_payload)
+
+    # --- Optional Sigstore Rekor anchor ---
+    # When ENABLE_REKOR_ANCHOR=true, synchronously anchor this signature
+    # into the Sigstore Rekor transparency log and embed the returned
+    # uuid + log index into the proof. Traces are UPDATE-immutable, so
+    # the anchor has to go in BEFORE the row is inserted. Timeout is
+    # tight so Rekor being down cannot block a trace submission.
+    if _rekor.is_enabled():
+        rekor_info = _rekor.anchor_sync(
+            content_hash_hex=trace_hash,
+            signature_hex=certificate["proof"]["signature"],
+            timeout_s=3.0,
+        )
+        if rekor_info:
+            certificate["proof"]["rekor"] = rekor_info
 
     # --- Trace record ---
     trace_metadata = req.metadata or {}
