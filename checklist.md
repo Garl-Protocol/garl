@@ -37,6 +37,7 @@ Bu dosya, ileriki Claude session'larında **tek komutla** ("checklist.md'yi yür
 - [ ] Tablo büyüklükleri, unused/duplicate index şüphesi.
 - [ ] `certificate='{}' ` boş sertifika satır sayısı (v0.3 öncesi artıkları).
 - [ ] `tool_calls / proof_of_result / security_events / permissions_declared` JSONB populate oranı.
+- **[NEW 2026-04-15] `pr_bot_summaries` tablosu (v16)** — RLS aktif mi (public SELECT, service_role writes), kaç satır populate edildi, `model_counts` jsonb pratik shape neye benziyor; sprint-sonrası migration taraması yap (v14/v15/v16 ardışık uygulandı, v17 geldiyse schema drift var mı).
 
 ## 3. Railway deploy
 
@@ -46,6 +47,8 @@ Bu dosya, ileriki Claude session'larında **tek komutla** ("checklist.md'yi yür
 - [ ] Domain / CNAME konfigürasyonu — api.garl.ai, garl.ai yönlendirmeleri.
 - [ ] Auto-deploy GitHub entegrasyonu hâlâ aktif mi?
 - [ ] Runtime logları (son 1 saat) — 5xx, kritik exception var mı?
+- **[NEW 2026-04-15] PR Bot yüzeyi** — `POST /api/v1/pr-bot/webhook` canlı + `GITHUB_APP_WEBHOOK_SECRET` env'i yoksa **fail-closed 503** dönmeli; `GET /api/v1/pr-bot/summary/{owner}/{repo}/{pr_number}` cache boşsa **404** (tipik new-repo state). Sebep: webhook gate'i aksi halde spoof-able.
+- **[NEW 2026-04-15] GitHub App env var envanteri** — Railway backend service'inde `GITHUB_APP_ID` + `GITHUB_APP_WEBHOOK_SECRET` + `GITHUB_APP_PRIVATE_KEY` üçü birden set mi; eksikse installation_token mint edemez, webhook handler sessizce `skipped:github_app_not_configured` döner. Sebep: sprint'te bu 3 var user tarafından eklendi, kaybolursa PR bot "ayakta ama sağır".
 
 ## 4. GitHub repo denetimi
 
@@ -56,8 +59,11 @@ Bu dosya, ileriki Claude session'larında **tek komutla** ("checklist.md'yi yür
 - [ ] Branch protection (`main`) — required reviews, status checks.
 - [ ] Secret scanning, push protection durumu.
 - [ ] `CODEOWNERS`, issue/PR template var mı?
+- **[NEW 2026-04-15] GARL PR Bot App install canlılığı** — `https://github.com/apps/garl-pr-bot` 200 döner mi; `installations_count` artıyor mu; App Settings → Advanced → Recent Deliveries son ~10 webhook delivery hepsi 200 mü. Sebep: App id 3390340, owner Garl-Protocol org, fail olan delivery handler crash'ini erken yakalamanın tek yolu.
+- **[NEW 2026-04-15] Branch protection + solo-dev merge bypass** — `required_approving_review_count=1` + `enforce_admins=false` kombosu zorunlu; PR author kendini review edemediği için solo merge `gh pr merge --admin` bypass'ı gerektirir. `enforce_admins=true` yapılırsa solo dev stuck olur. Sebep: bu sprint'te PR #3 merge'inde aynen bu yaşandı, not düşüldü.
 
 ## 5. Live site (canlı URL'ler)
+
 
 Her sayfayı fetch + header kontrolü + içerik analizi:
 
@@ -77,6 +83,9 @@ Her sayfayı fetch + header kontrolü + içerik analizi:
 - [ ] Mobile nav drawer (DevTools device mode simulate et) — portal pattern hâlâ çalışıyor mu.
 - [ ] 404 ve error sayfaları (garl.ai/rastgele, api.garl.ai/rastgele).
 - [ ] robots.txt ve sitemap.xml varlığı.
+- **[NEW 2026-04-15] PR Bot sticky comment render** — bir demo PR'da `🔐 GARL Verified AI Code` markdown'u, AI % satırı, `[Verify all →]` linki doğru görünüyor mu; hidden `<!-- garl-pr-bot:v1 -->` marker'ı ekli mi (re-open/synchronize PATCH idempotency için). Sebep: duplicate comment = kötü developer UX.
+- **[NEW 2026-04-15] GitHub Check Run görselleştirme** — PR "Checks" tab'ında `GARL PR Bot` check satırı neutral conclusion ile görünmeli; title formatı `{N}% AI-authored ({X}/{Y})`; summary tablosu model breakdown içermeli. Sebep: check run başlığı görünmezse provenance invisible.
+- **[NEW 2026-04-15] `?fields=full` no-auth deprecation header'ları** — `GET /api/v1/agents/{id}?fields=full` (x-api-key yok) response'u slim'e sessizce düşmeli + **`Deprecation: true`** + **`Sunset: Thu, 15 Oct 2026 00:00:00 GMT`** + **`Link: <https://garl.ai/docs#fields-full-auth>; rel="deprecation"`** header'ları olmalı. Sebep: RFC 9745 / RFC 8594 uyumlu soft-cut; integrators hard-cut öncesi uyarılsın.
 
 ## 6. Kod analizi — satır satır (kod yazma, yalnızca oku)
 
@@ -94,6 +103,7 @@ Her sayfayı fetch + header kontrolü + içerik analizi:
 - [ ] API key doğrulama akışı — timing attack, constant-time compare.
 - [ ] Hata mesajlarında bilgi sızıntısı (500 stack trace vs sanitized).
 - [ ] `backend/tests/*` — coverage, e2e marker kullanımı, happy-path beyond.
+- **[NEW 2026-04-15] `backend/app/services/pr_bot/*` tutarlılığı** — `commit_attribution.py` confidence threshold'ları docs ile senkron mu: trailer=0.95, gen-marker=0.9, model-name=0.6-0.7, emoji=0.6, bare `cursor`=0.4; `hmac_verify.py` constant-time compare kullanıyor mu; `rate_limiter.py` per-repo bucket max_events+window değerleri code-default'u ile docs eşleşiyor (30 events / 60s); `github_app.py` JWT ttl 540s + 60s skew headroom; `handler.py` non-relevant action'ları (labeled, assigned, …) skip ediyor. Sebep: launch draft'ları bu rakamları quotes içinde kullanıyor; drift olursa doc-code delta yayınlanır.
 
 ### Frontend (`frontend/`)
 
@@ -125,6 +135,11 @@ Her sayfayı fetch + header kontrolü + içerik analizi:
 - [ ] SDK `README`'deki kod örnekleri çalışıyor mu (read-only olarak gözle kontrol).
 - [ ] OpenAPI spec `/openapi.json` documented endpoint'leri canlı kod ile eşleşiyor mu.
 - [ ] Tagline "Starting with code" → kod-dışı özellikler (`/trust/*`, A2A, `erc8004`) hâlâ tanıtım yüzeyinde mi?
+- **[NEW 2026-04-15] PyPI paket adı tutarlılığı** — kod tabanında + launch/ + docs/ + README her yerde **`garl-protocol`** olmalı; **`garl-sdk`** hiçbir yerde olmamalı. Sebep: bu sprint'te `garl-sdk` tipo'su bir mesajda geçti, repoda zero match teyit edildi, drift oluşursa integrator karışır.
+- **[NEW 2026-04-15] Article 50 solo iddia yok** — "EU AI Act Article 50 provenance obligations for code" gibi bir cümle **hiçbir public surface'de olmamalı**; triple-pitch (CA SB 942 aktif Oca 2026 + EU AI Act Code of Practice Haz 2026 + ISO/IEC 42001 Annex B) kullan. Sebep: Article 50 deepfake/public-interest text hedefli, kod değil; HN/dev.to okurları teknik stretch'i yakalar.
+- **[NEW 2026-04-15] Octoverse 2025 anchor** — "46% of new code is AI-generated" ham iddiası yerine "Octoverse 2025 — ~45% AI-touched, sub-44% accepted unchanged" source-anchored form kullanılmalı. Sebep: rakam kaynağı tartışılır, savunulabilir form daha sağlam.
+- **[NEW 2026-04-15] MCP tool count — "12+ batch variants"** — "20 tools" iddiası artık yok; gerçek 12 named + batch varyantları. `README.md` badge'i, docs/architecture.md, skill.md, integrations/mcp-server/README.md, launch drafts hepsi "12+ named + batch variants" kullanmalı.
+- **[NEW 2026-04-15] RFC 6979 deterministic ECDSA** — `/verify/{hash}` iki arka arkaya çağrıda **byte-identical imza** dönmeli; `sign_digest_deterministic` kullanılıyor mu; `proof.key_id` mevcutsa lokal `sha256(publicKey)[:16]` ile eşleşmeli. Sebep: HN'in "neden aynı imza tekrarlanabilir?" sorusunun tek cevabı bu.
 
 ## 8. Güvenlik & operasyon
 
@@ -135,6 +150,8 @@ Her sayfayı fetch + header kontrolü + içerik analizi:
 - [ ] Dependabot alerts + `npm audit` / `pip-audit`.
 - [ ] Docker image pinleri, supply chain (base image sha).
 - [ ] Cloudflare WAF kuralları + rate limit etkin mi.
+- **[NEW 2026-04-15] Webhook HMAC + per-repo rate-limit + fork-PR güvenliği** — `X-Hub-Signature-256` yoksa veya hatalıysa **401**; `GITHUB_APP_WEBHOOK_SECRET` env'i eksikse **503** (fail-closed); per-repo limit default 30 events / 60s; fork-PR'ları installation token üzerinden handle edilir, secret sızdırmaz. Sebep: webhook spoof → sahte sticky comment'ler = narrative kirliliği.
+- **[NEW 2026-04-15] Webhook secret rotation prosedürü** — secret rotation için: (1) yeni secret üret (`python -c "import secrets; print(secrets.token_hex(32))"`), (2) App Settings → Webhook → Secret'ı güncelle, (3) Railway env var `GITHUB_APP_WEBHOOK_SECRET`'i aynı değere güncelle + redeploy, (4) App Settings → Recent Deliveries'te sonraki delivery'nin 200 döndüğünü doğrula. Sebep: eski secret leak olursa, bu dört-adım eşzamanlı yapılmazsa webhook pipeline 401'e kitlenir.
 
 ## 9. Deep web research (current month = Nisan 2026)
 
@@ -145,6 +162,9 @@ Her sayfayı fetch + header kontrolü + içerik analizi:
 - [ ] Show HN / Product Hunt "AI commit provenance" trendleri (son 6 ay).
 - [ ] Benzer pivotlar: "trust layer" kategorisinden "compliance receipt" kategorisine geçen başka başka projeler.
 - [ ] "AI slop commit" tartışmaları — developer narrative trendi.
+- **[NEW 2026-04-15] PR bot pazarı güncel snapshot** — Dosu ($0-pro user, CodeRabbit partner), Sweep (acquired by Cursor 2026 Q1?), CodeRabbit ($15-24/dev/mo enterprise pricing), Greptile, Qodo — pricing modeli + AI commit provenance'a destekleri. Sebep: GARL PR Bot bu pazara giriyor; rakip hangi layer'da konumlanmış bilinmeli.
+- **[NEW 2026-04-15] `sentinel_project.md` = ayrı oturum brief'i** — sprint işi **değil**, F2 (PR Bot) ile **karıştırılmamalı**. F2: kullanıcı PR açınca sticky comment. Sentinel: GitHub üzerindeki GARL ile ilgili issue/comment/mention sinyallerini izleyen ayrı auto-triage agent'ı (kendi GARL-signed receipt'leri ile). Yeni session'da `gsd:new-project` akışı ile başla.
+- **[NEW 2026-04-15] `launch/credentials-inventory.md` referansı** — agent-otomatik (PyPI keyring / npm / GitHub Releases) vs UI-only (Marketplace / App register / dev.to / HN / LinkedIn personal / Product Hunt / Slack) vs paid-tier (X/Twitter API / dev.to programmatic / LinkedIn company page) kategorileri orada. Yeni launch planlarken önce oku.
 
 ## 10. Rapor + öneri formatı
 
@@ -166,4 +186,4 @@ Oturum sırasında yeni kontrol noktası fark ettiğinde (ör. "bir de Resend em
 
 ---
 
-_Son güncelleme tarihi: ilk versiyon — ilerleyen oturumlarda tarih güncelle._
+_Son güncelleme tarihi: 2026-04-15 — F2 PR bot deploy + audit resolutions sprint'i eklendi._
