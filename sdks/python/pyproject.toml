@@ -8,7 +8,7 @@ version = "1.2.0"
 description = "GARL Protocol Python SDK + garl-verify CLI — cryptographic verification for AI code"
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
+license = { text = "MIT" }
 authors = [
     { name = "GARL Protocol", email = "contact@garl.ai" }
 ]

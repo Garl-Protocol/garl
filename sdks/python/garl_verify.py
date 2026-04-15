@@ -114,9 +114,17 @@ def _verify_cert(cert: dict, pubkey_hex: str) -> bool:
         return False
 
 
+def _derive_key_id_from_pk(pk_hex: str) -> str:
+    """Matches backend's derive_key_id: first 16 hex of sha256(pubkey_bytes)."""
+    try:
+        return hashlib.sha256(bytes.fromhex(pk_hex)).hexdigest()[:16]
+    except ValueError:
+        return "(unknown)"
+
+
 def _print_result(cert: dict, ok: bool, registry_url: str, args: argparse.Namespace) -> int:
     proof = cert.get("proof") or {}
-    key_id = proof.get("key_id", "(unknown)")
+    key_id = proof.get("key_id") or (_derive_key_id_from_pk(proof.get("publicKey", "")) if proof.get("publicKey") else "(unknown)")
     signing_epoch = proof.get("signing_epoch", "original")
     rekor = proof.get("rekor")
     payload = cert.get("payload") or {}
