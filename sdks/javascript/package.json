@@ -1,7 +1,7 @@
 {
   "name": "@garl-protocol/sdk",
-  "version": "1.2.0",
-  "description": "GARL Protocol JavaScript/TypeScript SDK — Cryptographic verification for AI agent actions. Signed receipts, Trust Vectors, capability gates.",
+  "version": "1.2.1",
+  "description": "GARL Protocol JavaScript/TypeScript SDK — cryptographic verification for AI agent actions. Signed Action Receipts (v0.1), multi-dimensional Trust Vector, capability tokens (JWT-shaped + ECDSA-secp256k1 + Biscuit-style attenuation), UETA §10(b) undo. Starting with code.",
   "type": "module",
   "main": "garl.js",
   "exports": {
@@ -18,16 +18,22 @@
     "garl",
     "trust",
     "reputation",
+    "trust-vector",
     "ai",
     "agent",
+    "agent-trust",
     "a2a",
     "did",
     "ecdsa",
     "mcp",
-    "model-context-protocol"
+    "model-context-protocol",
+    "action-receipt",
+    "capability-token",
+    "ueta",
+    "provenance"
   ],
   "author": "garl-protocol",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/Garl-Protocol/garl"

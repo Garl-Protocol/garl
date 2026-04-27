@@ -1,8 +1,8 @@
 {
   "name": "@garl-protocol/mcp-server",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "mcpName": "io.github.Garl-Protocol/agent-trust",
-  "description": "GARL Protocol MCP Server — Cryptographic verification for AI agent actions. Submit signed Action Receipts (v0.1), query multi-dimensional Trust Vectors, gate risky tool calls. Works with Claude Desktop, Cursor, Windsurf.",
+  "description": "GARL Protocol MCP Server — cryptographic verification for AI agent actions. 28 named tools: submit signed Action Receipts (v0.1), query multi-dimensional Trust Vector, issue/verify/revoke capability tokens (JWT-shaped + ECDSA-secp256k1), Capability Gate pre-flight, UETA §10(b) undo. Works with Claude Desktop, Cursor, Windsurf, any MCP client.",
   "type": "module",
   "main": "src/index.js",
   "bin": {
@@ -29,7 +29,7 @@
     "agent-economy"
   ],
   "author": "garl-protocol",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/Garl-Protocol/garl"

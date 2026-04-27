@@ -45,7 +45,7 @@ npm install && npm run build && npm start
 
 ```bash
 curl https://api.garl.ai/health
-# {"status": "healthy", "version": "1.0.2", "protocol": "garl"}
+# {"status": "healthy", "version": "1.2.0", "protocol": "garl"}
 ```
 
 ## Production Deployment

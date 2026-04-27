@@ -169,6 +169,40 @@ Agent-reputation endpoints (`/trust/*`, `/a2a/*`, `/erc8004/*`) are
 still supported but carry explicit `Deprecation:` + `Sunset:
 2027-04-15` headers — the pivot is to code.
 
+### Beyond commits — what's already shipped (Wave 2 / v1.2.0)
+
+GARL for Code is the front door, but the protocol is broader: it's
+cryptographic verification for **any** AI agent action — payments,
+tool calls, browser actions, file ops. Wave 2 is live in v1.2.0:
+
+- **Action Receipt v0.1** — generic envelope with `action_type`
+  (code_write / api_call / payment / browser_action / file_op /
+  tool_call), `side_effect` (none / reversible / irreversible),
+  `input_hash`, `output_hash`. Code commits become one of six
+  action classes. Spec at
+  [`/spec/action-receipt-v0.1.md`](https://github.com/Garl-Protocol/garl/blob/main/protocol/spec/action-receipt-v0.1.md).
+- **Trust Vector v0.1** — instead of a single composite score, a
+  multi-dimensional vector: code_task_reliability,
+  security_review_pass_rate, reversible_action_success,
+  payment_dispute_rate, human_override_rate,
+  recency_weighted_consistency, agent_identity_assurance. `null`
+  beats a misleading zero.
+- **Capability tokens** — JWT-shaped, ECDSA-secp256k1 signed,
+  Biscuit-style attenuation (a holder can narrow but never widen).
+  Use the **Capability Gate** pre-flight (`POST /capability/evaluate`)
+  to get a token before risky tool calls.
+- **UETA §10(b) consumer-undo** — for `side_effect = reversible`
+  receipts, `POST /receipts/{id}/undo` returns the literal undo
+  payload. Aligned with US uniform commercial-code language for
+  agent-mediated transactions.
+- **Wave 3 anchoring** — weekly Merkle batches anchored on Base L2
+  (`MerkleAnchor.sol` ~$1-3/year for tamper-evident timestamps
+  without trusting the issuer).
+
+The full surface is **28 named MCP tools + batch variants**, live on
+the canonical registry today, free during the test phase. Apache 2.0,
+no SaaS lock-in, no pricing tier.
+
 All part of the same Apache-2.0 monorepo.
 
 ### Links

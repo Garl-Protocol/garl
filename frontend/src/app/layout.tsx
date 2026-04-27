@@ -3,7 +3,7 @@ import "./globals.css";
 import SiteNav from "@/components/SiteNav";
 
 const description =
-  "Cryptographic verification for AI systems. Starting with code. Every AI-authored commit signed with ECDSA-secp256k1 and anchored on an immutable ledger — verifiable provenance for the AI-generated code era.";
+  "Cryptographic verification for AI agent actions, starting with code. Every AI-authored action — commits, tool calls, payments, browser actions — signed with ECDSA-secp256k1 (RFC 6979 deterministic), receipted in an immutable ledger, gated by capability tokens, undoable when reversible (UETA §10(b)).";
 
 export const metadata: Metadata = {
   title: "GARL Protocol — Cryptographic verification for AI code",
@@ -101,7 +101,7 @@ export default function RootLayout({
                   name: "GARL Protocol",
                   url: "https://garl.ai",
                 },
-                featureList: "Signed AI-commit receipts, GitHub Action for Claude Code/Cursor/Copilot/Aider/Codex, ECDSA-secp256k1 ledger, compliance export (CSV/JSON-LD/SLSA), MCP Server, Python & JavaScript SDKs, public verify endpoint, agent reputation scoring",
+                featureList: "Signed AI-action receipts (Action Receipt v0.1 envelope: code_write/api_call/payment/browser_action/file_op/tool_call), GitHub Action for Claude Code/Cursor/Copilot/Aider/Codex, ECDSA-secp256k1 ledger (RFC 6979 deterministic), Trust Vector v0.1 multi-dimensional reputation, capability tokens (JWT-shaped + Biscuit-style attenuation), Capability Gate pre-flight, UETA §10(b) consumer-undo, compliance export (CSV/JSON-LD/SLSA/in-toto/C2PA), 28 named MCP tools, Python & JavaScript SDKs, public verify endpoint",
                 softwareRequirements: "GitHub repository, REST API client, MCP client, or A2A-compatible agent",
                 releaseNotes: "https://github.com/Garl-Protocol/garl/releases",
                 license: "https://opensource.org/licenses/Apache-2.0",

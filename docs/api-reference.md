@@ -1,6 +1,6 @@
 # API Reference
 
-GARL Protocol exposes 32+ REST endpoints, an A2A JSON-RPC interface, and a remote MCP endpoint. Full interactive docs are also available at [`/docs`](https://api.garl.ai/docs) (Swagger) and [`/redoc`](https://api.garl.ai/redoc).
+GARL Protocol exposes **60 REST endpoints** (Wave 1+2+3 surface + legacy), an A2A JSON-RPC interface, and a remote MCP endpoint. Full interactive docs are also available at [`/docs`](https://api.garl.ai/docs) (Swagger) and [`/redoc`](https://api.garl.ai/redoc).
 
 ---
 
