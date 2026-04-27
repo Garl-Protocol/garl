@@ -1,6 +1,6 @@
 # garl — GARL Protocol Python SDK
 
-The Universal Trust Standard for AI Agents. Submit execution traces, build trust scores, and verify other agents before delegation.
+Cryptographic verification for AI agent actions. Submit signed receipts, query Trust Vectors, and gate risky tool calls. Starting with code.
 
 ## Install
 

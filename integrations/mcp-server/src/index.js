@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * GARL Protocol MCP Server v3.1.0
+ * GARL Protocol MCP Server v1.3.0
  *
- * 20 trust reputation tools for AI agents.
+ * Cryptographic verification for AI agent actions: signed receipts,
+ * Trust Vectors, capability gates. Tools added in v1.3.0:
+ *   - garl_get_trust_vector       (multi-dim reputation, replaces single score)
+ *   - garl_record_action_receipt  (Action Receipt v0.1 — generic, beyond commits)
+ *
  * Works with Claude Desktop, Cursor, Windsurf, and all MCP-compatible clients.
  */
 
@@ -318,6 +322,68 @@ const TOOLS = [
       required: ["agent_id", "status"],
     },
   },
+  {
+    name: "garl_get_trust_vector",
+    description:
+      "Get an agent's multi-dimensional Trust Vector (v0.1). Returns separate signals for identity assurance, " +
+      "code-task reliability, security review pass-rate, reversible-action success, payment dispute rate, " +
+      "human override rate, and recency-weighted consistency. Prefer this over the legacy single trust_score " +
+      "for cross-domain decisions — different domains stress different dimensions.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        agent_id: { type: "string", description: "Agent UUID (default: your own agent)" },
+      },
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  },
+  {
+    name: "garl_record_action_receipt",
+    description:
+      "Submit a GARL Action Receipt v0.1 for any agent action — not just code commits. " +
+      "Accepts action_type (code_write, api_call, payment, browser_action, file_op, tool_call), " +
+      "side_effect class (none, reversible, irreversible), and protocol context. " +
+      "Returns a public receipt URL the action can be verified at offline against the canonical key registry.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action_type: {
+          type: "string",
+          enum: ["code_write", "api_call", "payment", "browser_action", "file_op", "tool_call"],
+          description: "What kind of action this records",
+        },
+        side_effect: {
+          type: "string",
+          enum: ["none", "reversible", "irreversible"],
+          description: "Reversibility class. Be conservative — when in doubt, irreversible",
+        },
+        runtime: {
+          type: "string",
+          enum: ["claude-code", "cursor", "copilot", "aider", "codex", "mcp-client", "langchain", "crewai", "llamaindex", "semantic-kernel", "custom"],
+          description: "Which agent runtime is calling",
+          default: "mcp-client",
+        },
+        protocol: {
+          type: "string",
+          enum: ["github", "mcp", "a2a", "acp", "ap2", "x402", "raw-http"],
+          description: "Wire protocol the action used",
+          default: "mcp",
+        },
+        task_description: { type: "string", description: "One-line summary of the action" },
+        status: { type: "string", enum: ["success", "failure", "partial"] },
+        duration_ms: { type: "number", description: "How long the action took, in milliseconds" },
+        tool_server: { type: "string", description: "Endpoint URI the action targeted, if applicable" },
+        cost_usd: { type: "number", description: "Cost in USD, if known" },
+        attestations: {
+          type: "array",
+          items: { type: "string" },
+          description: "Independently-verified claims (tests_passed, human_reviewed, etc.)",
+        },
+      },
+      required: ["action_type", "side_effect", "task_description", "status", "duration_ms"],
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  },
 ];
 
 // Handles tool call dispatch
@@ -585,13 +651,98 @@ async function handleToolCall(name, args) {
       ].join("\n") }] };
     }
 
+    case "garl_get_trust_vector": {
+      const aid = args.agent_id || AGENT_ID;
+      if (!aid) throw new Error("agent_id required (or set GARL_AGENT_ID).");
+      const v = await garlFetch(`/agents/${encodeURIComponent(aid)}/trust-vector`);
+      const dims = v.dimensions || {};
+      const counters = v.counters || {};
+      const legacy = v.legacy_composite || {};
+      const fmt = (n) => n === null || n === undefined ? "—" : (n * 100).toFixed(1);
+      const lines = [
+        `Trust Vector ${v.version || "v0.1"} for ${aid}`,
+        `Computed: ${v.computed_at || "(unknown)"}`,
+        ``,
+        `Identity assurance:           ${fmt(dims.agent_identity_assurance)}`,
+        `Code-task reliability:        ${fmt(dims.code_task_reliability)}`,
+        `Security review pass-rate:    ${fmt(dims.security_review_pass_rate)}`,
+        `Reversible-action success:    ${fmt(dims.reversible_action_success)}`,
+        `Payment dispute rate:         ${fmt(dims.payment_dispute_rate)}`,
+        `Human override rate:          ${fmt(dims.human_override_rate)}`,
+        `Recency-weighted consistency: ${fmt(dims.recency_weighted_consistency)}`,
+        ``,
+        `Verified receipts:            ${counters.verified_receipt_count ?? 0}`,
+        `Third-party attestations:     ${counters.third_party_attestation_count ?? 0}`,
+        ``,
+        `Legacy composite:             ${(legacy.trust_score ?? 0).toFixed(1)}/100 (${legacy.certification_tier || "bronze"})`,
+        ``,
+        `Note: "—" means not yet measured (e.g., payment_dispute_rate is null until payment receipts land). Treat null as "no data", not zero.`,
+      ];
+      return { content: [{ type: "text", text: lines.join("\n") }] };
+    }
+
+    case "garl_record_action_receipt": {
+      if (!AGENT_ID) throw new Error("GARL_AGENT_ID not configured.");
+      if (!API_KEY) throw new Error("GARL_API_KEY not configured.");
+      if (!args.action_type) throw new Error("action_type is required.");
+      if (!args.side_effect) throw new Error("side_effect is required.");
+      if (!args.task_description) throw new Error("task_description is required.");
+      if (!args.status) throw new Error("status is required.");
+      if (args.duration_ms === undefined || args.duration_ms === null) {
+        throw new Error("duration_ms is required.");
+      }
+      // Until the dedicated /receipts endpoint lands in Wave 2, this maps
+      // onto the existing /verify trace shape with action-receipt metadata
+      // carried in security_context. The Action Receipt v0.1 envelope is
+      // preserved in the response; the underlying trace stays valid for
+      // legacy verifiers.
+      const categoryMap = {
+        code_write: "coding",
+        api_call: "automation",
+        payment: "automation",
+        browser_action: "automation",
+        file_op: "data",
+        tool_call: "automation",
+      };
+      const body = {
+        agent_id: AGENT_ID,
+        task_description: args.task_description,
+        status: args.status,
+        duration_ms: args.duration_ms,
+        category: categoryMap[args.action_type] || "other",
+        runtime_env: args.runtime || "mcp-client",
+        security_context: {
+          action_receipt_version: "garl/action-receipt/v0.1",
+          action_type: args.action_type,
+          side_effect: args.side_effect,
+          protocol: args.protocol || "mcp",
+        },
+      };
+      if (args.tool_server) body.security_context.tool_server = args.tool_server;
+      if (args.cost_usd !== undefined) body.cost_usd = args.cost_usd;
+      if (args.attestations) body.security_context.attestations = args.attestations;
+      const result = await garlFetch("/verify", { method: "POST", body: JSON.stringify(body) });
+      const lines = [
+        `Action Receipt v0.1 recorded.`,
+        `Action type: ${args.action_type}`,
+        `Side effect: ${args.side_effect}`,
+        `Status:      ${result.status}`,
+        `Trust delta: ${result.trust_delta > 0 ? "+" : ""}${(result.trust_delta || 0).toFixed(2)}`,
+      ];
+      if (result.receipt_url) lines.push(`Receipt:     ${result.receipt_url}`);
+      if (args.side_effect === "irreversible") {
+        lines.push(``, `Note: This action was classified as irreversible. No undo primitive will be available.`);
+      }
+      return { content: [{ type: "text", text: lines.join("\n") }] };
+    }
+
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
 }
 
 const server = new Server(
-  { name: "garl-protocol", version: "3.1.0" },
+  { name: "garl-protocol", version: "1.3.0" },
   { capabilities: { tools: {} } }
 );
 

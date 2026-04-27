@@ -1,7 +1,7 @@
 {
   "name": "GARL Protocol",
   "short_name": "GARL",
-  "description": "Global Agent Reputation Ledger — The Universal Trust Standard for AI Agents",
+  "description": "GARL Protocol — Cryptographic verification for AI agent actions. Signed receipts, Trust Vectors, capability gates.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",
