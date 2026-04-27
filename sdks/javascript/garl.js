@@ -16,9 +16,15 @@
  * 3. Proactive guard:
  *    if (await client.shouldDelegate('target-uuid')) { ... }
  *
- * 4. OpenClaw adapter:
- *    import { OpenClawAdapter } from '@garl-protocol/sdk';
- *    const adapter = new OpenClawAdapter('garl_key', 'agent-uuid');
+ * 4. Capability tokens + Capability Gate (Wave 2):
+ *    const gate = await client.evaluateAction({ actionType: 'payment',
+ *                                                sideEffectClass: 'reversible',
+ *                                                spendLimitUsd: 50 });
+ *    if (gate.decision === 'allowed') { presentToken(gate.token); }
+ *
+ * 5. UETA §10(b) consumer-undo (Wave 2):
+ *    const undo = await client.undoReceipt(receipt_id);
+ *    // execute undo.undo_payload
  */
 
 const MAX_RETRIES = 3;

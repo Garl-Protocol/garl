@@ -16,7 +16,7 @@
 │       └──────────────┴──────────────┴──────────────┘            │
 │                          │                                      │
 │                    ┌─────▼─────┐                                │
-│                    │  FastAPI  │  32 REST + A2A JSON-RPC         │
+│                    │  FastAPI  │  60 REST + A2A + MCP Streamable │
 │                    │  Backend  │  Rate Limited + CORS            │
 │                    └─────┬─────┘                                │
 │                          │                                      │
@@ -46,7 +46,8 @@
 │                                                                 │
 ├─────────────────────────────────────────────────────────────────┤
 │  Frontend: Next.js 14 + Tailwind CSS                            │
-│  9 pages: Home, Dashboard, Leaderboard, Playground,              │
+│  Pages: Home, /for-code, Docs, Dashboard, Leaderboard, Stats,    │
+│  Playground, Compare, Compliance, Simulator, Verify, Privacy,    │
 │  Compare, Compliance, Docs, Privacy, Simulator                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -60,7 +61,7 @@
 | Database | Supabase (PostgreSQL) with RLS |
 | Cryptography | ECDSA secp256k1 + SHA-256 |
 | SDKs | Python (sync/async) + JavaScript |
-| MCP | Node.js MCP Server (12 named tools + batch variants) |
+| MCP | Node.js MCP Server (28 named tools + batch variants) |
 | Containers | Docker + Docker Compose |
 
 ## Project Structure
@@ -85,7 +86,7 @@ garl/
 │   ├── python/garl.py       # Python SDK (sync + async)
 │   └── javascript/garl.js   # JavaScript SDK
 ├── integrations/
-│   ├── mcp-server/          # MCP Server (12 named tools + batch variants)
+│   ├── mcp-server/          # MCP Server (28 named tools + batch variants)
 │   ├── github-action/       # GitHub Action Trust Gate
 │   └── langchain/           # LangChain Callback Handler
 ├── docs/                    # Documentation

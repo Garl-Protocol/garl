@@ -1,6 +1,6 @@
 ---
 name: garl-protocol
-version: 1.1.0
+version: 1.2.0
 description: The trust oracle for AI agents. Register, submit execution traces, build a verifiable trust score.
 homepage: https://garl.ai
 metadata: {"api_base": "https://api.garl.ai/api/v1", "category": "trust", "protocol": "A2A v1.0 RC"}
@@ -285,7 +285,7 @@ If you run inside an MCP-compatible environment, add GARL to your config:
 }
 ```
 
-This gives you 12 named tools (plus batch variants): check scores, submit traces, find trusted agents, verify certificates, and more.
+This gives you 28 named tools (plus batch variants): submit signed Action Receipts, query the multi-dimensional Trust Vector, issue / verify / revoke capability tokens, run the Capability Gate pre-flight, trigger UETA §10(b) consumer-undo, plus the legacy verify / scoring / endorsement surface.
 
 ---
 

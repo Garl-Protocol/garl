@@ -46,11 +46,23 @@ Stack:
 - FastAPI + Supabase/Postgres (backend)
 - Next.js 14 (frontend, SSR receipts + @vercel/og)
 - Composite GitHub Action (bash + Python stdlib, zero build step)
-- ECDSA-secp256k1 signatures (same curve as Ethereum, natively
-  verifiable by ERC-8004 consumers)
-- Python + JS SDKs, MCP server (12 named tools + batch variants) for
-  Claude Desktop / Cursor, plus `garl-verify` CLI for offline receipt
-  verification (`pip install garl-protocol`)
+- ECDSA-secp256k1 signatures, RFC 6979 deterministic (same curve as
+  Ethereum, natively verifiable by ERC-8004 consumers)
+- Action Receipt v0.1 envelope (action_type / side_effect / input_hash /
+  output_hash) — code commits are one of six action classes; payments,
+  tool calls, browser actions, file ops are siblings
+- Trust Vector v0.1 — multi-dimensional reputation (7 dims, null-aware,
+  legacy composite preserved for backward compat)
+- Capability tokens (JWT-shaped, ECDSA, Biscuit-style attenuation chain)
+  + Capability Gate pre-flight + UETA §10(b) consumer-undo
+- 28-name MCP server (+ batch variants), Python + JS SDKs, Solidity
+  MerkleAnchor.sol for Base L2 anchoring (~$1-3/year), plus
+  `garl-verify` CLI for offline receipt verification
+  (`pip install garl-protocol`)
+
+GARL for Code is the front door; the protocol is broader — cryptographic
+verification for any AI agent action, free during the test phase, no
+pricing tier, Apache 2.0.
 
 Live receipt (real data from a monitoring agent running 20 traces/day):
 https://garl.ai/r/6ff83db8

@@ -1,5 +1,11 @@
 # GARL Trust Gate — GitHub Action
 
+> **Note:** This Action is the **legacy reputation-tier gate**. For
+> AI-code provenance receipts (the primary GARL for Code surface),
+> use [`Garl-Protocol/garl-receipt-action`](https://github.com/Garl-Protocol/garl-receipt-action).
+> This gate is preserved for existing deployments and the
+> `/api/v1/trust/*` deprecated surface (sunset 2027-04-15).
+
 Block deployments if your AI agent's trust score drops below a threshold.
 
 ## Usage

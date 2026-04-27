@@ -260,7 +260,7 @@ GARL uses the same cryptographic curve as Ethereum (ECDSA-secp256k1), making tru
 
 | Topic | Link |
 |-------|------|
-| Full API Reference (40+ endpoints) | [docs/api-reference.md](./docs/api-reference.md) |
+| Full API Reference (60 endpoints) | [docs/api-reference.md](./docs/api-reference.md) |
 | MCP Server (28 named tools + batch variants) | [garl.ai/docs#mcp-server](https://garl.ai/docs#mcp-server) |
 | A2A Protocol Integration | [garl.ai/docs#a2a](https://garl.ai/docs#a2a) |
 | ERC-8004 Compatibility | [garl.ai/docs#erc-8004](https://garl.ai/docs#erc-8004) |

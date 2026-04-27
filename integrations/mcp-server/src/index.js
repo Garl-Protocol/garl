@@ -494,7 +494,7 @@ async function handleToolCall(name, args) {
       if (!args.task_description) throw new Error("task_description is required.");
       if (!args.status) throw new Error("status is required.");
       if (args.duration_ms === undefined || args.duration_ms === null) throw new Error("duration_ms is required.");
-      const body = { agent_id: AGENT_ID, task_description: args.task_description, status: args.status, duration_ms: args.duration_ms, category: args.category || "other", runtime_env: "openclaw-mcp", input_summary: args.input_summary || "", output_summary: args.output_summary || "" };
+      const body = { agent_id: AGENT_ID, task_description: args.task_description, status: args.status, duration_ms: args.duration_ms, category: args.category || "other", runtime_env: "mcp-client", input_summary: args.input_summary || "", output_summary: args.output_summary || "" };
       if (args.tool_calls) body.tool_calls = args.tool_calls;
       if (args.cost_usd !== undefined) body.cost_usd = args.cost_usd;
       if (args.permissions_used) body.permissions_used = args.permissions_used;
@@ -533,7 +533,7 @@ async function handleToolCall(name, args) {
       if (!AGENT_ID) throw new Error("GARL_AGENT_ID not configured.");
       if (!API_KEY) throw new Error("GARL_API_KEY not configured.");
       if (!args.traces || !args.traces.length) throw new Error("traces array is required.");
-      const traces = args.traces.map(t => ({ agent_id: AGENT_ID, task_description: t.task_description, status: t.status, duration_ms: t.duration_ms, category: t.category || "other", runtime_env: "openclaw-mcp" }));
+      const traces = args.traces.map(t => ({ agent_id: AGENT_ID, task_description: t.task_description, status: t.status, duration_ms: t.duration_ms, category: t.category || "other", runtime_env: "mcp-client" }));
       const result = await garlFetch("/verify/batch", { method: "POST", body: JSON.stringify({ traces }) });
       return { content: [{ type: "text", text: `Batch submission: ${result.submitted} successful, ${result.failed} failed.` }] };
     }
