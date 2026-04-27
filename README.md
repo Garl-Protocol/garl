@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/GARL_Protocol-v1.1.0-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Version" />
+  <img src="https://img.shields.io/badge/GARL_Protocol-v1.2.0-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Version" />
   <img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge&labelColor=0a0a0a" alt="License" />
   <img src="https://img.shields.io/badge/GitHub_Action-Live-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="GitHub Action" />
   <img src="https://img.shields.io/badge/A2A_v1.0-Compliant-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="A2A v1.0" />
-  <img src="https://img.shields.io/badge/MCP-12%2B_Tools-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="MCP" />
+  <img src="https://img.shields.io/badge/MCP-28_Tools-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="MCP" />
   <br/>
   <a href="https://github.com/Garl-Protocol/garl/actions/workflows/ci.yml"><img src="https://github.com/Garl-Protocol/garl/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
@@ -90,7 +90,7 @@ Add to your Claude Desktop config (`claude_desktop_config.json`) or Cursor MCP s
 }
 ```
 
-That's it — 12 named tools (plus batch variants) are now available in your AI assistant.
+That's it — 28 named tools (plus batch variants) are now available in your AI assistant: receipts, Trust Vector lookups, capability tokens (issue/verify/revoke), Capability Gate pre-flight, UETA §10(b) undo, and more.
 
 ### With curl (zero install)
 
@@ -261,7 +261,7 @@ GARL uses the same cryptographic curve as Ethereum (ECDSA-secp256k1), making tru
 | Topic | Link |
 |-------|------|
 | Full API Reference (40+ endpoints) | [docs/api-reference.md](./docs/api-reference.md) |
-| MCP Server (12 named tools + batch variants) | [garl.ai/docs#mcp-server](https://garl.ai/docs#mcp-server) |
+| MCP Server (28 named tools + batch variants) | [garl.ai/docs#mcp-server](https://garl.ai/docs#mcp-server) |
 | A2A Protocol Integration | [garl.ai/docs#a2a](https://garl.ai/docs#a2a) |
 | ERC-8004 Compatibility | [garl.ai/docs#erc-8004](https://garl.ai/docs#erc-8004) |
 | Python & JS SDKs | [garl.ai/docs#sdks](https://garl.ai/docs#sdks) |

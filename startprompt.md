@@ -1,223 +1,248 @@
-# Start-of-session prompt for the next GARL agent
+# GARL — Next-Session Bootstrap
 
-> Bu dosyayı okuyan Claude oturumu: **kod yazmadan önce** aşağıdaki
-> yönergelere uy, durumu topla, rapor + plan ile geri dön, onay al,
-> sonra uygula. Kullanıcı (Arda Kutsal) "kod yazma" diyene kadar tek
-> satır yeni kod/diff çıkarma.
->
-> Stil kuralı: Türkçe yaz, tablolu özetle; identifier/shell komutu
-> İngilizce kalsın. `feedback_collaboration_style.md`'deki prensipler
-> bağlayıcıdır.
+> Bu dosyayı okuyan Claude oturumu: aşağıdaki sırayla durumu topla, sonra Arda'ya tablolu bir özet sun, **kod yazmadan** plan onayı al, sonra uygula. Stil: Türkçe, tablolu, kısa, emoji yok, sonuna uzun "summary" yazma. `feedback_collaboration_style.md` bağlayıcıdır.
 
 ---
 
-## 0. Context yükle (zorunlu, bu sırayla)
+## 0. Memory'yi yükle (zorunlu — 2 dakika)
 
-1. `MEMORY.md` + altındaki **tüm** memory dosyaları:
-   - `project_garl_overview.md` — v1.2.0 mimari, F2 PR bot state, yeni
-     API surface, signing, backfill, branch protection
-   - `project_audit_resolutions.md` — B1-B14 resolved; **iki
-     false-positive re-investigate yok** (soft-delete, /verify 404
-     vs 401)
-   - `project_garl_for_code_pivot.md` — Nisan 2026 pivot gerekçesi
-   - `project_launch_state.md` — launch draftları post-sprint state,
-     yayın ertelenme nedeni, publish sırası
-   - `project_f2_pr_bot.md` — F2 mimari, HMAC/rate-limit/fail-closed
-     policy, Sentinel ile farkı
-   - `reference_publish_credentials.md` — PyPI keyring'de, GitHub App
-     3 env var Railway'de, channel matrix
-   - `feedback_known_gotchas.md` — 13 landmine (backdrop-filter,
-     PEP 604, Cloudflare 1010 UA, next/og headers, Fastly cache,
-     pytest cwd, garl-sdk/garl-protocol tipo, Article 50
-     mis-attribution, HN fresh-account, branch-protection context
-     names byte-match, solo-dev `--admin` bypass)
-   - `feedback_railway_deploy.md` — push to main → auto-deploy
-   - `feedback_collaboration_style.md` — Türkçe tablolu, atomik
-     commit, kod yazmadan plan, launch publish yayın izni
+`/Users/ardakutsal/.claude/projects/-Users-ardakutsal-Development-garl/memory/` altındaki dosyaların hepsini oku, başlayarak:
 
-2. Repo root planning artefactları:
-   - `checklist.md` — tek-promptta tam audit reçetesi (11 başlık +
-     [NEW 2026-04-15] sprint eklentileri)
-   - `audit_2026-04-15.md` — B1-B14 + improvements + feature bank +
-     user-task listesi, detaylı
-   - `sentinel_project.md` — **ayrı greenfield proje brief'i**,
-     F2 ile karıştırma, bu session'da açma
+1. `MEMORY.md` — index
+2. `user_role.md` — Arda'nın profili
+3. `feedback_collaboration_style.md` — Türkçe + tablo + emoji yok
+4. `feedback_known_gotchas.md` — 10 landmine (pytest cwd, py3.11, branch protection, drift sweep, vb.)
+5. `feedback_force_push_policy.md` — main'e force-push asla per-action onay olmadan
+6. `project_garl_overview.md` — mevcut mimari (Wave 1+2+3 sonrası)
+7. `project_wave_history.md` — bu session'ın 4 PR + 3 migration + 3 publish + 1 release özeti
+8. `project_pricing_posture.md` — fiyatlandırma kararı: "şu anda yok"
+9. `project_open_blockers.md` — 3 dış-blocker + 1 history-scrub kararı
+10. `reference_supabase.md` — DB schema + advisor + key
+11. `reference_publish_credentials.md` — PyPI keyring, npm whoami, gh auth
+12. `reference_repos.md` — `Garl-Protocol/garl` + `Garl-Protocol/garl-receipt-action`
+13. `reference_endpoints.md` — full /api/v1 catalog (Wave 1+2+3 dahil)
+14. `reference_strategy.md` — `garl-strategy-2026-04-27.md` özeti
 
-3. Canlı yüzeylerin kanıtı (eskirse yenilenir):
-   - `launch/credentials-inventory.md` — agent-otomatik / UI-only /
-     paid-tier kategorileri
-   - `docs/security.md`, `docs/compliance.md`, `docs/ecosystem.md`,
-     `docs/deprecations.md`, `docs/policy-gate.md`, `docs/self-host.md`
-   - `TRADEMARK.md`, `GOVERNANCE.md`, `.github/CODEOWNERS`
+**Önemli:** `garl-strategy-2026-04-27.md`, `audit_*.md`, `PITCH_DECK.md`, `LAUNCH_PLAYBOOK.md`, `UI_BLUEPRINT.md`, `GARL_MASTER_PLAN.md`, `garl_security_audit.md` — hepsi `.gitignore`'da, sadece local. Bunları **ASLA commit etme**.
 
-## 1. Hızlı canlı durum taraması (3 dakika)
+---
 
-Memory'nin iddiaları **her zaman eskiyebilir**. Önce şu smoke'u koş:
+## 1. Canlı durum smoke testi (3 dakika — sırayla çalıştır)
 
 ```bash
-# git state
+# Repo state
+cd /Users/ardakutsal/Development/garl
 git log --oneline -10
 git status --short
 
-# canlı API sanity
+# Backend tests (484 baseline)
+cd backend && python3.11 -m pytest tests/ -m "not e2e" --tb=no -q | tail -5
+cd ..
+
+# Frontend build (19 routes, hepsi temiz olmalı)
+cd frontend && npx next build 2>&1 | tail -5
+cd ..
+
+# Live API
 curl -sS https://api.garl.ai/health
-curl -sS https://api.garl.ai/api/v1/verify/6ff83db8 | python3 -m json.tool | head -20
-curl -sS https://api.garl.ai/.well-known/garl-keys.json | python3 -m json.tool | head -15
+curl -sS https://api.garl.ai/api/v1/public-stats | python3 -m json.tool | head -25
+curl -sS "https://api.garl.ai/api/v1/agents/3216b8ed-fa2c-452a-bda2-925cde273314/trust-vector" | python3 -m json.tool | head -25
+curl -sS https://api.garl.ai/.well-known/garl-keys.json | python3 -m json.tool | head -10
 
-# Railway + deploy + branch prot
-railway deployment list --json | python3 -c "import sys,json;d=json.load(sys.stdin);[print(r['status'], r['meta'].get('commitHash','')[:8]) for r in d[:3]]"
-gh api repos/Garl-Protocol/garl/branches/main/protection 2>&1 | head -5
+# OpenAPI snapshot (60 endpoint olmalı)
+curl -sS https://api.garl.ai/openapi.json | python3 -c "import sys,json; d=json.load(sys.stdin); print('paths:',len(d['paths']))"
 
-# PR bot still live?
-curl -s -o /dev/null -w "pr-bot webhook: %{http_code}\n" -X POST https://api.garl.ai/api/v1/pr-bot/webhook -H "X-GitHub-Event: ping" -d '{}'
-# 503 = secret env var dropped — check Railway; 200 = ping accepted (unlikely w/o sig)
+# Live frontend
+curl -sS -o /dev/null -w "garl.ai/stats: %{http_code}\n" https://garl.ai/stats
+curl -sS -o /dev/null -w "garl.ai/agents.txt: %{http_code}\n" https://garl.ai/agents.txt
+curl -sS -o /dev/null -w "garl.ai/r/6ff83db8: %{http_code}\n" https://garl.ai/r/6ff83db8
+curl -sS -o /dev/null -w "garl.ai/for-code: %{http_code}\n" https://garl.ai/for-code
 
-# PyPI latest + npm latest
-curl -sS https://pypi.org/pypi/garl-protocol/json | python3 -c "import sys,json;d=json.load(sys.stdin);print('pypi:',d['info']['version'])"
-npm view @garl-protocol/mcp-server version
+# Published packages
+curl -sS https://pypi.org/pypi/garl-protocol/json | python3 -c "import sys,json; d=json.load(sys.stdin); print('pypi garl-protocol:',d['info']['version'])"
 npm view @garl-protocol/sdk version
+npm view @garl-protocol/mcp-server version
+
+# GitHub state
+gh repo view Garl-Protocol/garl --json description,latestRelease,stargazerCount
+gh pr list --repo Garl-Protocol/garl --state all --limit 5
+gh release list --repo Garl-Protocol/garl --limit 5
 ```
 
-Smoke sonuçlarını memory'deki son-bilinen-durum ile kıyasla. Herhangi
-biri uyuşmazsa `audit_2026-04-15.md`'deki sınıflandırma (false
-positive listesi dahil) ile çelişmeden incele.
+**Beklenen baseline (2026-04-27 session sonu):**
+- Backend: **484 passed, 6 skipped, 10 deselected**
+- Frontend: 19 route, hepsi clean
+- API health: `{"status":"healthy","version":"1.1.0","protocol":"garl"}`
+- public-stats: 58+ agents, 2011+ traces, 1+ capability_tokens_issued, 0 receipts (Wave 2 fresh)
+- /openapi.json: 60 endpoint (Wave 1+2+3 + legacy)
+- /stats, /agents.txt, /r/6ff83db8, /for-code: HTTP 200
+- PyPI: `garl-protocol@1.3.0`
+- npm: `@garl-protocol/sdk@1.2.0`, `@garl-protocol/mcp-server@1.4.0`
+- Latest release: `v1.2.0`
 
-## 2. Tam checkup — `checklist.md`'yi yürüt
+Herhangi biri uyuşmazsa, kullanıcıyla konuşmadan önce nedeni araştır.
 
-`checklist.md` 11 başlık + Nisan 15 `[NEW]` eklentileri içerir. Her
-maddeye paralel olarak şunları yap:
+---
 
-- Tek-promptla: "checklist.md'yi uygula" — explore agent'ları veya
-  paralel Bash çağrılarıyla kapsa. 14 başlığın hepsi ayrı paralel iş.
-- Her bulgu için: `hâlâ geçerli` / `kapandı` / `kısmen` etiketleyerek
-  tablolaştır.
-- Tamamlananları yeniden-araştırma; yeni sinyal geldiyse işle.
-- Sprint Nisan 15 sonrası değişiklikleri **özellikle** gözden geçir:
-  PyPI 1.2.0, F2 PR bot ops state, v16 migration, branch protection,
-  launch draft accuracy.
+## 2. Supabase + Railway durum (1 dakika)
 
-## 3. Hazırlayacağın rapor
+```bash
+# Supabase advisors (security 0 lints, performance ~12 INFO unused index normaldir)
+# Use mcp__plugin_supabase_supabase__get_advisors with project_id "leeuedosogkutlkckwwe"
+# Tables (10 olmalı: agents, traces, reputation_history, webhooks, endorsements, pr_bot_summaries, receipts, capability_tokens, compensations, merkle_batches)
 
-Tablolu, Türkçe. Bölümler:
+# Railway deploy state — backend service dee17e34, frontend service d6341c13
+# Auto-deploy on main; verify via curl /openapi.json having latest endpoints
+```
 
-1. **Özet** (1 paragraf — durum, değişen şeyler, yeni riskler)
-2. **Doğrulanan iddialar** (tablolu — son session sonundan bu yana
-   hâlâ yerinde olanlar)
-3. **Yeni tutarsızlıklar / bug'lar** (severity + dosya + öneri)
-4. **Değişen dış ortam** (rakip, regülasyon, pazar — aynı kullanıcı
-   son audit'te research agent'ını paralel çalıştırmıştı; fark
-   varsa bildir)
-5. **Öncelikli iyileştirmeler + yeni özellik önerileri** (quick-win
-   / mid / long-term ayrımı)
-6. **Senin yapman gereken** (UI-only, credential, tasarım kararı)
-7. **Plan** (dalga/faz kırılımı + her dalga için dosya listesi +
-   test planı)
+---
 
-**Kod yazma.** Son satır: "plan onayına sunuluyor, `başla` dersen
-kod aşamasına geçerim".
+## 3. GitHub repo durum (1 dakika)
 
-## 4. Bu session'da NE YAPMA
+```bash
+# Branch protection (Backend Tests + Frontend Build, byte-match)
+gh api repos/Garl-Protocol/garl/branches/main/protection | python3 -m json.tool | grep -E "contexts|required_approving_review_count" | head -5
 
-- Kod yazma / commit / push — kullanıcı `başla` demeden.
-- `main` branch'e direkt push — branch protection aktif, CI çalışmalı.
-  Yeni feature her zaman feature branch + PR + `gh pr merge --admin
-  --squash --delete-branch`.
-- Launch post yayınlama — memory rule. `launch/` altındaki draftlar
-  sadece güncellenebilir, dış platformlara gitmez.
-- Sentinel projesine başlama — `sentinel_project.md` "yeni session'da
-  `gsd:new-project`" der; bu session'da açma.
-- PEM / token / secret chat'e yazdırma. Kullanıcı gönderse de
-  `launch/credentials-inventory.md`'deki akışa çevir (keyring /
-  Railway variable --stdin).
-- `.gitignore`'daki dosyaları commit etme (`frontend/tsconfig.tsbuildinfo`,
-  `.env`, `LAUNCH_PLAYBOOK.md` gibi internal docs).
+# Open issues / PRs
+gh issue list --repo Garl-Protocol/garl --state open --limit 5
+gh pr list --repo Garl-Protocol/garl --state open --limit 5
 
-## 5. Bilmen gereken canlı sabitler (Nisan 15 itibarıyla)
+# Action repo metadata (topics + homepage olmalı)
+gh repo view Garl-Protocol/garl-receipt-action --json description,homepageUrl,repositoryTopics
+```
+
+---
+
+## 4. Tablolu raporu sun (Türkçe, kısa)
+
+Aşağıdaki şablona göre tek mesajda Arda'ya rapor ver:
+
+```markdown
+## Önceki session sonu durumu doğrulama
+
+**Beklenen baseline ile karşılaştırma:**
+| Alan | Beklenen | Bulduğum | Durum |
+|---|---|---|---|
+| Backend tests | 484 | <gerçek> | OK / drift |
+| Frontend routes | 19 | <gerçek> | OK / drift |
+| /api/v1/public-stats | 200, agent_count > 0 | <gerçek> | OK / drift |
+| garl.ai/stats | HTTP 200, 6 section render | <gerçek> | OK / drift |
+| PyPI version | 1.3.0 | <gerçek> | OK / drift |
+| npm @garl-protocol/mcp-server | 1.4.0 | <gerçek> | OK / drift |
+| Latest GH release | v1.2.0 | <gerçek> | OK / drift |
+| Supabase tables | 10 | <gerçek> | OK / drift |
+| Migration history latest | v19_advisor_fixes | <gerçek> | OK / drift |
+
+**Yeni sinyaller:**
+- (örn. "/api/v1/public-stats wave2.action_receipts.total = 5 → ilk gerçek v0.1 receipt'ler geldi!")
+- (örn. "GitHub stars: 0 → 12 → traction sinyali")
+- (örn. "Open issue #2: 'X feature gerek' geldi")
+
+**Kalan açık 3 dış-blocker (önceki session'dan):**
+1. Mainnet Base broadcast — wallet bekliyor
+2. Cloud SaaS — pricing kararı bekliyor
+3. v0.1 → v1.0 sealing — prod data bekliyor
+4. (decision) audit_2026-04-15.md history scrub — Arda onayı bekliyor
+
+**Bu session ne yapmak istiyorsun?**
+```
+
+Sonra Arda'nın yönlendirmesini bekle. **Kendiliğinden kod yazmaya başlama.**
+
+---
+
+## 5. Bu session'da NE YAPMA
+
+- Kod yazma / commit / push — Arda `başla` demeden.
+- `main` branch'e direkt push — branch protection aktif. Feature branch + PR + admin merge.
+- Force-push, history rewrite, filter-repo — `feedback_force_push_policy.md`'ye uy.
+- Launch post yayınlama — `launch/` altındaki draft'lar sadece local.
+- `audit_*.md`, `garl-strategy-*.md`, `PITCH_DECK.md`, `LAUNCH_PLAYBOOK.md`, `UI_BLUEPRINT.md`, `GARL_MASTER_PLAN.md`, `garl_security_audit.md`, `TECHNICAL_SPECIFICATION.md`'i commit etme — `.gitignore`'da.
+- Pricing/billing/SSO/Cloud SaaS scaffolding — `project_pricing_posture.md`'ye karşı.
+- Cüzdan key, secret value, JWT token chat'e yazma. Kullanıcı paylaşırsa ortam değişkenine yönlendir.
+- `python3` kullanma — macOS'ta 3.9. **Her zaman `python3.11`**.
+- Test'lerde cwd yanlışlığı — pytest **`backend/`** dizininden çalışır, repo root'tan değil.
+- "Universal Trust Standard", "SOVEREIGN TRUST LAYER", "OpenClaw", "Article 50 ready" (kod için), "20 MCP tools" (gerçek 28) — bu drift kelimelerini hiçbir yere ekleme.
+
+---
+
+## 6. Bu session'da YAPABILECEĞIN tek-tıklık iş varsa
+
+Eğer Arda `tek tıklık iş yap` derse veya açıkça onay verirse, aşağıdakiler **iç onay olmadan** çalıştırılabilir:
+
+| İş | Komut |
+|---|---|
+| Backend test suite tekrar çalıştır | `cd /Users/ardakutsal/Development/garl/backend && python3.11 -m pytest tests/ -m "not e2e" -v` |
+| Frontend build doğrula | `cd /Users/ardakutsal/Development/garl/frontend && npx next build` |
+| Live deploy state kontrol | `curl -sS https://api.garl.ai/health` + `gh pr list` + `gh release list` |
+| Supabase advisor recheck | MCP `get_advisors` tool |
+| OpenAPI snapshot fark | `curl /openapi.json` + `git diff` öncekiyle |
+
+İç onay GEREKEN işler:
+- Migration apply (Supabase MCP)
+- npm/PyPI publish
+- `gh release create`
+- `gh pr merge --admin`
+- Yeni dosya commit / push / PR open
+
+---
+
+## 7. Kullanıcı "başla" dedikten sonra çalışma protokolü
+
+1. **Tek bir feature branch aç**: `<scope>/<short-name>` (örn. `feat/v0.1-issuer-2`, `ops/rekor-bridge`).
+2. **Atomic commit**, her commit anlamlı. Co-Author trailer otomatik.
+3. **Test sonra commit**: değişiklik → test → commit. Kırık commit asla.
+4. **Push → CI yeşil bekle → admin merge** (Arda onayı per-action gerekir).
+5. **Railway propagation**: ~2-3 dakika; openapi.json'da yeni endpoint görünene kadar bekle.
+6. **Live verify**: smoke endpoint testleri (Bölüm 1).
+7. **Memory güncelle**: değişen referansları (`reference_endpoints.md`, `project_wave_history.md`, vb.) update et.
+
+---
+
+## 8. Kritik canlı sabitler (2026-04-27 itibarıyla)
 
 | Alan | Değer |
 |---|---|
 | Active ECDSA key_id | `8c6e8f25ef3bf704` |
 | GitHub App id | `3390340` (`Garl-Protocol/garl-pr-bot`) |
-| App install URL | `https://github.com/apps/garl-pr-bot` |
-| Webhook URL | `https://api.garl.ai/api/v1/pr-bot/webhook` |
 | Supabase project | `leeuedosogkutlkckwwe` (eu-west-1) |
 | Railway project | `551b6c47-e07b-4ab8-b2c0-f57267133538` |
 | Backend service | `dee17e34-080f-4385-be09-ed8d75f42bb2` |
 | Frontend service | `d6341c13-9d90-4c77-96d1-017a4db6f676` |
-| Last migration | `v16_pr_bot_summaries` (2026-04-15) |
-| Last backend deploy | `a5fc2ca` (2026-04-15, SUCCESS) |
-| Branch protection required checks | `Backend Tests`, `Frontend Build` (byte-match) |
-| PyPI latest | `garl-protocol 1.2.0` (ships `garl-verify` CLI) |
-| npm latest | `@garl-protocol/mcp-server 1.2.0`, `@garl-protocol/sdk 1.1.0` |
-| Trace state | 0 unsigned / 528 backfilled / 978 original (toplam 1506) |
-| Active agents | 58, sandbox 70, deleted 48 (toplam 131) |
-| Terminator2 share | ~%48.6 (gold, trust_score ~80) |
-| PyPI token | macOS keyring `https://upload.pypi.org/legacy/` + `__token__` |
-| PR Bot local PEM backup | `~/Downloads/garl-pr-bot.2026-04-15.private-key.pem` (asla commit etme) |
-
-## 6. Dış repo + marketplace
-
-- `Garl-Protocol/garl` — monorepo (backend + frontend + SDK + MCP +
-  docs + launch drafts)
-- `Garl-Protocol/garl-receipt-action` — GitHub Action (ayrı repo, tag
-  `v1.0.0` Marketplace'te listed)
-- PR Bot App içinde barındırılan `backend/app/services/pr_bot/`
-  (monorepo içi — Sentinel brief'teki `packages/garl-github-core/`
-  öngörüsüyle uyumlu)
-
-## 7. Araç kullanım protokolü
-
-- **Büyük kod taramaları**: `Explore` agent'ı paralel.
-- **Live API / HTTP**: WebFetch agent'ı veya paralel curl.
-- **Supabase**: `mcp__plugin_supabase_supabase__*` tool'ları.
-- **Railway**: `railway` CLI (login Arda Kutsal / Webrazzi).
-- **GitHub**: `gh` CLI (login `ardakutsal`).
-- **Test koşusu**: `cd backend && python3.11 -m pytest tests/ -m "not
-  e2e"` — 313+ test olmalı geçmesi gereken. Son bilinen yeşil durum:
-  **313 passed, 5 skipped, 10 deselected**.
-
-## 8. Frequent traps (yukarıdaki gotcha'ların kısaltılmış özeti)
-
-- `python3` macOS'ta 3.9 — pytest fail. **Her zaman `python3.11`**.
-- Launch post'larda `46% of new code is AI-generated` kullanma; onay
-  yok → Octoverse 2025 anchor form.
-- "EU AI Act Article 50" solo kullanma; triple pitch.
-- MCP "20 tools" yok; "12 named + batch variants".
-- `garl-sdk` asla paket adı değil — PyPI'da **`garl-protocol`**.
-- Branch protection `required_status_checks.contexts` job name ile
-  byte-match; drift = merge indefinitely stuck.
-- Fork PR'lar için **Action workflow yetersiz**; GitHub App (PR Bot)
-  fork-safe.
-- Webhook secret rotation 4-adım eşzamanlı (App settings + Railway
-  env + redeploy + recent deliveries verify); aksi halde 401
-  kilit.
-
-## 9. Eğer kullanıcı "başla" dedikten sonra iş yaparken
-
-- Atomic commit, her commit push + Railway auto-deploy bekle, sonra
-  smoke.
-- Feature branch'i `<scope>/<short-name>` (ör. `f3/vscode-ext`,
-  `ops/rekor-rotation`).
-- PR title: scope + ≤70 char; PR body: summary + test plan + kapatır-
-  bulgu referansı.
-- Her dalga sonu tablolu brief (ne yaptın + test sayısı + canlı
-  doğrulama + sonraki adım).
-- Bitirirken MEMORY artefactlarını güncelle (bu file format).
-
-## 10. Özel talimat: sıfır sürpriz
-
-- İşe başlarken "Önceki oturum şöyle bıraktı, şu 5 şey sende
-  doğrulanmalı:" diye tek mesajla aç.
-- Kullanıcıya 3 maddeden fazla soru sorma; kendi kararını ver,
-  belgeleyerek ilerle.
-- Kullanıcı "hepsini yap" tarzı serbest emir verirse yine tablolu
-  plan + dalga bölümlendirmesi ile dön, **sonra** kodla.
+| Last migration | `v19_advisor_fixes` (2026-04-27) |
+| Last GH release | `v1.2.0` (2026-04-27) |
+| Branch protection contexts | `Backend Tests`, `Frontend Build` |
+| MCP tool count | **28** named (+ batch variants) |
+| Top agent | `Terminator2` `3216b8ed-fa2c-452a-bda2-925cde273314` |
+| PyPI / npm whoami | `__token__` (keyring) / `garlai` |
+| gh auth | `ardakutsal` |
 
 ---
 
-_Bu dosya artefact — repo'da durur, her yeni session'ın ilk okuduğu
-şey olmalı. Güncelleme gerekirse Son güncelleme satırına tarih/commit
-hash yaz._
+## 9. Sıradaki muhtemel iş kategorileri (öneriler, Arda onaylarsa)
 
-_Son güncelleme: 2026-04-15 — F2 PR bot deploy + audit resolutions
-sprint bitişi._
+Arda yön belirtmezse, aşağıdakilerden birini öner:
+
+| Kategori | İçerik | Süre |
+|---|---|---|
+| **A — Foundry test + testnet deploy** | `forge install foundry-rs/forge-std --no-commit && forge test -vvv` (12 testin yeşil olduğunu doğrula) + Sepolia testnet'e Deploy.s.sol broadcast | 1 saat |
+| **B — Reverse-action demos** (mock-mode) | GitHub-scope agent + Calendly/Notion/Stripe-test reversible demos. Mock backend yeterli. | 2-3 saat |
+| **C — UX iyileştirmesi** | `/stats` yeni veri renderı + receipt page Capability token verifier widget + dashboard Trust Vector radar overlay | 2-3 saat |
+| **D — Trust Vector dimensions canlandır** | `reversible_action_success`, `human_override_rate`, `payment_dispute_rate` recompute job — null'lar gerçek verilerle dolsun | 2 saat |
+| **E — Documentation + spec hardening** | Action Receipt v0.1 ek örnekler, capability-token spec yaz (`protocol/spec/capability-token-v0.1.md`), self-host docs güncelleme | 1.5 saat |
+| **F — Distribution side** | "Why agents need a reputation layer" essay draft + AAIF Silver application copy + Felicis intro mail draft | Sen yapacaksın, ben sadece taslakları yazarım |
+| **G — Yeni özellik / pivot kararı** | Arda'nın getirdiği yeni yön | — |
+
+---
+
+## 10. Sıfır sürpriz ilkesi
+
+- Her yeni session "Önceki session şöyle bıraktı, şu 5 şey doğrulanmalı" diye açar (Bölüm 4 şablonu).
+- Arda'ya 3 maddeden fazla soru sorma; kendi kararını ver, belgeleyerek ilerle.
+- "Hepsini yap" tarzı serbest emir gelirse yine tablolu plan + faz bölünmesi sun, **sonra** kodla.
+- Her dalga sonu tablolu brief: ne yaptın + test sayısı + canlı doğrulama + sonraki adım.
+- Memory'yi her session sonu güncelle (özellikle `project_wave_history.md` ve `reference_endpoints.md`).
+
+---
+
+_Son güncelleme: 2026-04-27 — session-end-cleanup PR (Wave 1+2+3 ship sonrası)._

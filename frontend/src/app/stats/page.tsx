@@ -59,6 +59,12 @@ export const metadata: Metadata = {
     siteName: "GARL Protocol",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "GARL Protocol — Live Stats",
+    description:
+      "Receipts, agents, capability tokens, undos — counts pulled live from the canonical registry.",
+  },
 };
 
 async function fetchStats(): Promise<PublicStats | null> {
@@ -150,29 +156,45 @@ export default async function StatsPage() {
         <h2 className="mb-4 font-mono text-base text-garl-text">
           Action Receipt v0.1 — by side-effect class
         </h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <SideEffectCard
-            icon={ShieldCheck}
-            label="None"
-            count={sideEffect.none}
-            tone="border-emerald-500/30 bg-emerald-500/[0.05] text-emerald-300"
-            help="Read-only. No state changed."
-          />
-          <SideEffectCard
-            icon={ShieldAlert}
-            label="Reversible"
-            count={sideEffect.reversible}
-            tone="border-amber-500/30 bg-amber-500/[0.05] text-amber-300"
-            help="Mutation that one follow-up action cancels."
-          />
-          <SideEffectCard
-            icon={ShieldX}
-            label="Irreversible"
-            count={sideEffect.irreversible}
-            tone="border-red-500/30 bg-red-500/[0.05] text-red-300"
-            help="No automatic undo path."
-          />
-        </div>
+        {stats.wave2.action_receipts.total === 0 ? (
+          <div className="rounded-xl border border-dashed border-garl-border bg-garl-surface p-6 text-center">
+            <p className="font-mono text-sm text-garl-muted">
+              No Action Receipt v0.1 envelopes recorded yet.
+            </p>
+            <p className="mt-2 font-mono text-[11px] text-garl-muted">
+              The classes — <span className="text-emerald-300">none</span>,{" "}
+              <span className="text-amber-300">reversible</span>,{" "}
+              <span className="text-red-300">irreversible</span> — populate as agents start
+              submitting via{" "}
+              <code className="text-garl-text">POST /api/v1/receipts</code> or{" "}
+              <code className="text-garl-text">garl_record_action_receipt</code>.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-3">
+            <SideEffectCard
+              icon={ShieldCheck}
+              label="None"
+              count={sideEffect.none}
+              tone="border-emerald-500/30 bg-emerald-500/[0.05] text-emerald-300"
+              help="Read-only. No state changed."
+            />
+            <SideEffectCard
+              icon={ShieldAlert}
+              label="Reversible"
+              count={sideEffect.reversible}
+              tone="border-amber-500/30 bg-amber-500/[0.05] text-amber-300"
+              help="Mutation that one follow-up action cancels."
+            />
+            <SideEffectCard
+              icon={ShieldX}
+              label="Irreversible"
+              count={sideEffect.irreversible}
+              tone="border-red-500/30 bg-red-500/[0.05] text-red-300"
+              help="No automatic undo path."
+            />
+          </div>
+        )}
       </section>
 
       {/* Top agent (legacy spotlight) */}
