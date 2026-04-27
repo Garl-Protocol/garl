@@ -435,10 +435,100 @@ def get_stats() -> dict:
         .execute()
     )
 
+    # Wave 2 surfaces — counts may legitimately be 0 if v18 migration is
+    # fresh and no v0.1 receipt has landed yet. Tolerate missing tables
+    # gracefully so the endpoint stays useful through deployment churn.
+    def _count(table: str, **eq_filters) -> int:
+        try:
+            q = db.table(table).select("*", count="exact", head=True)
+            for k, v in eq_filters.items():
+                q = q.eq(k, v)
+            return q.execute().count or 0
+        except Exception:
+            return 0
+
+    receipts_total = _count("receipts")
+    receipts_reversible = _count("receipts", side_effect="reversible")
+    receipts_irreversible = _count("receipts", side_effect="irreversible")
+    receipts_none = _count("receipts", side_effect="none")
+    cap_tokens_total = _count("capability_tokens")
+    compensations_total = _count("compensations")
+
     return {
         "total_agents": agents_res.count or 0,
         "total_traces": traces_res.count or 0,
         "top_agent": top_agent_res.data[0] if top_agent_res.data else None,
+        "wave2": {
+            "action_receipts": {
+                "total": receipts_total,
+                "by_side_effect": {
+                    "none": receipts_none,
+                    "reversible": receipts_reversible,
+                    "irreversible": receipts_irreversible,
+                },
+            },
+            "capability_tokens_issued": cap_tokens_total,
+            "compensations_recorded": compensations_total,
+        },
+    }
+
+
+def get_public_stats() -> dict:
+    """Extended public dashboard stats. Adds active-agents-7d,
+    active-capability-tokens, succeeded-compensations on top of get_stats.
+    Used by https://garl.ai/stats."""
+    from datetime import datetime, timedelta, timezone
+
+    db = get_supabase()
+    base = get_stats()
+
+    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    def _count_active_tokens() -> int:
+        try:
+            return (
+                db.table("capability_tokens")
+                .select("*", count="exact", head=True)
+                .is_("revoked_at", "null")
+                .gt("expires_at", now_iso)
+                .execute()
+                .count
+                or 0
+            )
+        except Exception:
+            return 0
+
+    def _count_succeeded_comps() -> int:
+        try:
+            return (
+                db.table("compensations")
+                .select("*", count="exact", head=True)
+                .eq("status", "succeeded")
+                .execute()
+                .count
+                or 0
+            )
+        except Exception:
+            return 0
+
+    active_7d = (
+        db.table("agents")
+        .select("*", count="exact", head=True)
+        .eq("is_deleted", False)
+        .eq("is_sandbox", False)
+        .gte("last_trace_at", seven_days_ago)
+        .execute()
+        .count
+        or 0
+    )
+
+    return {
+        **base,
+        "active_agents_7d": active_7d,
+        "capability_tokens_active": _count_active_tokens(),
+        "compensations_succeeded": _count_succeeded_comps(),
+        "protocol_version": "1.4.0",
     }
 
 

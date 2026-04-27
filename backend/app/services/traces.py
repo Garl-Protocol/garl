@@ -55,6 +55,12 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
     if not hmac.compare_digest(agent.get("api_key_hash", ""), api_key_hash):
         raise PermissionError("Invalid API key for this agent")
 
+    # Silent abuse guard: per-agent monthly cap (10K/month default). Raises
+    # 429 with Retry-After if exceeded. Legitimate workflows never see it;
+    # operator can raise via GARL_MONTHLY_RECEIPT_CAP env var if needed.
+    from app.services.monthly_cap import enforce_monthly_cap
+    enforce_monthly_cap(req.agent_id)
+
     total_traces = int(agent["total_traces"])
     successes = int(agent["success_count"])
     consecutive = int(agent.get("consecutive_successes", 0))

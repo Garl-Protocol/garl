@@ -616,6 +616,160 @@ class GarlClient:
         self.stop_heartbeat()
         self.close()
 
+    # ──────────────────────────────────────────────
+    #  Wave 2 — Trust Vector, Action Receipt v0.1, Capability tokens, Undo
+    # ──────────────────────────────────────────────
+
+    def trust_vector(self, agent_id: str | None = None) -> dict:
+        """Get the multi-dimensional Trust Vector v0.1 for an agent.
+
+        Different domains stress different dimensions; consumers prefer
+        this over the legacy single ``trust_score`` for cross-domain
+        decisions. ``null`` dimensions = "not yet measured", not "zero".
+        """
+        target = agent_id or self.agent_id
+        resp = _retry_request(self._client.get, f"/agents/{target}/trust-vector")
+        resp.raise_for_status()
+        return resp.json()
+
+    def submit_action_receipt(
+        self,
+        *,
+        action_type: str,
+        side_effect: str,
+        input_hash: str,
+        output_hash: str,
+        runtime: str = "mcp-client",
+        protocol: str = "mcp",
+        tool_server: str | None = None,
+        capability_token_hash: str | None = None,
+        policy_decision: str | None = None,
+        cost: dict | None = None,
+        previous_receipt_hash: str | None = None,
+        attestations: list[str] | None = None,
+        human_delegate: str | None = None,
+    ) -> dict:
+        """Submit a generic Action Receipt v0.1 (any tool call, not just commits).
+
+        Caller is responsible for hashing input + output bytes locally
+        (SHA-256 of canonical JSON) — this method only persists the
+        envelope. Returns the canonical envelope as it appears at
+        ``/api/v1/receipts/{id}/cert.json``.
+        """
+        body = {
+            "agent_id": self.agent_id,
+            "runtime": runtime,
+            "protocol": protocol,
+            "action_type": action_type,
+            "input_hash": input_hash,
+            "output_hash": output_hash,
+            "side_effect": side_effect,
+        }
+        if tool_server: body["tool_server"] = tool_server
+        if capability_token_hash: body["capability_token_hash"] = capability_token_hash
+        if policy_decision: body["policy_decision"] = policy_decision
+        if cost: body["cost"] = cost
+        if previous_receipt_hash: body["previous_receipt_hash"] = previous_receipt_hash
+        if attestations: body["attestations"] = attestations
+        if human_delegate: body["human_delegate"] = human_delegate
+        resp = _retry_request(self._client.post, "/receipts", json=body)
+        resp.raise_for_status()
+        return resp.json()
+
+    def issue_capability_token(
+        self,
+        *,
+        scope: str,
+        side_effect_class: str,
+        expires_in_seconds: int = 3600,
+        spend_limit_usd: float | None = None,
+        merchant_allowlist: list[str] | None = None,
+        caveats: list[dict] | None = None,
+        parent_token_hash: str | None = None,
+        human_delegate: str | None = None,
+    ) -> dict:
+        """Mint a fresh capability token for this agent. Returns
+        ``{token, token_hash, expires_at, claims}``."""
+        body = {
+            "agent_id": self.agent_id,
+            "scope": scope,
+            "side_effect_class": side_effect_class,
+            "expires_in_seconds": expires_in_seconds,
+        }
+        if spend_limit_usd is not None: body["spend_limit_usd"] = spend_limit_usd
+        if merchant_allowlist: body["merchant_allowlist"] = merchant_allowlist
+        if caveats: body["caveats"] = caveats
+        if parent_token_hash: body["parent_token_hash"] = parent_token_hash
+        if human_delegate: body["human_delegate"] = human_delegate
+        resp = _retry_request(self._client.post, "/capability/issue", json=body)
+        resp.raise_for_status()
+        return resp.json()
+
+    def verify_capability_token(self, token: str, *, check_revocation: bool = True) -> dict:
+        """Returns ``{valid: bool, claims | reason}``."""
+        resp = _retry_request(
+            self._client.post,
+            "/capability/verify",
+            json={"token": token, "check_revocation": check_revocation},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    def revoke_capability_token(
+        self, token_hash: str, reason: str = "manual-revoke", *, cascade: bool = True
+    ) -> dict:
+        """Revoke a token + cascade to all attenuated descendants."""
+        resp = _retry_request(
+            self._client.post,
+            "/capability/revoke",
+            json={"token_hash": token_hash, "reason": reason, "cascade": cascade},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    def evaluate_action(
+        self,
+        *,
+        action_type: str,
+        side_effect_class: str,
+        target: str | None = None,
+        requested_scope: str | None = None,
+        expires_in_seconds: int = 3600,
+        spend_limit_usd: float | None = None,
+        merchant_allowlist: list[str] | None = None,
+        threshold_override: float | None = None,
+    ) -> dict:
+        """Capability Gate pre-flight: should this agent perform this action?
+        Returns ``{decision, reason, score, threshold, dimension, [token]}``.
+        If ``decision == "allowed"``, the response includes a freshly-minted
+        token already scoped to the action."""
+        body = {
+            "agent_id": self.agent_id,
+            "action_type": action_type,
+            "side_effect_class": side_effect_class,
+            "expires_in_seconds": expires_in_seconds,
+        }
+        if target: body["target"] = target
+        if requested_scope: body["requested_scope"] = requested_scope
+        if spend_limit_usd is not None: body["spend_limit_usd"] = spend_limit_usd
+        if merchant_allowlist: body["merchant_allowlist"] = merchant_allowlist
+        if threshold_override is not None: body["threshold_override"] = threshold_override
+        resp = _retry_request(self._client.post, "/capability/evaluate", json=body)
+        resp.raise_for_status()
+        return resp.json()
+
+    def undo_receipt(self, receipt_id: str, reason: str = "consumer-initiated-undo") -> dict:
+        """Trigger UETA §10(b) consumer-undo. Returns the recorded
+        ``undo_payload`` for the caller to actually execute. Raises 409 if
+        the receipt was classified irreversible or has no compensation."""
+        resp = _retry_request(
+            self._client.post,
+            f"/receipts/{receipt_id}/undo",
+            json={"reason": reason},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
 
 # ──────────────────────────────────────────────
 #  Async Client

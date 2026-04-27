@@ -35,6 +35,7 @@ from app.services.agents import (
     get_leaderboard,
     get_recent_traces,
     get_stats,
+    get_public_stats,
     get_a2a_trust,
     get_agent_card,
     compare_agents,
@@ -1432,6 +1433,16 @@ async def activity_feed(request: Request, limit: int = 20, offset: int = 0):
             "hash_algorithm": "SHA-256",
         }
     return result
+
+
+@router.get(
+    "/public-stats",
+    summary="Public dashboard stats (Wave 2 — receipts, capabilities, compensations)",
+    tags=["Discovery"],
+)
+async def public_dashboard_stats():
+    """Live public counts. Used by https://garl.ai/stats. No auth, cache-friendly."""
+    return get_public_stats()
 
 
 @router.get("/stats", summary="Protocol statistics", tags=["Discovery"])
