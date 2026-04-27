@@ -60,6 +60,9 @@ GARL_MASTER_PLAN.md
 garl-strategy-*.md
 audit_*.md
 
+# Personal launch drafts (kept local; not for the public repo)
+launch/x-thread-*.md
+
 # MCP Registry tokens & CLI
 .mcpregistry_*
 mcp-publisher
