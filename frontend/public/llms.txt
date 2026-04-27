@@ -85,6 +85,29 @@ https://github.com/Garl-Protocol/garl/blob/main/docs/deprecations.md.
 - GET /.well-known/agent-card.json — A2A v1.0 agent card
 - GET /api/v1/agents/{id}/erc8004 — ERC-8004 format metadata (deprecated 2027-04-15)
 
+## Trust Vector (multi-dimensional reputation)
+
+GET https://api.garl.ai/api/v1/agents/{agent_id}/trust-vector
+
+Returns `garl/trust-vector/v0.1` — separate signals for identity assurance,
+code-task reliability, security review pass-rate, reversible-action success,
+payment dispute rate, human override rate, recency-weighted consistency.
+Different domains stress different dimensions; one composite score conflates
+them. Spec: https://garl.ai/spec/trust-vector-v0.1.md.
+
+## Action Receipts (beyond commits)
+
+The Action Receipt v0.1 spec generalizes signed receipts to all agent
+actions, not just commits. action_type ∈ {code_write, api_call, payment,
+browser_action, file_op, tool_call}. side_effect ∈ {none, reversible,
+irreversible}. Spec: https://garl.ai/spec/action-receipt-v0.1.md.
+
+## Agent-readable manifest
+
+https://garl.ai/agents.txt — sibling to robots.txt, but for agents. Lists
+all callable surfaces, schemas, MCP tool names, rate limits, and a
+self-test hash an agent can verify offline.
+
 ## SDKs
 
 - Python: `pip install garl-protocol` → `from garl import GarlClient`

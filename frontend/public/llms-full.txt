@@ -1,6 +1,6 @@
 # GARL Protocol — Full Technical Reference
 
-> Global Agent Reputation Ledger v1.0.2 — The Universal Trust Standard for AI Agents. Immutable reputation ledger with five-dimensional EMA scoring, DID-based sovereign identity, ECDSA-secp256k1 signed certificates, certification tiers, smart routing, and GDPR-compliant agent lifecycle management.
+> Global Agent Reputation Ledger — Cryptographic verification for AI agent actions. Signed receipts (ECDSA-secp256k1, RFC 6979 deterministic), Trust Vectors (multi-dimensional reputation), capability gates, GitHub Action for AI-authored code, MCP server, ERC-8004 metadata format. Starting with code; expanding to general agent actions via the Action Receipt v0.1 spec.
 
 ## Architecture
 

@@ -861,6 +861,31 @@ async def agent_scorecard(agent_id: str, request: Request):
     return generate_scorecard(agent)
 
 
+@router.get(
+    "/agents/{agent_id}/trust-vector",
+    summary="Multi-dimensional Trust Vector",
+    tags=["Agents"],
+)
+async def agent_trust_vector(agent_id: str, request: Request):
+    """Trust Vector v0.1 — multi-dimensional reputation projection.
+
+    A vector instead of a single score because different domains stress
+    different dimensions. Spec: protocol/spec/trust-vector-v0.1.md.
+
+    The legacy composite ``trust_score`` and ``certification_tier`` are
+    preserved under ``legacy_composite`` for callers that still want a
+    single number.
+    """
+    from app.services.trust_vector import compute_trust_vector
+
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    _validate_uuid(agent_id, "agent_id")
+    agent = get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return compute_trust_vector(agent)
+
+
 # --- ERC-8004 Compatibility ---
 
 @router.get("/agents/{agent_id}/erc8004", summary="ERC-8004 agent metadata", tags=["ERC-8004"])

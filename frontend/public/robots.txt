@@ -16,8 +16,8 @@ Allow: /
 Sitemap: https://garl.ai/sitemap.xml
 
 # AI Agent Discovery
-# Agent Card: https://api.garl.ai/.well-known/agent.json
+# Agent-Readable Manifest: https://garl.ai/agents.txt
 # LLM Context: https://garl.ai/llms.txt
 # Full Docs: https://garl.ai/llms-full.txt
 # Agent Onboarding: https://garl.ai/skill.md
-# Trust Heartbeat: https://garl.ai/heartbeat.md
+# Public Key Registry: https://api.garl.ai/.well-known/garl-keys.json
