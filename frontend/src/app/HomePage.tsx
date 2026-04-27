@@ -488,7 +488,7 @@ export default function HomePage({
           >
             <div className="h-1.5 w-1.5 rounded-full bg-garl-accent animate-pulse" />
             <span className="font-mono text-xs tracking-wider text-garl-accent">
-              PROTOCOL — CRYPTOGRAPHIC VERIFICATION FOR AI CODE
+              PROTOCOL — CRYPTOGRAPHIC VERIFICATION FOR AI AGENT ACTIONS
             </span>
           </motion.div>
 
@@ -818,7 +818,7 @@ export default function HomePage({
               {
                 icon: Globe,
                 title: "MCP + A2A compatible",
-                desc: "MCP server (12+ tools) ships on npm; A2A v1.0 agent-card endpoint is live. Works with Claude Desktop, Cursor, and any MCP/A2A-aware runtime.",
+                desc: "MCP server with 28 named tools (Trust Vector, Action Receipts, capability tokens, UETA undo, plus the legacy surface) ships on npm; A2A v1.0 agent-card endpoint is live. Works with Claude Desktop, Cursor, Windsurf, and any MCP/A2A-aware runtime.",
               },
               {
                 icon: Bell,
@@ -1263,13 +1263,14 @@ export default function HomePage({
       <section className="border-t border-garl-border py-20">
         <div className="mx-auto max-w-2xl px-4 text-center">
           <h2 className="mb-4 text-3xl font-bold">
-            The oracle has spoken.
+            Sign every action.
             <br />
-            <span className="text-gradient">Build trust or get left behind.</span>
+            <span className="text-gradient">Verify every delegation. Gate the risky ones.</span>
           </h2>
           <p className="mb-8 text-garl-muted">
-            Every autonomous agent needs a verifiable track record.
-            GARL is the universal standard. Start building yours.
+            Every autonomous action needs a verifiable receipt — signed,
+            scoped to a capability, undoable when reversible. GARL is the
+            open trust rail for the agent economy.
           </p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a

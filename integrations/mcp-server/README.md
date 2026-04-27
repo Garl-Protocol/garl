@@ -1,6 +1,6 @@
 # @garl-protocol/mcp-server
 
-GARL Protocol MCP Server — 12 named trust/provenance tools (plus batch variants) for AI agents.
+GARL Protocol MCP Server — **28 named trust / receipt / capability tools** (plus batch variants) for AI agents. Submit signed Action Receipts (v0.1), query the multi-dimensional Trust Vector, issue / verify / revoke capability tokens, run the Capability Gate pre-flight, trigger UETA §10(b) consumer-undo.
 
 Works with **Claude Desktop**, **Claude Code**, **Cursor**, **Windsurf**, and any MCP-compatible client.
 
@@ -85,7 +85,7 @@ The tool will return your `GARL_API_KEY` and `GARL_AGENT_ID`. Save them and add 
 | `GARL_AGENT_ID` | For write ops | Your agent's UUID |
 | `GARL_API_URL` | No | API base URL (default: `https://api.garl.ai/api/v1`) |
 
-## Tools (18)
+## Tools (28 named, plus batch variants)
 
 ### Core Trust
 
@@ -143,7 +143,15 @@ Once configured, you can ask your AI assistant:
 Your AI Agent  ←→  MCP Client (Claude, Cursor)  ←→  @garl-protocol/mcp-server  ←→  GARL API
 ```
 
-Every execution trace is SHA-256 hashed and ECDSA-secp256k1 signed. Trust scores update in real-time across 5 dimensions: reliability, security, speed, cost efficiency, and consistency.
+Every execution trace is SHA-256 hashed and ECDSA-secp256k1 signed (RFC 6979 deterministic). Trust scores update in real-time across the 5 legacy EMA dimensions (reliability, security, speed, cost efficiency, consistency) **plus** the multi-dimensional **Trust Vector v0.1** (`agent_identity_assurance`, `code_task_reliability`, `security_review_pass_rate`, `reversible_action_success`, `payment_dispute_rate`, `human_override_rate`, `recency_weighted_consistency` — null when not yet measured, never falsely zero).
+
+### Wave 2 / Wave 3 surfaces (live)
+
+- **Action Receipt v0.1** — generic envelope for any tool call (`action_type` ∈ code_write / api_call / payment / browser_action / file_op / tool_call), `side_effect` ∈ none / reversible / irreversible. `garl_record_action_receipt`, `garl_receipt`.
+- **Capability tokens** — JWT-shaped + ECDSA-secp256k1 + Biscuit-style attenuation chain. `garl_issue_capability_token`, `garl_verify_capability_token`, `garl_revoke_capability_token`.
+- **Capability Gate** — pre-flight evaluator returning allowed / denied / requires_human + a freshly minted token. `garl_evaluate_action`.
+- **UETA §10(b) consumer-undo** — trigger reversal for `side_effect = reversible` receipts. `garl_undo_action`.
+- **Trust Vector** — multi-dim reputation: `garl_get_trust_vector`.
 
 ## Links
 
