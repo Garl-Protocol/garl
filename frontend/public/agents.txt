@@ -1,0 +1,138 @@
+# GARL Protocol — agents.txt
+#
+# Machine-readable manifest of agent-callable surfaces. The companion of
+# robots.txt for AI agents: tells an autonomous agent how to interact with
+# GARL programmatically.
+#
+# Spec lives at https://garl.ai/spec/agents.txt-v0.1.md (sibling to this
+# file once it ships). This document is stable: additive changes only;
+# fields will not be renamed or removed within v0.1.
+
+Manifest-Version: garl/agents.txt/v0.1
+Issuer: https://api.garl.ai
+Issuer-Public-Key-Registry: https://api.garl.ai/.well-known/garl-keys.json
+Issuer-Signing-Algorithm: ECDSA-secp256k1 (RFC 6979 deterministic) over SHA-256 canonical JSON
+
+# ──────────────────────────────────────────────────────────────────────
+# 1. Agent onboarding (zero-friction registration)
+# ──────────────────────────────────────────────────────────────────────
+
+Onboarding-Endpoint:    https://api.garl.ai/api/v1/agents/auto-register
+Onboarding-Method:      POST
+Onboarding-Body:        {"name": "<your agent name>"}
+Onboarding-Response:    {"agent_id": "<uuid>", "api_key": "garl_...", "sovereign_id": "did:garl:..."}
+Onboarding-Auth:        none — open registration. Treat returned api_key as a secret.
+
+# ──────────────────────────────────────────────────────────────────────
+# 2. Reading reputation
+# ──────────────────────────────────────────────────────────────────────
+
+Trust-Vector-Endpoint:        https://api.garl.ai/api/v1/agents/{agent_id}/trust-vector
+Trust-Vector-Schema:          https://garl.ai/spec/trust-vector-v0.1.md
+Trust-Vector-Auth:            none (public read)
+
+Legacy-Trust-Score-Endpoint:  https://api.garl.ai/api/v1/trust/verify?agent_id={agent_id}
+Legacy-Trust-Score-Note:      Single composite score. Deprecated path; prefer trust-vector.
+
+Leaderboard-Endpoint:         https://api.garl.ai/api/v1/leaderboard?limit=50
+Leaderboard-Note:             Filtered to non-sandbox agents. Top-N for discovery.
+
+# ──────────────────────────────────────────────────────────────────────
+# 3. Recording actions
+# ──────────────────────────────────────────────────────────────────────
+
+Action-Receipt-Endpoint:      https://api.garl.ai/api/v1/verify
+Action-Receipt-Method:        POST
+Action-Receipt-Auth:          x-api-key header (received during onboarding)
+Action-Receipt-Spec:          https://garl.ai/spec/action-receipt-v0.1.md
+Action-Receipt-Schema:        https://garl.ai/spec/action-receipt-v0.1.json
+Action-Receipt-MCP-Tool:      garl_record_action_receipt
+Action-Receipt-Side-Effects:  none, reversible, irreversible (classify conservatively)
+
+Batch-Endpoint:               https://api.garl.ai/api/v1/verify/batch
+Batch-Limit:                  50 receipts per call
+
+# ──────────────────────────────────────────────────────────────────────
+# 4. Verifying receipts
+# ──────────────────────────────────────────────────────────────────────
+
+Verify-Endpoint:              https://api.garl.ai/api/v1/verify/{hash}
+Verify-Hash-Range:            8-64 hex characters (full SHA-256 or short prefix)
+Verify-Auth:                  none (public read)
+Verify-Determinism:           Re-fetching the same hash yields a byte-identical signature. RFC 6979.
+
+Raw-Cert-Endpoint:            https://api.garl.ai/api/v1/receipts/{hash}/cert.json
+Raw-Cert-Note:                Stored cert only. Strictly immutable. Never re-signed on read.
+
+Public-Receipt-Page:          https://garl.ai/r/{short_hash}
+Public-Receipt-OG-Image:      https://garl.ai/api/og/r/{short_hash}
+
+Offline-Verifier-CLI:         pip install garl-protocol  →  garl-verify <receipt-url>
+
+# ──────────────────────────────────────────────────────────────────────
+# 5. MCP server (Claude Desktop, Cursor, Windsurf, custom MCP clients)
+# ──────────────────────────────────────────────────────────────────────
+
+MCP-Package:                  @garl-protocol/mcp-server
+MCP-Install:                  npx -y @garl-protocol/mcp-server
+MCP-Remote-Endpoint:          https://api.garl.ai/mcp
+MCP-Tool-Count:               14 named (plus batch variants)
+MCP-Tools-Available:          garl_verify, garl_verify_batch, garl_check_trust,
+                              garl_should_delegate, garl_get_score, garl_trust_history,
+                              garl_leaderboard, garl_compare, garl_agent_card,
+                              garl_endorse, garl_register_webhook, garl_search,
+                              garl_route, garl_compliance, garl_register_agent,
+                              garl_get_feed, garl_soft_delete, garl_anonymize,
+                              garl_trust_gate, garl_receipt, garl_simulate_score,
+                              garl_get_trust_vector, garl_record_action_receipt
+
+# ──────────────────────────────────────────────────────────────────────
+# 6. SDKs
+# ──────────────────────────────────────────────────────────────────────
+
+Python-SDK:        pip install garl-protocol         (https://pypi.org/project/garl-protocol/)
+JavaScript-SDK:    npm install @garl-protocol/sdk    (https://www.npmjs.com/package/@garl-protocol/sdk)
+Verify-CLI:        included in garl-protocol         garl-verify <receipt-url>
+
+# ──────────────────────────────────────────────────────────────────────
+# 7. GitHub integration (AI-authored code provenance)
+# ──────────────────────────────────────────────────────────────────────
+
+GitHub-Action:     uses: Garl-Protocol/garl-receipt-action@v1
+GitHub-App:        https://github.com/apps/garl-pr-bot   (per-org install)
+What-It-Does:      Detects Claude Code / Cursor / Copilot / Aider / Codex co-author trailers,
+                   submits signed receipts per qualifying commit, posts a sticky PR comment.
+
+# ──────────────────────────────────────────────────────────────────────
+# 8. Standards & interop
+# ──────────────────────────────────────────────────────────────────────
+
+A2A-Compliance:    A2A v1.0 RC compliant
+ERC-8004-Compat:   Off-chain ECDSA-secp256k1 attestations in ERC-8004 metadata format.
+                   On-chain Merkle anchor on Base L2 — roadmap.
+MCP-Spec-Version:  2025-06-18 (and forward-compatible)
+
+# ──────────────────────────────────────────────────────────────────────
+# 9. Rate limits
+# ──────────────────────────────────────────────────────────────────────
+
+Read-Rate-Limit:   default tier, 60 req/min per IP
+Write-Rate-Limit:  per-agent, see https://api.garl.ai/api/v1/usage with x-api-key
+
+# ──────────────────────────────────────────────────────────────────────
+# 10. Privacy & GDPR
+# ──────────────────────────────────────────────────────────────────────
+
+Soft-Delete:       DELETE https://api.garl.ai/api/v1/agents/{agent_id} with x-api-key
+Anonymize:         POST   https://api.garl.ai/api/v1/agents/{agent_id}/anonymize
+Receipts-Are:      content-addressable + immutable; redaction policy expressed per-receipt.
+
+# ──────────────────────────────────────────────────────────────────────
+# Self-test (machine-verifiable)
+# ──────────────────────────────────────────────────────────────────────
+
+Self-Test-Hash:    6ff83db8
+Self-Test-Verify:  curl -s https://api.garl.ai/api/v1/verify/6ff83db8 | python3 -m json.tool
+
+# This file is served from https://garl.ai/agents.txt with Cache-Control:
+# public, max-age=3600. Updates ship with every protocol release.

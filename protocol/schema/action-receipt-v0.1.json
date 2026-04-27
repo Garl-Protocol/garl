@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://garl.ai/spec/action-receipt-v0.1.json",
+  "title": "GARL Action Receipt v0.1",
+  "description": "Signed, content-addressable record of an agent action. See protocol/spec/action-receipt-v0.1.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_id",
+    "version",
+    "issuer",
+    "agent_identity",
+    "human_delegate",
+    "runtime",
+    "protocol",
+    "action_type",
+    "input_hash",
+    "output_hash",
+    "side_effect",
+    "timestamp",
+    "signature",
+    "verification_key_id"
+  ],
+  "properties": {
+    "receipt_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Issuer-assigned unique identifier."
+    },
+    "version": {
+      "const": "garl/action-receipt/v0.1"
+    },
+    "issuer": {
+      "type": "string",
+      "format": "uri",
+      "description": "Canonical: https://api.garl.ai. Self-hosted issuers use their own origin."
+    },
+    "agent_identity": {
+      "type": "string",
+      "pattern": "^did:[a-z0-9]+:.+$",
+      "description": "Decentralized identifier. did:garl:<uuid> initially; other DID methods reserved."
+    },
+    "human_delegate": {
+      "type": ["string", "null"],
+      "description": "Stable opaque ID of the human under whose authority the agent acted, or null."
+    },
+    "runtime": {
+      "enum": [
+        "claude-code",
+        "cursor",
+        "copilot",
+        "aider",
+        "codex",
+        "mcp-client",
+        "langchain",
+        "crewai",
+        "llamaindex",
+        "semantic-kernel",
+        "custom"
+      ]
+    },
+    "protocol": {
+      "enum": [
+        "github",
+        "mcp",
+        "a2a",
+        "acp",
+        "ap2",
+        "x402",
+        "raw-http"
+      ]
+    },
+    "action_type": {
+      "enum": [
+        "code_write",
+        "api_call",
+        "payment",
+        "browser_action",
+        "file_op",
+        "tool_call"
+      ]
+    },
+    "tool_server": {
+      "type": ["string", "null"],
+      "format": "uri"
+    },
+    "capability_request": {
+      "$ref": "#/$defs/capability_request"
+    },
+    "policy_decision": {
+      "enum": ["allowed", "denied", "requires_human"]
+    },
+    "input_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 of canonical JSON of the input payload."
+    },
+    "output_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 of canonical JSON of the output payload."
+    },
+    "side_effect": {
+      "enum": ["none", "reversible", "irreversible"],
+      "description": "Reversibility class. Issuers MUST classify conservatively (when in doubt, irreversible)."
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "usd": {"type": "number", "minimum": 0},
+        "tokens_in": {"type": "integer", "minimum": 0},
+        "tokens_out": {"type": "integer", "minimum": 0},
+        "duration_ms": {"type": "integer", "minimum": 0}
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "previous_receipt_hash": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "attestations": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Free-form claims independently verified. v1.0 may upgrade to a structured shape."
+    },
+    "redaction_policy": {
+      "type": ["object", "null"],
+      "properties": {
+        "public_fields": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "redacted_fields": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[a-f0-9]+$",
+      "description": "RFC 6979 deterministic ECDSA-secp256k1 over the canonical receipt minus signature and verification_key_id."
+    },
+    "verification_key_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{16}$",
+      "description": "First 16 hex of SHA-256 of the public key. Looked up in /.well-known/garl-keys.json."
+    }
+  },
+  "$defs": {
+    "capability_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["token_hash", "side_effect_class"],
+      "properties": {
+        "token_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "scope": {"type": "string"},
+        "issued_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"},
+        "spend_limit_usd": {"type": "number", "minimum": 0},
+        "merchant_allowlist": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "side_effect_class": {
+          "enum": ["none", "reversible", "irreversible"]
+        }
+      }
+    }
+  }
+}
