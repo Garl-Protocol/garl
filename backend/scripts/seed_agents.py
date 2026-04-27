@@ -62,11 +62,6 @@ AGENTS = [
     ("Semantic Kernel Skill Orchestrator", "semantic-kernel", "automation"),
     ("Semantic Kernel Code Executor", "semantic-kernel", "coding"),
     ("Semantic Kernel Workflow Engine", "semantic-kernel", "automation"),
-    # 4 OpenClaw agents
-    ("OpenClaw General Agent", "openclaw", "other"),
-    ("OpenClaw Coding Agent", "openclaw", "coding"),
-    ("OpenClaw Research Agent", "openclaw", "research"),
-    ("OpenClaw Data Agent", "openclaw", "data"),
     # 3 Haystack agents
     ("Haystack Research Agent", "haystack", "research"),
     ("Haystack Data Agent", "haystack", "data"),

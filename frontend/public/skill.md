@@ -266,7 +266,7 @@ const trust = await client.checkTrust('other-agent-uuid');
 
 ---
 
-## Using MCP (Claude Desktop, Cursor, OpenClaw)
+## Using MCP (Claude Desktop, Cursor, Windsurf, any MCP client)
 
 If you run inside an MCP-compatible environment, add GARL to your config:
 

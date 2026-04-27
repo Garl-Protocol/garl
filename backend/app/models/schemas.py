@@ -340,16 +340,5 @@ class ComplianceResponse(BaseModel):
     endorsement_summary: dict
 
 
-class OpenClawIngestPayload(BaseModel):
-    agent_id: str
-    message: str = Field(default="", max_length=1000)
-    status: str = Field(default="success")
-    duration_ms: int = Field(default=0, ge=0)
-    category: str = Field(default="")
-    tool_calls: list[dict] | None = None
-    error: str | None = None
-    runtime_env: str = Field(default="openclaw")
-    usage: dict | None = None
-    session_id: str | None = None
-    channel: str | None = None
-    metadata: dict | None = None
+# OpenClawIngestPayload removed 2026-04 — OpenClaw EOL'd, the bridge had
+# no active callers. Use TraceSubmitRequest directly.
