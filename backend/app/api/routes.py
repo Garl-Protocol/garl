@@ -27,7 +27,6 @@ from app.models.schemas import (
     EndorsementRequest,
     SoftDeleteRequest,
     AnonymizeRequest,
-    OpenClawIngestPayload,
 )
 from app.services.agents import (
     register_agent,
@@ -1991,71 +1990,10 @@ async def read_compliance(agent_id: str, x_api_key: str | None = Header(default=
     return report
 
 
-# --- OpenClaw Integration ---
-
-CATEGORY_KEYWORDS = {
-    "coding": ["code", "function", "api", "bug", "fix", "implement", "refactor", "test", "deploy", "build"],
-    "research": ["research", "analyze", "find", "search", "investigate", "compare", "review", "study"],
-    "data": ["data", "csv", "json", "database", "query", "transform", "pipeline", "extract"],
-    "automation": ["automate", "schedule", "cron", "workflow", "script", "batch", "pipeline"],
-    "sales": ["email", "outreach", "proposal", "pitch", "customer", "lead", "crm"],
-}
-
-
-def _infer_category(message: str) -> str:
-    msg_lower = message.lower()
-    scores = {}
-    for cat, keywords in CATEGORY_KEYWORDS.items():
-        scores[cat] = sum(1 for kw in keywords if kw in msg_lower)
-    best = max(scores, key=scores.get)
-    return best if scores[best] > 0 else "other"
-
-
-@router.post("/ingest/openclaw", summary="OpenClaw trace ingest", tags=["Integrations"])
-async def ingest_openclaw(request: Request, payload: OpenClawIngestPayload, x_api_key: str = Header(...)):
-    _check_rate_limit(x_api_key[:16], "default", request)
-
-    status = "failure" if payload.error else payload.status
-    if status not in ("success", "failure", "partial"):
-        status = "success"
-
-    category = payload.category or _infer_category(payload.message)
-
-    cost_usd = None
-    if payload.usage and "cost_usd" in payload.usage:
-        cost_usd = payload.usage["cost_usd"]
-
-    tool_calls_data = None
-    if payload.tool_calls:
-        tool_calls_data = [
-            {"name": tc.get("name", "unknown"), "duration_ms": tc.get("duration_ms")}
-            for tc in payload.tool_calls
-        ]
-
-    trace_req = TraceSubmitRequest(
-        agent_id=payload.agent_id,
-        task_description=payload.message[:1000] if payload.message else "OpenClaw task",
-        status=status,
-        duration_ms=max(payload.duration_ms, 0),
-        category=category,
-        runtime_env=payload.runtime_env or "openclaw",
-        tool_calls=tool_calls_data,
-        cost_usd=cost_usd,
-        metadata={
-            "source": "openclaw",
-            "channel": payload.channel,
-            "session_id": payload.session_id,
-            **(payload.metadata or {}),
-        },
-    )
-
-    try:
-        result = submit_trace(trace_req, x_api_key)
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+# OpenClaw integration removed in 2026-04 — OpenClaw EOL'd, the bridge had
+# no active callers. Submit traces via POST /api/v1/verify directly, or
+# use Action Receipt v0.1 (POST /api/v1/verify with security_context.
+# action_receipt_version="garl/action-receipt/v0.1").
 
 
 # --- Agent Search ---

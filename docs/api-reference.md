@@ -88,8 +88,8 @@ GARL Protocol exposes 32+ REST endpoints, an A2A JSON-RPC interface, and a remot
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/v1/ingest/openclaw` | OpenClaw webhook bridge |
 | `GET` | `/health` | Health check + version info |
+| `GET` | `/agents.txt` | Machine-readable agent manifest (sibling of robots.txt) |
 
 ---
 
