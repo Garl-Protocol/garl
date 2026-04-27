@@ -380,7 +380,6 @@ async def well_known_agent(agent_id: str = Query(default=None)):
             "agent_comparison": True,
             "webhook_notifications": True,
             "svg_badges": True,
-            "openclaw_bridge": True,
             "sybil_resistant_endorsements": True,
             "pii_masking": True,
             "anomaly_detection": True,
@@ -428,9 +427,6 @@ async def well_known_agent(agent_id: str = Query(default=None)):
                 "garl_register_agent", "garl_get_feed",
             ],
         },
-        "openclaw": {
-            "skill": "garl-reputation",
-            "webhook_endpoint": "/api/v1/ingest/openclaw",
-        },
+        "agent_manifest": "https://garl.ai/agents.txt",
         "llms_txt": "https://garl.ai/llms.txt",
     }

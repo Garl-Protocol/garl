@@ -997,75 +997,10 @@ class _TrackedExecution:
         return False
 
 
-# ──────────────────────────────────────────────
-#  OpenClaw Adapter
-# ──────────────────────────────────────────────
-
-class OpenClawAdapter:
-    """Adapter for OpenClaw agents — automatic trace reporting + trust-gated delegation."""
-
-    def __init__(self, api_key: str, agent_id: str, base_url: str = "https://api.garl.ai/api/v1"):
-        self.client = GarlClient(api_key, agent_id, base_url)
-        self.agent_id = agent_id
-
-    def report_task(self, message: str, duration_ms: int = 0, status: str = "success",
-                    channel: str | None = None, session_id: str | None = None,
-                    tool_calls: list[dict] | None = None, cost_usd: float | None = None,
-                    category: str = "") -> dict:
-        """Convert an OpenClaw task completion event into a GARL trace."""
-        payload = {
-            "agent_id": self.agent_id, "message": message, "status": status,
-            "duration_ms": duration_ms, "category": category, "runtime_env": "openclaw",
-            "channel": channel, "session_id": session_id,
-        }
-        if tool_calls:
-            payload["tool_calls"] = tool_calls
-        if cost_usd is not None:
-            payload["usage"] = {"cost_usd": cost_usd}
-        resp = self.client._client.post("/ingest/openclaw", json=payload)
-        resp.raise_for_status()
-        return resp.json()
-
-    def should_delegate(self, target_agent_id: str, min_score: float = 50.0,
-                        require_verified: bool = False, block_anomalies: bool = False) -> bool:
-        """Trust-gated delegation decision."""
-        try:
-            trust = self.client.check_trust(target_agent_id)
-        except Exception:
-            return False
-        score = float(trust.get("trust_score", 0))
-        if score < min_score:
-            return False
-        if require_verified and not trust.get("verified", False):
-            return False
-        if block_anomalies and len(trust.get("anomalies", [])) > 0:
-            return False
-        # Bronze tier blocked by default
-
-        tier = trust.get("certification_tier", "bronze")
-        if tier == "bronze":
-            return False
-        return True
-
-    def get_delegation_recommendation(self, target_agent_id: str) -> dict:
-        """Detailed delegation recommendation."""
-        trust = self.client.check_trust(target_agent_id)
-        return {
-            "agent_id": target_agent_id,
-            "name": trust.get("name", "Unknown"),
-            "score": trust.get("trust_score", 0),
-            "recommendation": trust.get("recommendation", "unknown"),
-            "risk_level": trust.get("risk_level", "unknown"),
-            "certification_tier": trust.get("certification_tier", "bronze"),
-            "safe_for_general": trust.get("recommendation") in ("trusted", "trusted_with_monitoring"),
-            "safe_for_sensitive": trust.get("recommendation") == "trusted",
-            "has_anomalies": len(trust.get("anomalies", [])) > 0,
-            "dimensions": trust.get("dimensions", {}),
-        }
-
-    def find_best_agent_for(self, category: str, min_score: float = 65.0) -> dict | None:
-        """Find the best agent in a category (legacy API compatibility)."""
-        return self.client.find_trusted_agent(category, min_score)
+# OpenClawAdapter removed in 2026-04 — OpenClaw EOL'd. Use GarlClient
+# directly: GarlClient.verify(...) for trace submission, GarlClient
+# .check_trust(...) for delegation decisions, GarlClient.find_trusted_agent
+# (...) for category-based selection.
 
     def route(self, category: str, min_tier: str = "silver", limit: int = 3) -> dict:
         """GET /api/v1/trust/route — Recommend most trusted agents by category and tier."""

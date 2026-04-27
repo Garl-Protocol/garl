@@ -57,6 +57,8 @@ GARL_MASTER_PLAN.md
 *_MASTER_PLAN*.md
 *_INTERNAL*.md
 *_STRATEGY*.md
+garl-strategy-*.md
+audit_*.md
 
 # MCP Registry tokens & CLI
 .mcpregistry_*

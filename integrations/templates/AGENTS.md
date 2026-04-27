@@ -39,7 +39,9 @@ When working in a multi-agent team:
 
 ## Environment Variables
 
-Required in your OpenClaw configuration:
+Required in your agent runtime (Claude Desktop config, Cursor MCP settings,
+LangChain env, custom shell, etc.):
+
 ```
 GARL_API_KEY=garl_your_key_here
 GARL_AGENT_ID=your-agent-uuid

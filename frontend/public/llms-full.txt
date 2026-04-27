@@ -174,8 +174,7 @@ PATCH /api/v1/webhooks/:agent_id/:id — Update webhook (auth)
 DELETE /api/v1/webhooks/:agent_id/:id — Delete webhook (auth)
 POST /api/v1/endorse — A2A endorsement (Sybil-resistant)
 GET /api/v1/endorsements/:id — View endorsements
-POST /api/v1/ingest/openclaw — OpenClaw webhook bridge
-GET /.well-known/agent.json — Agent discovery endpoint
+GET /agents.txt — Machine-readable agent manifest (sibling of robots.txt)
 
 ## Python SDK
 
