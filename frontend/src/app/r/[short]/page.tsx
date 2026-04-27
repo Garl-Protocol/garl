@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, XCircle, ExternalLink, Shield } from "lucide-react";
 import ReceiptActions from "@/components/ReceiptActions";
+import ReceiptV01Enrichment from "@/components/ReceiptV01Enrichment";
 import Identicon from "@/components/Identicon";
 
 export const dynamic = "force-dynamic";
@@ -250,6 +251,10 @@ export default async function ReceiptPage({
           </>
         )}
       </div>
+
+      {/* Action Receipt v0.1 enrichment — side_effect badge + undo button.
+          Renders nothing for legacy /verify-shaped receipts. */}
+      <ReceiptV01Enrichment hash={receipt.trace_hash} />
 
       {/* Share actions (client) */}
       <div className="mb-6">

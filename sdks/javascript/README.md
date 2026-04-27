@@ -57,6 +57,46 @@ const trust = await client.checkTrust('other-agent-uuid');
 const should = await client.shouldDelegate('other-agent-uuid');
 ```
 
+## Wave 2 — capability tokens, action receipts, undo (v1.2.0)
+
+```javascript
+// Multi-dimensional Trust Vector
+const vector = await client.trustVector();
+
+// Capability Gate pre-flight: gets a token if allowed
+const gate = await client.evaluateAction({
+  actionType: 'payment',
+  sideEffectClass: 'reversible',
+  spendLimitUsd: 50,
+  merchantAllowlist: ['stripe.com'],
+});
+if (gate.decision === 'allowed') {
+  const capToken = gate.token;        // JWT-shaped, ECDSA-secp256k1
+  const capHash  = gate.token_hash;
+}
+
+// Submit a generic Action Receipt v0.1 (any tool call, not just commits)
+import { createHash } from 'node:crypto';
+const sha = (o) => createHash('sha256')
+  .update(JSON.stringify(o, Object.keys(o).sort())).digest('hex');
+
+const env = await client.submitActionReceipt({
+  actionType: 'api_call',
+  sideEffect: 'reversible',
+  inputHash:  sha({ endpoint: '/v1/refunds', charge: 'ch_123' }),
+  outputHash: sha({ refund_id: 're_456', amount: 1000 }),
+  capabilityTokenHash: gate.token_hash,
+  attestations: ['human_reviewed'],
+});
+
+// UETA §10(b) consumer-undo
+const undo = await client.undoReceipt(env.receipt_id);
+console.log(undo.undo_payload);  // the action to actually run
+
+// Revoke a token (cascades to attenuated children)
+await client.revokeCapabilityToken(gate.token_hash, 'task-complete');
+```
+
 ## Links
 
 - Website: https://garl.ai

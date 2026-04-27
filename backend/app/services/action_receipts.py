@@ -104,6 +104,12 @@ def submit_action_receipt(req: dict) -> dict:
 
     agent_id = req["agent_id"]
 
+    # Silent abuse guard: per-agent monthly cap. Raises 429 with
+    # Retry-After if exceeded. The cap is high enough (10K/month default)
+    # that legitimate workflows never see this.
+    from app.services.monthly_cap import enforce_monthly_cap
+    enforce_monthly_cap(agent_id)
+
     # The envelope is what we sign; the DB row mirrors it for indexing.
     envelope: dict[str, Any] = {
         "receipt_id": str(uuid.uuid4()),
