@@ -1,12 +1,21 @@
 #!/usr/bin/env node
 
 /**
- * GARL Protocol MCP Server v1.3.0
+ * GARL Protocol MCP Server v1.4.0
  *
  * Cryptographic verification for AI agent actions: signed receipts,
- * Trust Vectors, capability gates. Tools added in v1.3.0:
+ * Trust Vectors, capability tokens, capability gates, reversibility.
+ *
+ * Tools added in v1.3.0:
  *   - garl_get_trust_vector       (multi-dim reputation, replaces single score)
  *   - garl_record_action_receipt  (Action Receipt v0.1 — generic, beyond commits)
+ *
+ * Tools added in v1.4.0:
+ *   - garl_issue_capability_token  (JWT-shaped + ECDSA-secp256k1 + RFC 6979)
+ *   - garl_verify_capability_token (signature + exp + revocation)
+ *   - garl_revoke_capability_token (cascades to attenuated descendants)
+ *   - garl_evaluate_action         (Capability Gate pre-flight)
+ *   - garl_undo_action             (UETA §10(b) consumer-undo)
  *
  * Works with Claude Desktop, Cursor, Windsurf, and all MCP-compatible clients.
  */
@@ -341,16 +350,16 @@ const TOOLS = [
     name: "garl_record_action_receipt",
     description:
       "Submit a GARL Action Receipt v0.1 for any agent action — not just code commits. " +
-      "Accepts action_type (code_write, api_call, payment, browser_action, file_op, tool_call), " +
-      "side_effect class (none, reversible, irreversible), and protocol context. " +
-      "Returns a public receipt URL the action can be verified at offline against the canonical key registry.",
+      "Hits the dedicated /api/v1/receipts endpoint (the v0.1 envelope). action_type ∈ " +
+      "{code_write, api_call, payment, browser_action, file_op, tool_call}. side_effect ∈ " +
+      "{none, reversible, irreversible}. Caller MUST hash input + output bytes locally; " +
+      "this tool only persists the envelope.",
     inputSchema: {
       type: "object",
       properties: {
         action_type: {
           type: "string",
           enum: ["code_write", "api_call", "payment", "browser_action", "file_op", "tool_call"],
-          description: "What kind of action this records",
         },
         side_effect: {
           type: "string",
@@ -360,29 +369,119 @@ const TOOLS = [
         runtime: {
           type: "string",
           enum: ["claude-code", "cursor", "copilot", "aider", "codex", "mcp-client", "langchain", "crewai", "llamaindex", "semantic-kernel", "custom"],
-          description: "Which agent runtime is calling",
           default: "mcp-client",
         },
         protocol: {
           type: "string",
           enum: ["github", "mcp", "a2a", "acp", "ap2", "x402", "raw-http"],
-          description: "Wire protocol the action used",
           default: "mcp",
         },
-        task_description: { type: "string", description: "One-line summary of the action" },
-        status: { type: "string", enum: ["success", "failure", "partial"] },
-        duration_ms: { type: "number", description: "How long the action took, in milliseconds" },
-        tool_server: { type: "string", description: "Endpoint URI the action targeted, if applicable" },
-        cost_usd: { type: "number", description: "Cost in USD, if known" },
-        attestations: {
-          type: "array",
-          items: { type: "string" },
-          description: "Independently-verified claims (tests_passed, human_reviewed, etc.)",
-        },
+        input_hash:  { type: "string", description: "SHA-256 hex (64 chars) of input canonical JSON" },
+        output_hash: { type: "string", description: "SHA-256 hex (64 chars) of output canonical JSON" },
+        tool_server: { type: "string" },
+        capability_token_hash: { type: "string", description: "SHA-256 hex of the capability token under whose authority this action ran" },
+        policy_decision: { type: "string", enum: ["allowed", "denied", "requires_human"] },
+        cost: { type: "object", properties: { usd: {type:"number"}, tokens_in: {type:"integer"}, tokens_out: {type:"integer"}, duration_ms: {type:"integer"} } },
+        previous_receipt_hash: { type: "string", description: "SHA-256 hex of the prior receipt's output_hash, if chaining" },
+        attestations: { type: "array", items: { type: "string" } },
+        human_delegate: { type: "string" },
       },
-      required: ["action_type", "side_effect", "task_description", "status", "duration_ms"],
+      required: ["action_type", "side_effect", "input_hash", "output_hash"],
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  },
+  {
+    name: "garl_issue_capability_token",
+    description:
+      "Issue a fresh GARL capability token (JWT-shaped + ECDSA-secp256k1 + RFC 6979). " +
+      "Tokens are scoped + time-bound + side-effect-classed. The agent presents the resulting " +
+      "JWT to a tool server; the tool server verifies offline against the GARL key registry.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        scope: { type: "string", description: "What the token authorizes, e.g. 'github:issue:create'" },
+        side_effect_class: { type: "string", enum: ["none", "reversible", "irreversible"] },
+        expires_in_seconds: { type: "integer", default: 3600 },
+        spend_limit_usd: { type: "number" },
+        merchant_allowlist: { type: "array", items: { type: "string" } },
+        caveats: { type: "array", items: { type: "object" } },
+        parent_token_hash: { type: "string", description: "Attenuate from parent (SHA-256 hex of parent JWT)" },
+        human_delegate: { type: "string" },
+      },
+      required: ["scope", "side_effect_class"],
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  },
+  {
+    name: "garl_verify_capability_token",
+    description:
+      "Verify a GARL capability token's signature, expiration, and revocation. Returns valid:true + claims, " +
+      "or valid:false + reason.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        token: { type: "string", description: "JWT-shaped capability token (header.payload.signature)" },
+        check_revocation: { type: "boolean", default: true },
+      },
+      required: ["token"],
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  },
+  {
+    name: "garl_revoke_capability_token",
+    description:
+      "Revoke a capability token. By default cascades to all attenuated descendants — anyone " +
+      "downstream of the revoked token is also marked revoked.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        token_hash: { type: "string", description: "SHA-256 hex of the JWT to revoke" },
+        reason: { type: "string", default: "manual-revoke" },
+        cascade: { type: "boolean", default: true },
+      },
+      required: ["token_hash"],
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
+  },
+  {
+    name: "garl_evaluate_action",
+    description:
+      "Capability Gate pre-flight. Given the agent's intended (action_type, side_effect_class), returns " +
+      "{decision, reason, score, threshold, dimension, [token]}. If allowed, the response includes a " +
+      "freshly-minted capability token already scoped to this action.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action_type: {
+          type: "string",
+          enum: ["code_write", "api_call", "payment", "browser_action", "file_op", "tool_call"],
+        },
+        side_effect_class: { type: "string", enum: ["none", "reversible", "irreversible"] },
+        target: { type: "string", description: "What the action targets (URL, repo, etc.). Becomes part of token scope." },
+        requested_scope: { type: "string", description: "Override the default scope string" },
+        expires_in_seconds: { type: "integer", default: 3600 },
+        spend_limit_usd: { type: "number" },
+        merchant_allowlist: { type: "array", items: { type: "string" } },
+        threshold_override: { type: "number", description: "Custom Trust Vector threshold (0..1) if the org has a stricter policy" },
+      },
+      required: ["action_type", "side_effect_class"],
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  },
+  {
+    name: "garl_undo_action",
+    description:
+      "Trigger UETA §10(b) consumer-undo for a reversible receipt. Returns the recorded undo_payload " +
+      "for the caller to actually execute. Refuses if the receipt was classified irreversible.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        receipt_id: { type: "string", description: "UUID of the original receipt" },
+        reason: { type: "string", default: "consumer-initiated-undo" },
+      },
+      required: ["receipt_id"],
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
   },
 ];
 
@@ -686,54 +785,149 @@ async function handleToolCall(name, args) {
       if (!API_KEY) throw new Error("GARL_API_KEY not configured.");
       if (!args.action_type) throw new Error("action_type is required.");
       if (!args.side_effect) throw new Error("side_effect is required.");
-      if (!args.task_description) throw new Error("task_description is required.");
-      if (!args.status) throw new Error("status is required.");
-      if (args.duration_ms === undefined || args.duration_ms === null) {
-        throw new Error("duration_ms is required.");
-      }
-      // Until the dedicated /receipts endpoint lands in Wave 2, this maps
-      // onto the existing /verify trace shape with action-receipt metadata
-      // carried in security_context. The Action Receipt v0.1 envelope is
-      // preserved in the response; the underlying trace stays valid for
-      // legacy verifiers.
-      const categoryMap = {
-        code_write: "coding",
-        api_call: "automation",
-        payment: "automation",
-        browser_action: "automation",
-        file_op: "data",
-        tool_call: "automation",
-      };
+      if (!args.input_hash) throw new Error("input_hash is required (64 hex chars, SHA-256 of canonical input).");
+      if (!args.output_hash) throw new Error("output_hash is required (64 hex chars, SHA-256 of canonical output).");
       const body = {
         agent_id: AGENT_ID,
-        task_description: args.task_description,
-        status: args.status,
-        duration_ms: args.duration_ms,
-        category: categoryMap[args.action_type] || "other",
-        runtime_env: args.runtime || "mcp-client",
-        security_context: {
-          action_receipt_version: "garl/action-receipt/v0.1",
-          action_type: args.action_type,
-          side_effect: args.side_effect,
-          protocol: args.protocol || "mcp",
-        },
+        runtime: args.runtime || "mcp-client",
+        protocol: args.protocol || "mcp",
+        action_type: args.action_type,
+        input_hash: args.input_hash,
+        output_hash: args.output_hash,
+        side_effect: args.side_effect,
       };
-      if (args.tool_server) body.security_context.tool_server = args.tool_server;
-      if (args.cost_usd !== undefined) body.cost_usd = args.cost_usd;
-      if (args.attestations) body.security_context.attestations = args.attestations;
-      const result = await garlFetch("/verify", { method: "POST", body: JSON.stringify(body) });
+      if (args.tool_server)            body.tool_server            = args.tool_server;
+      if (args.capability_token_hash)  body.capability_token_hash  = args.capability_token_hash;
+      if (args.policy_decision)        body.policy_decision        = args.policy_decision;
+      if (args.cost)                   body.cost                   = args.cost;
+      if (args.previous_receipt_hash)  body.previous_receipt_hash  = args.previous_receipt_hash;
+      if (args.attestations)           body.attestations           = args.attestations;
+      if (args.human_delegate)         body.human_delegate         = args.human_delegate;
+
+      const env = await garlFetch("/receipts", { method: "POST", body: JSON.stringify(body) });
       const lines = [
         `Action Receipt v0.1 recorded.`,
-        `Action type: ${args.action_type}`,
-        `Side effect: ${args.side_effect}`,
-        `Status:      ${result.status}`,
-        `Trust delta: ${result.trust_delta > 0 ? "+" : ""}${(result.trust_delta || 0).toFixed(2)}`,
+        `receipt_id:     ${env.receipt_id}`,
+        `action_type:    ${env.action_type}`,
+        `side_effect:    ${env.side_effect}`,
+        `signature:      ${(env.signature || "").slice(0, 16)}…`,
+        `verify offline: GET https://api.garl.ai/api/v1/receipts/${env.receipt_id}/cert.json`,
       ];
-      if (result.receipt_url) lines.push(`Receipt:     ${result.receipt_url}`);
-      if (args.side_effect === "irreversible") {
-        lines.push(``, `Note: This action was classified as irreversible. No undo primitive will be available.`);
+      if (env.side_effect === "irreversible") {
+        lines.push(``, `Note: This action was classified irreversible. No undo primitive will be available.`);
       }
       return { content: [{ type: "text", text: lines.join("\n") }] };
+    }
+
+    case "garl_issue_capability_token": {
+      if (!AGENT_ID) throw new Error("GARL_AGENT_ID not configured.");
+      if (!API_KEY) throw new Error("GARL_API_KEY not configured.");
+      if (!args.scope) throw new Error("scope is required.");
+      if (!args.side_effect_class) throw new Error("side_effect_class is required.");
+      const body = {
+        agent_id: AGENT_ID,
+        scope: args.scope,
+        side_effect_class: args.side_effect_class,
+        expires_in_seconds: args.expires_in_seconds || 3600,
+      };
+      if (args.spend_limit_usd !== undefined)   body.spend_limit_usd    = args.spend_limit_usd;
+      if (args.merchant_allowlist)              body.merchant_allowlist = args.merchant_allowlist;
+      if (args.caveats)                         body.caveats            = args.caveats;
+      if (args.parent_token_hash)               body.parent_token_hash  = args.parent_token_hash;
+      if (args.human_delegate)                  body.human_delegate     = args.human_delegate;
+
+      const out = await garlFetch("/capability/issue", { method: "POST", body: JSON.stringify(body) });
+      const lines = [
+        `Capability token issued.`,
+        `token_hash:  ${out.token_hash}`,
+        `expires_at:  ${out.expires_at}`,
+        `scope:       ${out.claims.scope}`,
+        `side_effect: ${out.claims.side_effect_class}`,
+        `token (paste this into the tool server's Authorization header):`,
+        out.token,
+      ];
+      return { content: [{ type: "text", text: lines.join("\n") }] };
+    }
+
+    case "garl_verify_capability_token": {
+      if (!args.token) throw new Error("token is required.");
+      const body = { token: args.token, check_revocation: args.check_revocation !== false };
+      const out = await garlFetch("/capability/verify", { method: "POST", body: JSON.stringify(body) });
+      if (out.valid) {
+        return { content: [{ type: "text", text: [
+          `Capability token VALID.`,
+          `subject:     ${out.claims.sub}`,
+          `scope:       ${out.claims.scope}`,
+          `side_effect: ${out.claims.side_effect_class}`,
+          `exp:         ${new Date(out.claims.exp * 1000).toISOString()}`,
+        ].join("\n") }] };
+      }
+      return { content: [{ type: "text", text: `Capability token INVALID — ${out.reason}` }] };
+    }
+
+    case "garl_revoke_capability_token": {
+      if (!API_KEY) throw new Error("GARL_API_KEY not configured.");
+      if (!args.token_hash) throw new Error("token_hash is required.");
+      const body = {
+        token_hash: args.token_hash,
+        reason: args.reason || "manual-revoke",
+        cascade: args.cascade !== false,
+      };
+      const out = await garlFetch("/capability/revoke", { method: "POST", body: JSON.stringify(body) });
+      return { content: [{ type: "text", text: `Revoked ${out.count} token(s) (including descendants).` }] };
+    }
+
+    case "garl_evaluate_action": {
+      if (!AGENT_ID) throw new Error("GARL_AGENT_ID not configured.");
+      if (!args.action_type) throw new Error("action_type is required.");
+      if (!args.side_effect_class) throw new Error("side_effect_class is required.");
+      const body = {
+        agent_id: AGENT_ID,
+        action_type: args.action_type,
+        side_effect_class: args.side_effect_class,
+      };
+      if (args.target)              body.target              = args.target;
+      if (args.requested_scope)     body.requested_scope     = args.requested_scope;
+      if (args.expires_in_seconds)  body.expires_in_seconds  = args.expires_in_seconds;
+      if (args.spend_limit_usd)     body.spend_limit_usd     = args.spend_limit_usd;
+      if (args.merchant_allowlist)  body.merchant_allowlist  = args.merchant_allowlist;
+      if (args.threshold_override !== undefined) body.threshold_override = args.threshold_override;
+
+      const out = await garlFetch("/capability/evaluate", { method: "POST", body: JSON.stringify(body) });
+      const lines = [
+        `Capability Gate decision: ${out.decision.toUpperCase()}`,
+        `reason:    ${out.reason}`,
+      ];
+      if (out.score !== null && out.score !== undefined) {
+        lines.push(`score:     ${out.score.toFixed(3)} (dim: ${out.dimension})`);
+        lines.push(`threshold: ${out.threshold.toFixed(3)}`);
+      }
+      if (out.token) {
+        lines.push(``, `Capability token (good for ${args.expires_in_seconds || 3600}s):`);
+        lines.push(out.token);
+      }
+      return { content: [{ type: "text", text: lines.join("\n") }] };
+    }
+
+    case "garl_undo_action": {
+      if (!args.receipt_id) throw new Error("receipt_id is required.");
+      const body = { reason: args.reason || "consumer-initiated-undo" };
+      try {
+        const out = await garlFetch(`/receipts/${encodeURIComponent(args.receipt_id)}/undo`, { method: "POST", body: JSON.stringify(body) });
+        const lines = [
+          `Undo triggered.`,
+          `compensation_id: ${out.compensation_id}`,
+          `status:          ${out.status}`,
+          out.message,
+          ``,
+          `Undo payload to execute:`,
+          JSON.stringify(out.undo_payload, null, 2),
+        ];
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (err) {
+        // 409 means policy refused (e.g. irreversible) — surface clearly
+        return { content: [{ type: "text", text: `Undo refused: ${err.message}` }], isError: true };
+      }
     }
 
     default:
@@ -742,7 +936,7 @@ async function handleToolCall(name, args) {
 }
 
 const server = new Server(
-  { name: "garl-protocol", version: "1.3.0" },
+  { name: "garl-protocol", version: "1.4.0" },
   { capabilities: { tools: {} } }
 );
 
