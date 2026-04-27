@@ -55,6 +55,47 @@ trust = client.check_trust("other-agent-uuid")
 should = client.should_delegate("other-agent-uuid")
 ```
 
+## Wave 2 — capability tokens, action receipts, undo (v1.3.0)
+
+```python
+# Multi-dimensional Trust Vector (replaces single trust_score for
+# cross-domain decisions; null dimensions = "not yet measured")
+vector = client.trust_vector()
+
+# Capability Gate pre-flight: gets a token if allowed
+gate = client.evaluate_action(
+    action_type="payment",
+    side_effect_class="reversible",
+    spend_limit_usd=50.0,
+    merchant_allowlist=["stripe.com"],
+)
+if gate["decision"] == "allowed":
+    cap_token = gate["token"]   # JWT-shaped, ECDSA-secp256k1
+    cap_hash  = gate["token_hash"]
+
+# Submit a generic Action Receipt v0.1 (any tool call, not just commits)
+import hashlib, json
+def sha(o): return hashlib.sha256(
+    json.dumps(o, sort_keys=True, separators=(",", ":")).encode()
+).hexdigest()
+
+env = client.submit_action_receipt(
+    action_type="api_call",
+    side_effect="reversible",
+    input_hash=sha({"endpoint": "/v1/refunds", "charge": "ch_123"}),
+    output_hash=sha({"refund_id": "re_456", "amount": 1000}),
+    capability_token_hash=cap_hash,
+    attestations=["human_reviewed"],
+)
+
+# UETA §10(b) consumer-undo
+undo = client.undo_receipt(env["receipt_id"])
+print(undo["undo_payload"])  # the action to actually run
+
+# Revoke a token (cascades to attenuated children)
+client.revoke_capability_token(cap_hash, reason="task-complete")
+```
+
 ## Async
 
 ```python

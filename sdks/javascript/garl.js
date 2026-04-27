@@ -485,102 +485,149 @@ export class GarlClient {
     const score = await this.getScore();
     return score.certification_tier || "bronze";
   }
-}
 
-// ──────────────────────────────────────────────
-//  OpenClaw Adapter
-// ──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  //  Wave 2 — Trust Vector, Action Receipt v0.1, Capability tokens, Undo
+  // ──────────────────────────────────────────────
 
-export class OpenClawAdapter {
-  constructor(apiKey, agentId, baseUrl = "https://api.garl.ai/api/v1") {
-    this.client = new GarlClient(apiKey, agentId, baseUrl);
-    this.agentId = agentId;
-    this.baseUrl = baseUrl.replace(/\/$/, "");
-  }
-
-  async reportTask({ message, durationMs = 0, status = "success", channel = null,
-                      sessionId = null, toolCalls = null, costUsd = null, category = "" }) {
-    const body = {
-      agent_id: this.agentId, message, status, duration_ms: durationMs,
-      category, runtime_env: "openclaw", channel, session_id: sessionId,
-    };
-    if (toolCalls) body.tool_calls = toolCalls;
-    if (costUsd !== null) body.usage = { cost_usd: costUsd };
-
-    const res = await retryFetch(`${this.baseUrl}/ingest/openclaw`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": this.client.apiKey },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error(`GARL ingest error: ${res.status}`);
+  /** Get the multi-dimensional Trust Vector v0.1 for an agent. Different
+   *  domains stress different dimensions; prefer this over the single
+   *  trust_score for cross-domain decisions. null dimensions = "not yet
+   *  measured", not "scored zero". */
+  async trustVector(agentId = null) {
+    const target = agentId || this.agentId;
+    const res = await retryFetch(`${this.baseUrl}/agents/${target}/trust-vector`);
+    if (!res.ok) throw new Error(`GARL ${res.status}: ${await res.text()}`);
     return res.json();
   }
 
-  async shouldDelegate(targetAgentId, minScore = 50, options = {}) {
-    const { requireVerified = false, blockAnomalies = false, minTier = "silver" } = options;
-    return this.client.shouldDelegate(targetAgentId, {
-      minScore,
-      requireVerified,
-      blockAnomalies,
-      blockBronze: true,
-      minTier,
-    });
-  }
-
-  async getDelegationRecommendation(targetAgentId) {
-    const report = await this.client.getDelegationReport(targetAgentId);
-    return {
-      agentId: report.agentId,
-      name: report.name,
-      score: report.trustScore,
-      recommendation: report.recommendation,
-      riskLevel: report.riskLevel,
-      certificationTier: report.certificationTier,
-      safeForGeneral: report.safeForGeneral,
-      safeForSensitive: report.safeForSensitive,
-      hasAnomalies: report.hasAnomalies,
-      dimensions: report.dimensions,
-    };
-  }
-
-  async findBestAgentFor(category, minScore = 65) {
-    return this.client.findTrustedAgent(category, minScore);
-  }
-
-  /** GET /api/v1/trust/route — Recommends most trusted agents by category and tier. */
-  async route(category, minTier = "silver", limit = 3) {
-    return this.client.route(category, minTier, limit);
-  }
-
-  /** Calls route() and returns the best match. */
-  async findBestAgent(category, minTier = "silver") {
-    return this.client.findBestAgent(category, minTier);
-  }
-
-  /**
-   * Start a background heartbeat that sends periodic 'alive' traces.
-   * @param {number} intervalMs - milliseconds between heartbeats (default 300000 = 5 min)
-   * @param {string} category - task category for heartbeat traces
-   * @returns {number} interval ID (use clearInterval to stop)
-   */
-  heartbeat(intervalMs = 300000, category = "other") {
-    const send = async () => {
-      try {
-        await this.client.verify("success", "heartbeat", 0, category);
-      } catch { /* ignore */ }
-    };
-    send();
-    this._heartbeatId = setInterval(send, intervalMs);
-    return this._heartbeatId;
-  }
-
-  /** Stop the heartbeat. */
-  stopHeartbeat() {
-    if (this._heartbeatId) {
-      clearInterval(this._heartbeatId);
-      this._heartbeatId = null;
+  /** Submit a generic Action Receipt v0.1 (any tool call, not just commits).
+   *  Caller MUST hash input + output bytes locally — this method only
+   *  persists the envelope. */
+  async submitActionReceipt({
+    actionType, sideEffect, inputHash, outputHash,
+    runtime = "mcp-client", protocol = "mcp",
+    toolServer = null, capabilityTokenHash = null, policyDecision = null,
+    cost = null, previousReceiptHash = null, attestations = null,
+    humanDelegate = null,
+  }) {
+    if (!actionType || !sideEffect || !inputHash || !outputHash) {
+      throw new Error("actionType, sideEffect, inputHash, outputHash are required.");
     }
+    const body = {
+      agent_id: this.agentId, runtime, protocol,
+      action_type: actionType, input_hash: inputHash, output_hash: outputHash,
+      side_effect: sideEffect,
+    };
+    if (toolServer)            body.tool_server            = toolServer;
+    if (capabilityTokenHash)   body.capability_token_hash  = capabilityTokenHash;
+    if (policyDecision)        body.policy_decision        = policyDecision;
+    if (cost)                  body.cost                   = cost;
+    if (previousReceiptHash)   body.previous_receipt_hash  = previousReceiptHash;
+    if (attestations)          body.attestations           = attestations;
+    if (humanDelegate)         body.human_delegate         = humanDelegate;
+    const res = await retryFetch(`${this.baseUrl}/receipts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": this.apiKey },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`GARL ${res.status}: ${await res.text()}`);
+    return res.json();
+  }
+
+  /** Mint a fresh capability token. Returns {token, token_hash, expires_at,
+   *  claims}. JWT-shaped + ECDSA-secp256k1 + RFC 6979 deterministic. */
+  async issueCapabilityToken({
+    scope, sideEffectClass, expiresInSeconds = 3600,
+    spendLimitUsd = null, merchantAllowlist = null, caveats = null,
+    parentTokenHash = null, humanDelegate = null,
+  }) {
+    if (!scope || !sideEffectClass) {
+      throw new Error("scope and sideEffectClass are required.");
+    }
+    const body = {
+      agent_id: this.agentId, scope,
+      side_effect_class: sideEffectClass,
+      expires_in_seconds: expiresInSeconds,
+    };
+    if (spendLimitUsd !== null) body.spend_limit_usd    = spendLimitUsd;
+    if (merchantAllowlist)      body.merchant_allowlist = merchantAllowlist;
+    if (caveats)                body.caveats            = caveats;
+    if (parentTokenHash)        body.parent_token_hash  = parentTokenHash;
+    if (humanDelegate)          body.human_delegate     = humanDelegate;
+    const res = await retryFetch(`${this.baseUrl}/capability/issue`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": this.apiKey },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`GARL ${res.status}: ${await res.text()}`);
+    return res.json();
+  }
+
+  /** Verify a capability token. Returns {valid: bool, claims | reason}. */
+  async verifyCapabilityToken(token, { checkRevocation = true } = {}) {
+    const res = await retryFetch(`${this.baseUrl}/capability/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, check_revocation: checkRevocation }),
+    });
+    if (!res.ok) throw new Error(`GARL ${res.status}: ${await res.text()}`);
+    return res.json();
+  }
+
+  /** Revoke a capability token. By default cascades to attenuated children. */
+  async revokeCapabilityToken(tokenHash, reason = "manual-revoke", { cascade = true } = {}) {
+    const res = await retryFetch(`${this.baseUrl}/capability/revoke`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": this.apiKey },
+      body: JSON.stringify({ token_hash: tokenHash, reason, cascade }),
+    });
+    if (!res.ok) throw new Error(`GARL ${res.status}: ${await res.text()}`);
+    return res.json();
+  }
+
+  /** Capability Gate pre-flight: should this agent perform this action?
+   *  Returns {decision, reason, score, threshold, dimension, [token]}.
+   *  If decision === "allowed", the response includes a token already
+   *  scoped to the action. */
+  async evaluateAction({
+    actionType, sideEffectClass, target = null, requestedScope = null,
+    expiresInSeconds = 3600, spendLimitUsd = null,
+    merchantAllowlist = null, thresholdOverride = null,
+  }) {
+    if (!actionType || !sideEffectClass) {
+      throw new Error("actionType and sideEffectClass are required.");
+    }
+    const body = {
+      agent_id: this.agentId, action_type: actionType,
+      side_effect_class: sideEffectClass, expires_in_seconds: expiresInSeconds,
+    };
+    if (target)             body.target             = target;
+    if (requestedScope)     body.requested_scope    = requestedScope;
+    if (spendLimitUsd !== null) body.spend_limit_usd = spendLimitUsd;
+    if (merchantAllowlist)  body.merchant_allowlist = merchantAllowlist;
+    if (thresholdOverride !== null) body.threshold_override = thresholdOverride;
+    const res = await retryFetch(`${this.baseUrl}/capability/evaluate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`GARL ${res.status}: ${await res.text()}`);
+    return res.json();
+  }
+
+  /** Trigger UETA §10(b) consumer-undo for a reversible receipt. Returns
+   *  the recorded undo_payload for the caller to execute. Throws if the
+   *  receipt was classified irreversible or has no compensation. */
+  async undoReceipt(receiptId, reason = "consumer-initiated-undo") {
+    const res = await retryFetch(`${this.baseUrl}/receipts/${encodeURIComponent(receiptId)}/undo`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    });
+    if (!res.ok) throw new Error(`GARL ${res.status}: ${await res.text()}`);
+    return res.json();
   }
 }
 
-export default { init, logAction, GarlClient, OpenClawAdapter };
+export default { init, logAction, GarlClient };

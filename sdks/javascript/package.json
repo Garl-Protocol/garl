@@ -1,6 +1,6 @@
 {
   "name": "@garl-protocol/sdk",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "GARL Protocol JavaScript/TypeScript SDK — Cryptographic verification for AI agent actions. Signed receipts, Trust Vectors, capability gates.",
   "type": "module",
   "main": "garl.js",
