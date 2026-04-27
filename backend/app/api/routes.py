@@ -2003,3 +2003,183 @@ async def search_agents_endpoint(q: str = "", category: str | None = None, limit
     if offset < 0:
         raise HTTPException(status_code=422, detail="offset must be >= 0")
     return search_agents(q, category, max(1, min(limit, 50)), max(0, offset))
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Wave 2: Capability tokens, Capability Gate, Action Receipt v0.1, Reversibility
+# ──────────────────────────────────────────────────────────────────────
+
+@router.post(
+    "/capability/issue",
+    summary="Issue a capability token",
+    tags=["Capability"],
+)
+async def issue_capability(request: Request, body: dict, x_api_key: str = Header(...)):
+    """Issue a fresh capability token. JWT-shaped + ECDSA-secp256k1 + RFC 6979.
+    Required body fields: ``agent_id``, ``scope``, ``side_effect_class``.
+    Optional: ``expires_in_seconds`` (default 3600), ``spend_limit_usd``,
+    ``merchant_allowlist``, ``caveats``, ``parent_token_hash``,
+    ``human_delegate``."""
+    from app.services.capability_tokens import issue_capability_token
+
+    _check_rate_limit(x_api_key[:16], "write", request)
+    required = ("agent_id", "scope", "side_effect_class")
+    for f in required:
+        if not body.get(f):
+            raise HTTPException(status_code=422, detail=f"Field {f!r} required")
+    _validate_uuid(body["agent_id"], "agent_id")
+    try:
+        return issue_capability_token(
+            agent_id=body["agent_id"],
+            scope=body["scope"],
+            side_effect_class=body["side_effect_class"],
+            expires_in_seconds=int(body.get("expires_in_seconds", 3600)),
+            spend_limit_usd=body.get("spend_limit_usd"),
+            merchant_allowlist=body.get("merchant_allowlist"),
+            caveats=body.get("caveats"),
+            parent_token_hash=body.get("parent_token_hash"),
+            human_delegate=body.get("human_delegate"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post(
+    "/capability/verify",
+    summary="Verify a capability token",
+    tags=["Capability"],
+)
+async def verify_capability(request: Request, body: dict):
+    """Verify a token's signature, expiration, and (optionally) revocation.
+    Public endpoint — anyone can verify offline against the registry, but
+    a remote check goes through this endpoint for revocation freshness."""
+    from app.services.capability_tokens import (
+        CapabilityTokenInvalid,
+        verify_capability_token,
+    )
+
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    if not body.get("token"):
+        raise HTTPException(status_code=422, detail="Field 'token' required")
+    try:
+        claims = verify_capability_token(
+            body["token"],
+            check_revocation=bool(body.get("check_revocation", True)),
+        )
+        return {"valid": True, "claims": claims}
+    except CapabilityTokenInvalid as e:
+        return {"valid": False, "reason": str(e)}
+
+
+@router.post(
+    "/capability/revoke",
+    summary="Revoke a capability token (cascades to descendants)",
+    tags=["Capability"],
+)
+async def revoke_capability(request: Request, body: dict, x_api_key: str = Header(...)):
+    """Mark a token revoked. Cascades to all attenuated descendants."""
+    from app.services.capability_tokens import revoke_capability_token
+
+    _check_rate_limit(x_api_key[:16], "write", request)
+    if not body.get("token_hash"):
+        raise HTTPException(status_code=422, detail="Field 'token_hash' required")
+    reason = body.get("reason") or "manual-revoke"
+    cascade = bool(body.get("cascade", True))
+    return revoke_capability_token(body["token_hash"], reason, cascade=cascade)
+
+
+@router.post(
+    "/capability/evaluate",
+    summary="Capability Gate pre-flight",
+    tags=["Capability"],
+)
+async def evaluate_capability(request: Request, body: dict):
+    """Pre-flight: should this agent be allowed to perform this action?
+    Returns a decision plus, if allowed, a freshly-minted scoped capability
+    token. Public — the agent should call this before each side-effecting
+    action and present the resulting token to the tool server."""
+    from app.services.capability_gate import GateError, evaluate_request
+
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    required = ("agent_id", "action_type", "side_effect_class")
+    for f in required:
+        if not body.get(f):
+            raise HTTPException(status_code=422, detail=f"Field {f!r} required")
+    _validate_uuid(body["agent_id"], "agent_id")
+    try:
+        return evaluate_request(
+            agent_id=body["agent_id"],
+            action_type=body["action_type"],
+            side_effect_class=body["side_effect_class"],
+            target=body.get("target"),
+            requested_scope=body.get("requested_scope"),
+            expires_in_seconds=int(body.get("expires_in_seconds", 3600)),
+            spend_limit_usd=body.get("spend_limit_usd"),
+            merchant_allowlist=body.get("merchant_allowlist"),
+            threshold_override=body.get("threshold_override"),
+        )
+    except GateError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post(
+    "/receipts",
+    summary="Submit Action Receipt v0.1 (generic, beyond commits)",
+    tags=["Receipts"],
+)
+async def submit_receipt(request: Request, body: dict, x_api_key: str = Header(...)):
+    """Action Receipt v0.1 generic submit. Accepts the envelope shape
+    declared in protocol/spec/action-receipt-v0.1.md: action_type ∈
+    {code_write, api_call, payment, browser_action, file_op, tool_call},
+    side_effect ∈ {none, reversible, irreversible}.
+
+    For backward compat, the legacy /verify endpoint stays the way to
+    submit git-commit-flavored traces. New surfaces should use this."""
+    from app.services.action_receipts import (
+        ActionReceiptValidationError,
+        submit_action_receipt,
+    )
+
+    _check_rate_limit(x_api_key[:16], "write", request)
+    try:
+        envelope = submit_action_receipt(body)
+        return envelope
+    except ActionReceiptValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@router.get(
+    "/receipts/{receipt_id_or_hash}/cert.json",
+    summary="Raw Action Receipt envelope (immutable)",
+    tags=["Receipts"],
+)
+async def receipt_cert(receipt_id_or_hash: str, request: Request):
+    """Return the canonical envelope for a receipt by receipt_id (UUID) or
+    by output_hash (64-hex). Strictly immutable — the same input always
+    yields byte-identical bytes."""
+    from app.services.action_receipts import get_action_receipt
+
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    envelope = get_action_receipt(receipt_id_or_hash)
+    if not envelope:
+        raise HTTPException(status_code=404, detail="Receipt not found")
+    return envelope
+
+
+@router.post(
+    "/receipts/{receipt_id}/undo",
+    summary="UETA §10(b) consumer-undo trigger",
+    tags=["Receipts"],
+)
+async def trigger_receipt_undo(receipt_id: str, request: Request, body: dict):
+    """Move a recorded compensation from 'recorded' to 'pending' and
+    return the undo payload. Refuses for irreversible receipts."""
+    from app.services.reversibility import ReversibilityError, trigger_undo
+
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    _validate_uuid(receipt_id, "receipt_id")
+    reason = (body.get("reason") if isinstance(body, dict) else None) or "consumer-initiated-undo"
+    try:
+        return trigger_undo(receipt_id, reason)
+    except ReversibilityError as e:
+        raise HTTPException(status_code=409, detail=str(e))
