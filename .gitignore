@@ -49,6 +49,7 @@ supabase/.temp/
 
 # Internal docs (not for public repo)
 TECHNICAL_SPECIFICATION.md
+TECHNICAL_ROADMAP*.md
 UI_BLUEPRINT.md
 garl_security_audit.md
 PITCH_DECK.md
@@ -59,9 +60,12 @@ GARL_MASTER_PLAN.md
 *_STRATEGY*.md
 garl-strategy-*.md
 audit_*.md
+checklist.md
+startprompt.md
+sentinel_project.md
 
 # Personal launch drafts (kept local; not for the public repo)
-launch/x-thread-*.md
+launch/
 
 # MCP Registry tokens & CLI
 .mcpregistry_*
