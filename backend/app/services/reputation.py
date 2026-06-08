@@ -1,5 +1,5 @@
 """
-GARL Trust Engine v4 — Sovereign Trust Layer
+GARL Trust Engine
 
 Five-dimensional EMA-based reputation system:
   reliability      - Success/failure rate, streak bonus (EMA-weighted)

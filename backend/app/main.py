@@ -154,7 +154,6 @@ async def root():
     return {
         "protocol": "GARL",
         "version": settings.app_version,
-        "codename": "Sovereign Trust Layer",
         "status": "operational",
         "docs": "/docs",
     }

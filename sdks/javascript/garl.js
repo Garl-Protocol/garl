@@ -1,5 +1,5 @@
 /**
- * GARL Protocol JavaScript SDK v5 — Sovereign Trust Layer
+ * GARL Protocol JavaScript SDK
  *
  * Four integration levels:
  *
@@ -425,7 +425,7 @@ export class GarlClient {
     }
   }
 
-  // ─── v1.0 Sovereign Trust Layer new methods ───
+  // ─── v1.0 methods ───
 
   /** GET /api/v1/trust/route — Recommends most trusted agents filtered by category and tier. */
   async route(category, minTier = "silver", limit = 3) {

@@ -1,5 +1,5 @@
 """
-GARL Protocol Python SDK v5 — Sovereign Trust Layer
+GARL Protocol Python SDK
 
 Four integration levels:
 
@@ -186,7 +186,7 @@ def require_trust(min_score: float = 50.0, mode: str = "warn"):
 # ──────────────────────────────────────────────
 
 class GarlClient:
-    """GARL Protocol v1.0 Sovereign Trust Layer synchronous client."""
+    """GARL Protocol synchronous client."""
 
     def __init__(
         self,
@@ -519,7 +519,7 @@ class GarlClient:
         """Context manager that automatically reports duration and status."""
         return _TrackedExecution(self, task, category, cost_usd)
 
-    # ─── v1.0 Sovereign Trust Layer new methods ───
+    # ─── v1.0 methods ───
 
     def route(self, category: str, min_tier: str = "silver", limit: int = 3) -> dict:
         """GET /api/v1/trust/route — Recommend most trusted agents by category and tier filter."""
