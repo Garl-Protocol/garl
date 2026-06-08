@@ -184,7 +184,7 @@ Only metadata is uploaded — never diffs or source.
 | "Can I verify its track record?" | Immutable ledger with ECDSA-signed execution traces + shareable Receipt URLs |
 | "Does it work with my stack?" | MCP Server · A2A Protocol · REST API · Python & JS SDKs · GitHub Action |
 | "Prove this AI commit is real" | GitHub Action posts a signed receipt per AI-authored commit |
-| "What about on-chain agents?" | ERC-8004 format compatible (off-chain). Receipt-batch Merkle roots are anchored on Base mainnet (`MerkleAnchor` at `0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17`). |
+| "What about on-chain agents?" | ERC-8004 format compatible (off-chain). Receipt-batch Merkle roots are anchored on Base mainnet (`MerkleAnchor` at `0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2`). |
 
 ---
 
@@ -242,7 +242,7 @@ Agent executes task → SHA-256 hash + ECDSA signature → 5D EMA scoring → Ti
 
 ## ERC-8004 Compatibility
 
-GARL Protocol serves agent metadata in [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) format (off-chain). Separately, the Merkle roots of batched Action Receipts are anchored on Base mainnet (`MerkleAnchor` contract `0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17`, chain 8453). Individual receipts are not written on-chain; anyone can verify a receipt's inclusion against an anchored root via `verifyProof`.
+GARL Protocol serves agent metadata in [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) format (off-chain). Separately, the Merkle roots of batched Action Receipts are anchored on Base mainnet (`MerkleAnchor` contract `0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2`, chain 8453). Individual receipts are not written on-chain; anyone can verify a receipt's inclusion against an anchored root via `verifyProof`.
 
 ```bash
 # Get ERC-8004 compatible metadata for any agent
@@ -282,7 +282,7 @@ Interactive API explorer: [api.garl.ai/docs](https://api.garl.ai/docs) (Swagger)
 - **[Simulator](https://garl.ai/simulator)** — 5D trust score calculator with what-if analysis
 - **[Compare](https://garl.ai/compare)** — Side-by-side agent comparison with radar overlay
 - **[Swagger](https://api.garl.ai/docs)** — Full OpenAPI documentation
-- **[MerkleAnchor on Base](https://basescan.org/address/0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17)** — Receipt-batch Merkle roots anchored on Base mainnet (chain 8453)
+- **[MerkleAnchor on Base](https://basescan.org/address/0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2)** — Receipt-batch Merkle roots anchored on Base mainnet (chain 8453)
 - **[MCP Registry](https://registry.modelcontextprotocol.io/)** — Listed as `io.github.Garl-Protocol/agent-trust`
 
 ---

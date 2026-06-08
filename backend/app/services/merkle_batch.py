@@ -35,11 +35,22 @@ def _sha256_hex(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
 
 
+_LEAF_PREFIX = b"\x00"   # RFC 6962 domain separation: leaf  = H(0x00 || data)
+_NODE_PREFIX = b"\x01"   #                              node  = H(0x01 || left || right)
+
+
+def _hash_node(left: bytes, right: bytes) -> str:
+    """Internal Merkle node = SHA-256(0x01 || left || right). The 0x01 prefix
+    domain-separates internal nodes from leaves so an internal node value can
+    never be presented as a valid leaf (second-preimage / type-confusion)."""
+    return _sha256_hex(_NODE_PREFIX + left + right)
+
+
 def _leaf(output_hash_hex: str) -> str:
-    """Leaf = SHA-256 of the output_hash bytes. The double-hash here
-    canonicalizes the leaf format so future receipt fields can join the
-    leaf without breaking older proofs."""
-    return _sha256_hex(bytes.fromhex(output_hash_hex))
+    """Leaf = SHA-256(0x00 || output_hash bytes). The 0x00 prefix domain-
+    separates leaves from internal nodes (RFC 6962). MUST stay byte-identical
+    to the on-chain MerkleAnchor.verifyProof hashing."""
+    return _sha256_hex(_LEAF_PREFIX + bytes.fromhex(output_hash_hex))
 
 
 def compute_merkle_root(leaves: list[str]) -> str:
@@ -56,9 +67,7 @@ def compute_merkle_root(leaves: list[str]) -> str:
         next_layer: list[str] = []
         i = 0
         while i + 1 < len(layer):
-            left = bytes.fromhex(layer[i])
-            right = bytes.fromhex(layer[i + 1])
-            next_layer.append(_sha256_hex(left + right))
+            next_layer.append(_hash_node(bytes.fromhex(layer[i]), bytes.fromhex(layer[i + 1])))
             i += 2
         if i < len(layer):
             # Odd node: promote unchanged. Bitcoin-style would duplicate;
@@ -85,7 +94,7 @@ def merkle_proof(leaves: list[str], target_index: int) -> list[dict]:
                     proof.append({"sibling": layer[i + 1], "position": "right"})
                 else:
                     proof.append({"sibling": layer[i], "position": "left"})
-            next_layer.append(_sha256_hex(bytes.fromhex(layer[i]) + bytes.fromhex(layer[i + 1])))
+            next_layer.append(_hash_node(bytes.fromhex(layer[i]), bytes.fromhex(layer[i + 1])))
             i += 2
         if i < len(layer):
             # Promoted odd node — no sibling at this step.
@@ -103,9 +112,9 @@ def verify_merkle_proof(leaf: str, proof: list[dict], root: str) -> bool:
     for step in proof:
         sibling = step["sibling"]
         if step["position"] == "right":
-            cursor = _sha256_hex(bytes.fromhex(cursor) + bytes.fromhex(sibling))
+            cursor = _hash_node(bytes.fromhex(cursor), bytes.fromhex(sibling))
         else:
-            cursor = _sha256_hex(bytes.fromhex(sibling) + bytes.fromhex(cursor))
+            cursor = _hash_node(bytes.fromhex(sibling), bytes.fromhex(cursor))
     return cursor == root
 
 

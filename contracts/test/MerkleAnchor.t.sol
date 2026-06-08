@@ -78,7 +78,7 @@ contract MerkleAnchorTest is Test {
         // Build a 2-leaf SHA-256 Merkle tree off-chain and verify on-chain.
         bytes32 leafA = sha256(abi.encodePacked(bytes32(uint256(1))));
         bytes32 leafB = sha256(abi.encodePacked(bytes32(uint256(2))));
-        bytes32 root = sha256(abi.encodePacked(leafA, leafB));
+        bytes32 root = sha256(abi.encodePacked(bytes1(0x01), leafA, leafB));
 
         vm.prank(owner);
         uint256 batchId = anchor.anchor(root, 2);
@@ -99,7 +99,7 @@ contract MerkleAnchorTest is Test {
     function test_verify_rejects_tampered_leaf() public {
         bytes32 leafA = sha256(abi.encodePacked(bytes32(uint256(1))));
         bytes32 leafB = sha256(abi.encodePacked(bytes32(uint256(2))));
-        bytes32 root = sha256(abi.encodePacked(leafA, leafB));
+        bytes32 root = sha256(abi.encodePacked(bytes1(0x01), leafA, leafB));
         vm.prank(owner);
         uint256 batchId = anchor.anchor(root, 2);
 

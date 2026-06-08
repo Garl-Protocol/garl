@@ -13,7 +13,7 @@ GARL Protocol is intentionally **next door** to the supply-chain attestation eco
 | **OpenSSF Scorecard** | We plan to propose a `uses-ai-authorship-attestation` check. |
 | **C2PA Content Credentials** | GARL is "C2PA for code" — similar mental model (generate-time signing), different medium. A `?format=c2pa` export is live on `GET /agents/{id}/audit`. |
 | **W3C Verifiable Credentials 2.0** | GARL receipts can be wrapped into a VC when the downstream enterprise IAM stack expects that shape. Roadmap item. |
-| **On-chain anchoring** | Live. Receipt-batch Merkle roots are anchored on Base mainnet (`MerkleAnchor` `0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17`, chain 8453); inclusion is provable via `verifyProof`. Mirroring receipts into an ERC-8004 Reputation Registry entry remains a separate, optional integration. |
+| **On-chain anchoring** | Live. Receipt-batch Merkle roots are anchored on Base mainnet (`MerkleAnchor` `0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2`, chain 8453); inclusion is provable via `verifyProof`. Mirroring receipts into an ERC-8004 Reputation Registry entry remains a separate, optional integration. |
 
 ## What to reach for, when
 

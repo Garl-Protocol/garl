@@ -804,7 +804,7 @@ export default function HomePage({
               {
                 icon: Link2,
                 title: "On-Chain Anchoring",
-                desc: "Action Receipt batch Merkle roots are anchored on Base mainnet (MerkleAnchor 0xB8fd676A…, chain 8453). Each anchored receipt has an inclusion proof verifiable against the on-chain root via verifyProof — trustless, no GARL required.",
+                desc: "Action Receipt batch Merkle roots are anchored on Base mainnet (MerkleAnchor 0xBeD7EdeF…, chain 8453). Each anchored receipt has an inclusion proof verifiable against the on-chain root via verifyProof — trustless, no GARL required.",
                 accent: true,
               },
               {

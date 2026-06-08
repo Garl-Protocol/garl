@@ -37,7 +37,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
-          GARL_MERKLE_ANCHOR_CONTRACT: "0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17"
+          GARL_MERKLE_ANCHOR_CONTRACT: "0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2"
           GARL_MERKLE_ANCHOR_CHAIN_ID: "8453"
           BASE_RPC_URL: ${{ secrets.BASE_RPC_URL || 'https://mainnet.base.org' }}
         run: |

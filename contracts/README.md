@@ -89,7 +89,7 @@ The backend's weekly cron will:
   to avoid sending the role to a wrong address by accident.
 - Self-hosted GARL deployments deploy their own copy. The canonical
   registry's anchor contract is live on Base mainnet at
-  `0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17` (chain 8453) — see
+  `0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2` (chain 8453) — see
   [DEPLOYMENTS.md](./DEPLOYMENTS.md).
 
 ## License

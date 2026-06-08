@@ -13,7 +13,7 @@ Wave 2 + Wave 3 — agent-economy primitives on top of the receipt foundation.
 
 ### On-chain (2026-06-08)
 - `MerkleAnchor.sol` deployed to **Base mainnet** at
-  `0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17` (chain 8453). Receipt-batch
+  `0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2` (chain 8453). Receipt-batch
   Merkle roots are anchored on-chain; inclusion is provable via `verifyProof`.
   Weekly batch-anchor workflow added (`.github/workflows/anchor.yml`).
 

@@ -22,8 +22,14 @@ def _h(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
 
 
+def _node(left_hex: str, right_hex: str) -> str:
+    # RFC 6962 domain separation: internal node = H(0x01 || left || right).
+    return _h(b"\x01" + bytes.fromhex(left_hex) + bytes.fromhex(right_hex))
+
+
 def _leaf(output_hash: str) -> str:
-    return _h(bytes.fromhex(output_hash))
+    # Leaf = H(0x00 || data) — matches merkle_batch._leaf.
+    return _h(b"\x00" + bytes.fromhex(output_hash))
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -42,7 +48,7 @@ def test_single_leaf_returns_leaf_unchanged():
 def test_two_leaves_pair_hash():
     a = _leaf("ab" * 32)
     b = _leaf("cd" * 32)
-    expected = _h(bytes.fromhex(a) + bytes.fromhex(b))
+    expected = _node(a, b)
     assert compute_merkle_root([a, b]) == expected
 
 
@@ -51,9 +57,9 @@ def test_three_leaves_promote_odd():
     to prevent second-preimage attacks. Test asserts our non-duplicating
     semantics."""
     a, b, c = (_leaf(f"{i:064x}") for i in (1, 2, 3))
-    pair_ab = _h(bytes.fromhex(a) + bytes.fromhex(b))
+    pair_ab = _node(a, b)
     # c is promoted to layer 2 unchanged
-    expected = _h(bytes.fromhex(pair_ab) + bytes.fromhex(c))
+    expected = _node(pair_ab, c)
     assert compute_merkle_root([a, b, c]) == expected
 
 

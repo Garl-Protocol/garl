@@ -130,14 +130,18 @@ contract MerkleAnchor {
         if (root == bytes32(0)) return false;
         if (proofSiblings.length != proofPositions.length) return false;
 
+        // RFC 6962 domain separation: internal nodes are H(0x01 || l || r).
+        // Leaves are H(0x00 || data) off-chain (the caller passes the already-
+        // prefixed leaf), so an internal-node value can never be replayed as a
+        // valid leaf. MUST match merkle_batch.py exactly.
         bytes32 cursor = leaf;
         for (uint256 i = 0; i < proofSiblings.length; i++) {
             if (proofPositions[i]) {
                 // sibling on the right
-                cursor = sha256(abi.encodePacked(cursor, proofSiblings[i]));
+                cursor = sha256(abi.encodePacked(bytes1(0x01), cursor, proofSiblings[i]));
             } else {
                 // sibling on the left
-                cursor = sha256(abi.encodePacked(proofSiblings[i], cursor));
+                cursor = sha256(abi.encodePacked(bytes1(0x01), proofSiblings[i], cursor));
             }
         }
         return cursor == root;

@@ -678,10 +678,10 @@ curl -X POST https://api.garl.ai/api/v1/verify/check \\
           <p className="mb-4 text-sm text-garl-muted">
             Separately, the Merkle roots of batched Action Receipts are anchored on{" "}
             <strong className="text-garl-text">Base mainnet</strong> via the{" "}
-            <a href="https://basescan.org/address/0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17" target="_blank" rel="noopener noreferrer" className="text-garl-accent underline">
+            <a href="https://basescan.org/address/0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2" target="_blank" rel="noopener noreferrer" className="text-garl-accent underline">
               MerkleAnchor contract
             </a>{" "}
-            (<code className="text-garl-text">0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17</code>, chain 8453).
+            (<code className="text-garl-text">0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2</code>, chain 8453).
             Individual receipts are not written on-chain; each anchored receipt carries a Merkle
             inclusion proof you can verify against the on-chain root via <code className="text-garl-text">verifyProof</code>{" "}
             — without trusting GARL.
@@ -695,7 +695,7 @@ curl -s "https://api.garl.ai/api/v1/receipts/{receipt_id}/proof" | python3 -m js
 
 # 2. Verify inclusion directly against Base mainnet (foundry 'cast'),
 #    using the verify_proof_args from step 1 — returns true if included.
-cast call 0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17 \\
+cast call 0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2 \\
   "verifyProof(uint256,bytes32,bytes32[],bool[])(bool)" \\
   <batchId> <leaf> "[<proofSiblings>]" "[<proofPositions>]" \\
   --rpc-url https://mainnet.base.org`}

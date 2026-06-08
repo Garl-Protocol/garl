@@ -7,10 +7,10 @@ inclusion against an anchored root.
 
 | Network | Chain ID | Address | Owner |
 |---|---|---|---|
-| Base mainnet | 8453 | [`0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17`](https://basescan.org/address/0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17) | `0xD151d1da33D51C2BdA9525091213500d6E506891` |
+| Base mainnet | 8453 | [`0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2`](https://basescan.org/address/0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2) | `0xD151d1da33D51C2BdA9525091213500d6E506891` |
 
-**Source verified** (exact match): [Sourcify](https://repo.sourcify.dev/8453/0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17) ·
-[Blockscout](https://base.blockscout.com/address/0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17). Anyone can read the deployed source and re-verify the bytecode.
+**Source verified** (exact match): [Sourcify](https://repo.sourcify.dev/8453/0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2) ·
+[Blockscout](https://base.blockscout.com/address/0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2). Anyone can read the deployed source and re-verify the bytecode.
 
 ## Operating the anchor
 
@@ -23,7 +23,7 @@ cd contracts
 export PATH="$HOME/.foundry/bin:$PATH"
 set -a; source ./.env.deploy; set +a   # DEPLOYER_PRIVATE_KEY (owner)
 
-cast send 0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17 \
+cast send 0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2 \
   "anchor(bytes32,uint256)" <merkle_root> <receipt_count> \
   --rpc-url base --private-key "$DEPLOYER_PRIVATE_KEY"
 ```
