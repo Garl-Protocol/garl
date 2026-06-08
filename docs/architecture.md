@@ -16,7 +16,7 @@
 │       └──────────────┴──────────────┴──────────────┘            │
 │                          │                                      │
 │                    ┌─────▼─────┐                                │
-│                    │  FastAPI  │  60 REST + A2A + MCP Streamable │
+│                    │  FastAPI  │  50+ REST + A2A + MCP Streamable │
 │                    │  Backend  │  Rate Limited + CORS            │
 │                    └─────┬─────┘                                │
 │                          │                                      │
@@ -61,7 +61,7 @@
 | Database | Supabase (PostgreSQL) with RLS |
 | Cryptography | ECDSA secp256k1 + SHA-256 |
 | SDKs | Python (sync/async) + JavaScript |
-| MCP | Node.js MCP Server (28 named tools + batch variants) |
+| MCP | Node.js MCP Server (28 named tools, incl. batch variants) |
 | Containers | Docker + Docker Compose |
 
 ## Project Structure
@@ -70,7 +70,7 @@
 garl/
 ├── backend/                 # FastAPI application
 │   ├── app/
-│   │   ├── api/routes.py    # 32 REST endpoints
+│   │   ├── api/routes.py    # 50+ REST endpoints
 │   │   ├── api/mcp.py       # Remote MCP endpoint
 │   │   ├── core/            # Config, signing, Supabase client
 │   │   ├── models/          # Pydantic schemas
@@ -86,7 +86,7 @@ garl/
 │   ├── python/garl.py       # Python SDK (sync + async)
 │   └── javascript/garl.js   # JavaScript SDK
 ├── integrations/
-│   ├── mcp-server/          # MCP Server (28 named tools + batch variants)
+│   ├── mcp-server/          # MCP Server (28 named tools, incl. batch variants)
 │   ├── github-action/       # GitHub Action Trust Gate
 │   └── langchain/           # LangChain Callback Handler
 ├── docs/                    # Documentation

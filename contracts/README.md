@@ -88,8 +88,9 @@ The backend's weekly cron will:
 - Two-step ownership transfer (`transferOwnership` + `acceptOwnership`)
   to avoid sending the role to a wrong address by accident.
 - Self-hosted GARL deployments deploy their own copy. The canonical
-  registry's address is published in
-  `https://api.garl.ai/.well-known/garl-keys.json` once it lands.
+  registry's anchor contract is live on Base mainnet at
+  `0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17` (chain 8453) — see
+  [DEPLOYMENTS.md](./DEPLOYMENTS.md).
 
 ## License
 

@@ -6,7 +6,7 @@ GARL's audit exports map directly to three pieces of regulation that are either 
 
 | Regulation | Status | Effective | GARL coverage |
 |---|---|---|---|
-| **California SB 942 — AI Transparency Act** | Live | 1 Jan 2026 | Full per-record evidence via `?format=ca-sb942` — AI system name, generation timestamp, content identifier, machine-detectable provenance pointer (receipt URL + signature). |
+| **California SB 942 — AI Transparency Act** | Live | 1 Jan 2026 | Per-record provenance evidence via `?format=ca-sb942` — AI system name, generation timestamp, content identifier, machine-detectable provenance pointer (receipt URL + signature). A provenance pointer, not the full disclosure regime. |
 | **EU AI Act Code of Practice on AI-generated content** | Draft → final | Aug 2026 | `?format=jsonld` and `?format=in-toto` provide the machine-readable disclosure shape that the Code of Practice asks for. Note: the Act's Article 50 itself targets deepfake / public-interest text; Code of Practice guidance is where code-specific obligations are most likely to be articulated. |
 | **ISO/IEC 42001:2023 Annex B** | Live (certification active) | — | `?format=iso42001-annexb` emits evidence records mapped to controls A.6.2, A.6.2.5, A.7.2, A.8.3 (AI system lifecycle, verification, data quality, information for interested parties). |
 | **C2PA Content Credentials (adjacent)** | Industry standard | — | `?format=c2pa` emits C2PA-adjacent Content Credentials manifests for source code. Not a strict C2PA 2.x JUMBF manifest — vocabulary matches so familiar tooling can consume it. |
