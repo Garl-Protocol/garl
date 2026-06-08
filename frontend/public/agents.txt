@@ -132,7 +132,7 @@ What-It-Does:      Detects Claude Code / Cursor / Copilot / Aider / Codex co-aut
 
 A2A-Compliance:    A2A v1.0 RC compliant
 ERC-8004-Compat:   Off-chain ECDSA-secp256k1 attestations in ERC-8004 metadata format.
-                   On-chain Merkle anchor on Base L2 — roadmap.
+                   On-chain Merkle anchor LIVE on Base mainnet (MerkleAnchor 0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17, chain 8453).
 MCP-Spec-Version:  2025-06-18 (and forward-compatible)
 
 # ──────────────────────────────────────────────────────────────────────

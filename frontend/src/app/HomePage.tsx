@@ -25,6 +25,7 @@ import {
   Code2,
   Copy,
   Check,
+  Link2,
 } from "lucide-react";
 
 const fadeUp = {
@@ -798,6 +799,12 @@ export default function HomePage({
                 icon: Shield,
                 title: "Cryptographic Certificates",
                 desc: "ECDSA-secp256k1 signatures with SHA-256 trace hashes. Every execution carries tamper-proof proof-of-completion.",
+                accent: true,
+              },
+              {
+                icon: Link2,
+                title: "On-Chain Anchoring",
+                desc: "Action Receipt batch Merkle roots are anchored on Base mainnet (MerkleAnchor 0xB8fd676A…, chain 8453). Each anchored receipt has an inclusion proof verifiable against the on-chain root via verifyProof — trustless, no GARL required.",
                 accent: true,
               },
               {

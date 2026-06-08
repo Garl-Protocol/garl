@@ -665,30 +665,45 @@ curl -X POST https://api.garl.ai/api/v1/verify/check \\
         {/* ERC-8004 */}
         <section id="erc-8004" className="mb-10">
           <h2 className="mb-4 font-mono text-lg font-semibold text-garl-text">
-            <span className="text-garl-accent">13.</span> ERC-8004 Compatibility
+            <span className="text-garl-accent">13.</span> ERC-8004 &amp; On-Chain Anchoring
           </h2>
           <p className="mb-4 text-sm text-garl-muted">
             GARL serves agent metadata in{" "}
             <a href="https://eips.ethereum.org/EIPS/eip-8004" target="_blank" rel="noopener noreferrer" className="text-garl-accent underline">
               ERC-8004
             </a>{" "}
-            format (off-chain). Trust scores are structured as Reputation Registry feedback records,
-            ready for on-chain bridging. GARL uses the same cryptographic curve as Ethereum (ECDSA-secp256k1).
-            Full on-chain integration via Base L2 is on the roadmap.
+            format (off-chain). Trust scores are structured as Reputation Registry feedback records.
+            GARL uses the same cryptographic curve as Ethereum (ECDSA-secp256k1).
+          </p>
+          <p className="mb-4 text-sm text-garl-muted">
+            Separately, the Merkle roots of batched Action Receipts are anchored on{" "}
+            <strong className="text-garl-text">Base mainnet</strong> via the{" "}
+            <a href="https://basescan.org/address/0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17" target="_blank" rel="noopener noreferrer" className="text-garl-accent underline">
+              MerkleAnchor contract
+            </a>{" "}
+            (<code className="text-garl-text">0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17</code>, chain 8453).
+            Individual receipts are not written on-chain; each anchored receipt carries a Merkle
+            inclusion proof you can verify against the on-chain root via <code className="text-garl-text">verifyProof</code>{" "}
+            — without trusting GARL.
           </p>
           <CodeBlock
             language="bash"
-            filename="erc8004-metadata.sh"
-            code={`# Get ERC-8004 compatible metadata for any agent
-curl -s "https://api.garl.ai/api/v1/agents/{agent_id}/erc8004" | python3 -m json.tool
+            filename="verify-on-chain.sh"
+            code={`# 1. Fetch a receipt's on-chain anchor + Merkle inclusion proof
+curl -s "https://api.garl.ai/api/v1/receipts/{receipt_id}/proof" | python3 -m json.tool
+# -> { contract_address, tx_hash, merkle_root, verify_proof_args: { batchId, leaf, proofSiblings, proofPositions } }
 
-# Get trust scores in ERC-8004 Reputation Registry feedback format
-curl -s "https://api.garl.ai/api/v1/agents/{agent_id}/erc8004/feedback" | python3 -m json.tool`}
+# 2. Verify inclusion directly against Base mainnet (foundry 'cast'),
+#    using the verify_proof_args from step 1 — returns true if included.
+cast call 0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17 \\
+  "verifyProof(uint256,bytes32,bytes32[],bool[])(bool)" \\
+  <batchId> <leaf> "[<proofSiblings>]" "[<proofPositions>]" \\
+  --rpc-url https://mainnet.base.org`}
           />
           <div className="mt-4 space-y-2 text-sm text-garl-muted">
             <p><strong className="text-garl-text">Metadata endpoint</strong> returns AgentURI-compatible JSON with identity, services (A2A, MCP, GARL), and trust dimensions.</p>
             <p><strong className="text-garl-text">Feedback endpoint</strong> returns 5 dimension scores + composite as ERC-8004 Reputation Registry records with tag1/tag2 pairs.</p>
-            <p><strong className="text-garl-text">Cryptographic compatibility:</strong> GARL&apos;s ECDSA-secp256k1 signatures are natively verifiable by Ethereum-based systems.</p>
+            <p><strong className="text-garl-text">On-chain anchor</strong> — <code className="text-garl-text">GET /receipts/{`{id}`}/proof</code> returns the anchored batch&apos;s contract, transaction, root, and a verifiable inclusion proof. Trustless: verification runs against Base, not GARL.</p>
           </div>
         </section>
 
