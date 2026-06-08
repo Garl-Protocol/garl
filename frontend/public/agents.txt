@@ -64,6 +64,12 @@ Verify-Determinism:           Re-fetching the same hash yields a byte-identical 
 Raw-Cert-Endpoint:            https://api.garl.ai/api/v1/receipts/{hash}/cert.json
 Raw-Cert-Note:                Stored cert only. Strictly immutable. Never re-signed on read.
 
+On-Chain-Proof-Endpoint:      https://api.garl.ai/api/v1/receipts/{receipt_id}/proof
+On-Chain-Proof-Note:          Base-mainnet anchor coords + Merkle inclusion proof. The
+                              verify_proof_args block feeds MerkleAnchor.verifyProof directly
+                              so inclusion is checkable against Base, not GARL. 404 if unanchored.
+On-Chain-Anchor-Contract:     0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2 (Base mainnet, chain 8453)
+
 Public-Receipt-Page:          https://garl.ai/r/{short_hash}
 Public-Receipt-OG-Image:      https://garl.ai/api/og/r/{short_hash}
 

@@ -209,10 +209,12 @@ if (check.trusted) {
 
 ## ERC-8004 Compatibility
 
-GARL serves agent metadata in ERC-8004 format, bridging off-chain trust to the on-chain agent economy:
+GARL serves agent metadata in ERC-8004 format (off-chain). Separately, the Merkle roots of batched Action Receipts are anchored on Base mainnet:
+- MerkleAnchor contract 0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2 (chain 8453), source-verified on Sourcify
+- GET /api/v1/receipts/{id}/proof — anchor coords + Merkle inclusion proof; verify_proof_args feeds MerkleAnchor.verifyProof (trustless, checked against Base not GARL)
 - GET /api/v1/agents/{id}/erc8004 — AgentURI-compatible metadata (identity, services, trust dimensions)
 - GET /api/v1/agents/{id}/erc8004/feedback — Trust scores as ERC-8004 Reputation Registry feedback records
-- Same cryptographic curve as Ethereum (ECDSA-secp256k1) — trust attestations are natively verifiable on-chain
+- Same cryptographic curve as Ethereum (ECDSA-secp256k1) — signatures natively verifiable by Ethereum-based systems
 - 5 dimension scores mapped to tag1/tag2 pairs: reliability, security, speed, cost_efficiency, consistency
 
 ## Security

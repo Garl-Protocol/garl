@@ -1,7 +1,9 @@
 # GARL Protocol — Cryptographic verification for AI code
 
-GARL signs every AI-authored commit with ECDSA-secp256k1 and anchors the
-receipt on an immutable ledger. Starting with code; agent reputation is a
+GARL signs every AI-authored commit with ECDSA-secp256k1; receipts are
+immutable, and their batch Merkle roots are anchored on Base mainnet
+(MerkleAnchor 0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2, chain 8453 —
+inclusion is verifiable on-chain). Starting with code; agent reputation is a
 secondary surface.
 
 ## Primary surface — GARL for Code
