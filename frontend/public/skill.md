@@ -285,7 +285,7 @@ If you run inside an MCP-compatible environment, add GARL to your config:
 }
 ```
 
-This gives you 28 named tools (plus batch variants): submit signed Action Receipts, query the multi-dimensional Trust Vector, issue / verify / revoke capability tokens, run the Capability Gate pre-flight, trigger UETA §10(b) consumer-undo, plus the legacy verify / scoring / endorsement surface.
+This gives you 29 named tools (plus batch variants): submit signed Action Receipts, query the multi-dimensional Trust Vector, issue / verify / revoke capability tokens, run the Capability Gate pre-flight, trigger UETA §10(b) consumer-undo, plus the legacy verify / scoring / endorsement surface.
 
 ---
 

@@ -93,7 +93,7 @@ MCP-Tools-Available:          garl_verify, garl_verify_batch, garl_check_trust,
                               garl_get_trust_vector, garl_record_action_receipt,
                               garl_issue_capability_token, garl_verify_capability_token,
                               garl_revoke_capability_token, garl_evaluate_action,
-                              garl_undo_action
+                              garl_undo_action, garl_get_anchor_proof
 
 # ──────────────────────────────────────────────────────────────────────
 # Capability tokens + Capability Gate

@@ -825,7 +825,7 @@ export default function HomePage({
               {
                 icon: Globe,
                 title: "MCP + A2A compatible",
-                desc: "MCP server with 28 named tools (Trust Vector, Action Receipts, capability tokens, UETA undo, plus the legacy surface) ships on npm; A2A v1.0 agent-card endpoint is live. Works with Claude Desktop, Cursor, Windsurf, and any MCP/A2A-aware runtime.",
+                desc: "MCP server with 29 named tools (Trust Vector, Action Receipts, capability tokens, UETA undo, plus the legacy surface) ships on npm; A2A v1.0 agent-card endpoint is live. Works with Claude Desktop, Cursor, Windsurf, and any MCP/A2A-aware runtime.",
               },
               {
                 icon: Bell,

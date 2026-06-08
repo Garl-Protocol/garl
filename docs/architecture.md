@@ -61,7 +61,7 @@
 | Database | Supabase (PostgreSQL) with RLS |
 | Cryptography | ECDSA secp256k1 + SHA-256 |
 | SDKs | Python (sync/async) + JavaScript |
-| MCP | Node.js MCP Server (28 named tools, incl. batch variants) |
+| MCP | Node.js MCP Server (29 named tools, incl. batch variants) |
 | Containers | Docker + Docker Compose |
 
 ## Project Structure
@@ -86,7 +86,7 @@ garl/
 │   ├── python/garl.py       # Python SDK (sync + async)
 │   └── javascript/garl.js   # JavaScript SDK
 ├── integrations/
-│   ├── mcp-server/          # MCP Server (28 named tools, incl. batch variants)
+│   ├── mcp-server/          # MCP Server (29 named tools, incl. batch variants)
 │   ├── github-action/       # GitHub Action Trust Gate
 │   └── langchain/           # LangChain Callback Handler
 ├── docs/                    # Documentation

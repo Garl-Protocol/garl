@@ -42,7 +42,7 @@ Wave 2 + Wave 3 — agent-economy primitives on top of the receipt foundation.
   {id}/trust-vector`.
 - Per-agent monthly receipt cap (10K/month default) as a silent abuse guard.
 - Public usage stats at `GET /api/v1/public-stats` and `https://garl.ai/stats`.
-- 28 MCP tools (was 21): added Trust Vector, Action Receipt, capability
+- 29 MCP tools (was 21): added Trust Vector, Action Receipt, capability
   issue/verify/revoke, evaluate, and undo tools.
 
 ### Changed

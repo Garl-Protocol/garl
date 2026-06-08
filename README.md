@@ -90,7 +90,7 @@ Add to your Claude Desktop config (`claude_desktop_config.json`) or Cursor MCP s
 }
 ```
 
-That's it — 28 named tools (including batch variants like `garl_verify_batch`) are now available in your AI assistant: receipts, Trust Vector lookups, capability tokens (issue/verify/revoke), Capability Gate pre-flight, UETA §10(b) undo, and more.
+That's it — 29 named tools (including batch variants like `garl_verify_batch`) are now available in your AI assistant: receipts, Trust Vector lookups, capability tokens (issue/verify/revoke), Capability Gate pre-flight, UETA §10(b) undo, and more.
 
 ### With curl (zero install)
 
@@ -261,7 +261,7 @@ GARL uses the same cryptographic curve as Ethereum (ECDSA-secp256k1), making tru
 | Topic | Link |
 |-------|------|
 | Full API Reference (50+ REST endpoints + A2A + MCP) | [docs/api-reference.md](./docs/api-reference.md) |
-| MCP Server (28 named tools, including batch variants) | [garl.ai/docs#mcp-server](https://garl.ai/docs#mcp-server) |
+| MCP Server (29 named tools, including batch variants) | [garl.ai/docs#mcp-server](https://garl.ai/docs#mcp-server) |
 | A2A Protocol Integration | [garl.ai/docs#a2a](https://garl.ai/docs#a2a) |
 | ERC-8004 Compatibility | [garl.ai/docs#erc-8004](https://garl.ai/docs#erc-8004) |
 | Python & JS SDKs | [garl.ai/docs#sdks](https://garl.ai/docs#sdks) |
