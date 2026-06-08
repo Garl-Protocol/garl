@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useState, useCallback } from "react";
 import { Shield, CheckCircle, XCircle, Copy, Check, Search, ExternalLink, Link2 } from "lucide-react";
+import posthog from "posthog-js";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.garl.ai/api/v1";
 
@@ -102,6 +103,8 @@ export default function VerifyPage() {
         setAnchor(await proofRes.value.json());
         foundAnchor = true;
       }
+      posthog.capture("verify_submitted", { found_trace: foundTrace, found_anchor: foundAnchor });
+      if (foundAnchor) posthog.capture("onchain_proof_viewed");
       if (!foundTrace && !foundAnchor) {
         if (traceRes.status === "fulfilled") {
           const data = await traceRes.value.json().catch(() => null);
@@ -306,6 +309,7 @@ export default function VerifyPage() {
                 href={`https://basescan.org/tx/${anchor.tx_hash}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => posthog.capture("basescan_click", { tx_hash: anchor.tx_hash })}
                 className="flex items-center gap-1 font-mono text-[11px] text-garl-accent hover:underline"
               >
                 View transaction <ExternalLink className="h-3 w-3" />
