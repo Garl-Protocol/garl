@@ -11,6 +11,22 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 Wave 2 + Wave 3 — agent-economy primitives on top of the receipt foundation.
 
+### On-chain (2026-06-08)
+- `MerkleAnchor.sol` deployed to **Base mainnet** at
+  `0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17` (chain 8453). Receipt-batch
+  Merkle roots are anchored on-chain; inclusion is provable via `verifyProof`.
+  Weekly batch-anchor workflow added (`.github/workflows/anchor.yml`).
+
+### Security (2026-06-08)
+- Wave 2 write endpoints (`/receipts`, `/capability/{issue,evaluate,revoke}`,
+  `/receipts/{id}/undo`) now verify the caller owns the agent before signing —
+  previously they only rate-limited, allowing forged receipts/tokens under any
+  agent's DID.
+- `verify_signature` only trusts keys in the GARL registry; capability
+  revocation fails closed on unknown tokens; model disclosure is bound into the
+  signed trace payload; webhook delivery re-validates target + disables
+  redirects; CORS credentials off; CSV-export formula-injection guard.
+
 ### Added
 - **Action Receipt v0.1** generic envelope: `POST /api/v1/receipts`,
   immutable `GET /api/v1/receipts/{id}/cert.json`, and UETA §10(b) undo at
