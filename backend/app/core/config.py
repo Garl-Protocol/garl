@@ -19,6 +19,11 @@ class Settings(BaseSettings):
 
     signing_private_key_hex: str = ""
 
+    # On-chain Merkle anchor (Base mainnet). The backend builds batches and
+    # records the anchor tx; broadcasting is operator-driven via Foundry.
+    merkle_anchor_contract: str = "0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17"
+    merkle_anchor_chain_id: int = 8453
+
     read_auth_enabled: bool = True
 
     public_frontend_url: str = "https://garl.ai"
