@@ -59,6 +59,8 @@ GARL_MASTER_PLAN.md
 *_INTERNAL*.md
 *_STRATEGY*.md
 garl-strategy-*.md
+*-HANDOFF.md
+*_HANDOFF*.md
 audit_*.md
 checklist.md
 startprompt.md

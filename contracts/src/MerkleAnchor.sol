@@ -115,16 +115,11 @@ contract MerkleAnchor {
     /// @dev Hash function: SHA-256 (matches the off-chain builder).
     /// @param batchId The batch to verify against.
     /// @param leaf The Merkle leaf — sha256(receipt.output_hash bytes).
-    /// @param proof Inclusion path. Each entry: bit 0 = position
-    ///              (0=sibling-on-left, 1=sibling-on-right), bytes32[31:1]
-    ///              left as sibling hash. Encoded as `bytes32` so callers
-    ///              can pack: `bytes32(uint256(uint8(positionBit))) |
-    ///              (sibling >> 8)`.
-    ///
-    ///              For simplicity this implementation uses a parallel
-    ///              array structure: `proofSiblings[i]` and
-    ///              `proofPositions[i]` — see `verifyProofWithPositions`
-    ///              below.
+    /// @param proofSiblings Inclusion path sibling hashes, leaf→root order.
+    /// @param proofPositions Per-level sibling position: false = sibling on
+    ///              the left (parent = sha256(sibling || node)), true =
+    ///              sibling on the right (parent = sha256(node || sibling)).
+    ///              Must be the same length as `proofSiblings`.
     function verifyProof(
         uint256 batchId,
         bytes32 leaf,

@@ -10,7 +10,7 @@ _DEV_DEFAULT_ORIGINS = ("http://localhost:3000", "http://localhost:3001")
 
 class Settings(BaseSettings):
     app_name: str = "GARL Protocol"
-    app_version: str = "1.1.0"
+    app_version: str = "1.4.0"
     debug: bool = False
 
     supabase_url: str = ""
