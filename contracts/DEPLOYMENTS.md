@@ -9,6 +9,9 @@ inclusion against an anchored root.
 |---|---|---|---|
 | Base mainnet | 8453 | [`0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17`](https://basescan.org/address/0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17) | `0xD151d1da33D51C2BdA9525091213500d6E506891` |
 
+**Source verified** (exact match): [Sourcify](https://repo.sourcify.dev/8453/0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17) ·
+[Blockscout](https://base.blockscout.com/address/0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17). Anyone can read the deployed source and re-verify the bytecode.
+
 ## Operating the anchor
 
 Batches are built off-chain by `backend/app/services/merkle_batch.py`

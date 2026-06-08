@@ -1,15 +1,18 @@
 name: GARL Receipt
-# Dogfood: signs every AI-authored commit in this repo's PRs with a
-# cryptographic receipt. Only secrets.* contexts are used; no untrusted
-# PR input is interpolated into shell commands, so workflow-injection
-# risks don't apply here.
+# Dogfood: signs every AI-authored commit in this repo with a cryptographic
+# receipt. Fires on direct pushes to main (the working flow — no PRs) and on
+# PRs (if any are opened). The action handles both event types. Only secrets.*
+# contexts are used; no untrusted input is interpolated into shell commands.
 on:
+  push:
+    branches: [main]
   pull_request:
     types: [opened, synchronize, reopened]
 
 jobs:
   sign-ai-commits:
     runs-on: ubuntu-latest
+    if: ${{ github.repository == 'Garl-Protocol/garl' }}
     permissions:
       contents: read
       pull-requests: write
