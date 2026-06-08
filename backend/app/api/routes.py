@@ -2047,12 +2047,15 @@ async def issue_capability(request: Request, body: dict, x_api_key: str = Header
     ``human_delegate``."""
     from app.services.capability_tokens import issue_capability_token
 
-    _check_rate_limit(x_api_key[:16], "write", request)
+    _check_rate_limit(_get_client_ip(request), "write", request)
     required = ("agent_id", "scope", "side_effect_class")
     for f in required:
         if not body.get(f):
             raise HTTPException(status_code=422, detail=f"Field {f!r} required")
     _validate_uuid(body["agent_id"], "agent_id")
+    # A token is minted under the agent's DID and signed by GARL — the caller
+    # must prove it owns that agent, else anyone could impersonate any agent.
+    _verify_agent_ownership(body["agent_id"], x_api_key)
     try:
         return issue_capability_token(
             agent_id=body["agent_id"],
@@ -2105,9 +2108,22 @@ async def revoke_capability(request: Request, body: dict, x_api_key: str = Heade
     """Mark a token revoked. Cascades to all attenuated descendants."""
     from app.services.capability_tokens import revoke_capability_token
 
-    _check_rate_limit(x_api_key[:16], "write", request)
+    _check_rate_limit(_get_client_ip(request), "write", request)
     if not body.get("token_hash"):
         raise HTTPException(status_code=422, detail="Field 'token_hash' required")
+    # Only the agent that owns the token may revoke it (revocation cascades to
+    # descendants — otherwise anyone knowing a token_hash could DoS the chain).
+    db = _get_supabase()
+    tok = (
+        db.table("capability_tokens")
+        .select("agent_id")
+        .eq("token_hash", body["token_hash"])
+        .limit(1)
+        .execute()
+    )
+    if not tok.data:
+        raise HTTPException(status_code=404, detail="Token not found")
+    _verify_agent_ownership(tok.data[0]["agent_id"], x_api_key)
     reason = body.get("reason") or "manual-revoke"
     cascade = bool(body.get("cascade", True))
     return revoke_capability_token(body["token_hash"], reason, cascade=cascade)
@@ -2118,11 +2134,12 @@ async def revoke_capability(request: Request, body: dict, x_api_key: str = Heade
     summary="Capability Gate pre-flight",
     tags=["Capability"],
 )
-async def evaluate_capability(request: Request, body: dict):
+async def evaluate_capability(request: Request, body: dict, x_api_key: str = Header(...)):
     """Pre-flight: should this agent be allowed to perform this action?
     Returns a decision plus, if allowed, a freshly-minted scoped capability
-    token. Public — the agent should call this before each side-effecting
-    action and present the resulting token to the tool server."""
+    token. The agent calls this before each side-effecting action and presents
+    the resulting token to the tool server. Requires the agent's API key — the
+    minted token is bound to (and signed for) the agent's DID."""
     from app.services.capability_gate import GateError, evaluate_request
 
     _check_rate_limit(_get_client_ip(request), "default", request)
@@ -2131,6 +2148,7 @@ async def evaluate_capability(request: Request, body: dict):
         if not body.get(f):
             raise HTTPException(status_code=422, detail=f"Field {f!r} required")
     _validate_uuid(body["agent_id"], "agent_id")
+    _verify_agent_ownership(body["agent_id"], x_api_key)
     try:
         return evaluate_request(
             agent_id=body["agent_id"],
@@ -2165,7 +2183,15 @@ async def submit_receipt(request: Request, body: dict, x_api_key: str = Header(.
         submit_action_receipt,
     )
 
-    _check_rate_limit(x_api_key[:16], "write", request)
+    _check_rate_limit(_get_client_ip(request), "write", request)
+    # The receipt is signed by GARL under the agent's DID — the caller must
+    # own the agent it is attributing the action to. Without this, anyone could
+    # mint authentic-looking receipts for any agent.
+    agent_id = body.get("agent_id") if isinstance(body, dict) else None
+    if not agent_id:
+        raise HTTPException(status_code=422, detail="Field 'agent_id' is required")
+    _validate_uuid(agent_id, "agent_id")
+    _verify_agent_ownership(agent_id, x_api_key)
     try:
         envelope = submit_action_receipt(body)
         return envelope
@@ -2178,13 +2204,26 @@ async def submit_receipt(request: Request, body: dict, x_api_key: str = Header(.
     summary="UETA §10(b) consumer-undo trigger",
     tags=["Receipts"],
 )
-async def trigger_receipt_undo(receipt_id: str, request: Request, body: dict):
+async def trigger_receipt_undo(receipt_id: str, request: Request, body: dict, x_api_key: str = Header(...)):
     """Move a recorded compensation from 'recorded' to 'pending' and
-    return the undo payload. Refuses for irreversible receipts."""
+    return the undo payload. Refuses for irreversible receipts. Requires the
+    API key of the agent that owns the receipt."""
     from app.services.reversibility import ReversibilityError, trigger_undo
 
     _check_rate_limit(_get_client_ip(request), "default", request)
     _validate_uuid(receipt_id, "receipt_id")
+    # Only the receipt's owning agent may trigger its undo.
+    db = _get_supabase()
+    rcpt = (
+        db.table("receipts")
+        .select("agent_id")
+        .eq("receipt_id", receipt_id)
+        .limit(1)
+        .execute()
+    )
+    if not rcpt.data:
+        raise HTTPException(status_code=404, detail="Receipt not found")
+    _verify_agent_ownership(rcpt.data[0]["agent_id"], x_api_key)
     reason = (body.get("reason") if isinstance(body, dict) else None) or "consumer-initiated-undo"
     try:
         return trigger_undo(receipt_id, reason)

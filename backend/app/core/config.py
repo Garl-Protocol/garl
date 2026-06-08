@@ -1,5 +1,6 @@
 import os
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -30,7 +31,20 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = list(_DEV_DEFAULT_ORIGINS)
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    # extra="ignore": an unexpected env var must never crash the service on boot.
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
+
+    @model_validator(mode="after")
+    def _signing_key_env_fallback(self) -> "Settings":
+        # Prod historically set ECDSA_PRIVATE_KEY_HEX while code/docs reference
+        # SIGNING_PRIVATE_KEY_HEX. If the canonical name is unset, fall back to
+        # the legacy one so the signer never silently drops to an ephemeral key
+        # (which would change every receipt signature on restart).
+        if not self.signing_private_key_hex:
+            legacy = os.environ.get("ECDSA_PRIVATE_KEY_HEX", "").strip()
+            if legacy:
+                self.signing_private_key_hex = legacy
+        return self
 
     def get_cors_origins(self) -> list[str]:
         env_origins = os.environ.get("ALLOWED_ORIGINS", "")
