@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/GARL_Protocol-v1.2.0-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Version" />
+  <img src="https://img.shields.io/badge/GARL_Protocol-v1.4.0-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Version" />
   <img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge&labelColor=0a0a0a" alt="License" />
   <img src="https://img.shields.io/badge/GitHub_Action-Live-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="GitHub Action" />
   <img src="https://img.shields.io/badge/A2A_v1.0-Compliant-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="A2A v1.0" />

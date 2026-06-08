@@ -178,3 +178,27 @@ class TestRawReceiptEndpoint:
     def test_bad_hash_format_returns_400(self):
         resp = TestClient(app).get("/api/v1/receipts/NOT_HEX/cert.json")
         assert resp.status_code == 400
+
+    def test_action_receipt_resolves_by_uuid(self):
+        """The cert.json path must also serve Action Receipt v0.1 envelopes by
+        receipt_id (UUID) — regression for the legacy route shadowing the new
+        one. A UUID would fail the legacy hex grammar, so resolution proves the
+        action-receipt lookup runs first."""
+        envelope = {"receipt_id": "93703da4-dbb6-45e8-bd9c-151116b1f9b3",
+                    "version": "garl/action-receipt/v0.1", "action_type": "code_write"}
+        db = MagicMock()
+        t = MagicMock()
+        class R: pass
+        r = R(); r.data = [{"envelope_json": envelope, "redaction_policy": None}]
+        t.select.return_value = t
+        t.eq.return_value = t
+        t.limit.return_value = t
+        t.execute.return_value = r
+        db.table.return_value = t
+        with patch("app.services.action_receipts._get_supabase", return_value=db):
+            resp = TestClient(app).get(
+                "/api/v1/receipts/93703da4-dbb6-45e8-bd9c-151116b1f9b3/cert.json"
+            )
+        assert resp.status_code == 200
+        assert resp.json()["receipt_id"] == "93703da4-dbb6-45e8-bd9c-151116b1f9b3"
+        assert "immutable" in resp.headers.get("Cache-Control", "")

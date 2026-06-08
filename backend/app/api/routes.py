@@ -1163,6 +1163,20 @@ async def receipt_raw_certificate(trace_hash: str, request: Request, response: R
     /verify for the richer envelope with signing_epoch disclosure.
     """
     _check_rate_limit(_get_client_ip(request), "default", request)
+
+    # Action Receipt v0.1 takes precedence: this path also serves the generic
+    # receipt envelope by receipt_id (UUID) or output_hash (64-hex). Try it
+    # first so UUIDs (which fail the hex grammar below) resolve correctly. If
+    # the receipts subsystem is unavailable, fall through to legacy trace cert.
+    try:
+        from app.services.action_receipts import get_action_receipt
+        envelope = get_action_receipt((trace_hash or "").strip())
+    except Exception:
+        envelope = None
+    if envelope:
+        response.headers["Cache-Control"] = "public, max-age=300, s-maxage=86400, immutable"
+        return envelope
+
     h = (trace_hash or "").strip().lower()
     if not h or len(h) < 8 or len(h) > 64 or not _HEX_RE.match(h):
         raise HTTPException(status_code=400, detail="Invalid trace hash")
@@ -2157,24 +2171,6 @@ async def submit_receipt(request: Request, body: dict, x_api_key: str = Header(.
         return envelope
     except ActionReceiptValidationError as e:
         raise HTTPException(status_code=422, detail=str(e))
-
-
-@router.get(
-    "/receipts/{receipt_id_or_hash}/cert.json",
-    summary="Raw Action Receipt envelope (immutable)",
-    tags=["Receipts"],
-)
-async def receipt_cert(receipt_id_or_hash: str, request: Request):
-    """Return the canonical envelope for a receipt by receipt_id (UUID) or
-    by output_hash (64-hex). Strictly immutable — the same input always
-    yields byte-identical bytes."""
-    from app.services.action_receipts import get_action_receipt
-
-    _check_rate_limit(_get_client_ip(request), "default", request)
-    envelope = get_action_receipt(receipt_id_or_hash)
-    if not envelope:
-        raise HTTPException(status_code=404, detail="Receipt not found")
-    return envelope
 
 
 @router.post(

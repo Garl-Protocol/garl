@@ -10,7 +10,7 @@ _DEV_DEFAULT_ORIGINS = ("http://localhost:3000", "http://localhost:3001")
 
 class Settings(BaseSettings):
     app_name: str = "GARL Protocol"
-    app_version: str = "1.1.0"
+    app_version: str = "1.4.0"
     debug: bool = False
 
     supabase_url: str = ""
@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = ""
 
     signing_private_key_hex: str = ""
+
+    # On-chain Merkle anchor (Base mainnet). The backend builds batches and
+    # records the anchor tx; broadcasting is operator-driven via Foundry.
+    merkle_anchor_contract: str = "0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17"
+    merkle_anchor_chain_id: int = 8453
 
     read_auth_enabled: bool = True
 

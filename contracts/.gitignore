@@ -1,0 +1,9 @@
+# Foundry
+cache/
+out/
+broadcast/
+# Vendored dependencies (installed via `forge install ... --no-git`)
+lib/
+env/
+*.env
+.env*
