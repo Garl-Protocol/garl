@@ -170,6 +170,9 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
     trace_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
 
+    signed_models = (
+        [m.model_dump(exclude_none=True) for m in req.models] if req.models else []
+    )
     trace_raw = {
         "trace_id": trace_id,
         "agent_id": req.agent_id,
@@ -181,6 +184,11 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
         "token_count": tokens,
         "timestamp": now,
     }
+    # Bind model disclosure into the SIGNED payload + hash so policy gates can
+    # trust it cryptographically (was only in the unsigned metadata column).
+    # Added conditionally so model-less traces keep their existing hash.
+    if signed_models:
+        trace_raw["models"] = signed_models
     trace_hash = _compute_trace_hash(trace_raw)
 
     dup_check = db.table("traces").select("id").eq("trace_hash", trace_hash).limit(1).execute()
@@ -445,12 +453,6 @@ def _webhook_target_is_public(url: str) -> bool:
 
 
 def _deliver_webhook(db, hook: dict, payload: dict):
-    if not _webhook_target_is_public(hook["url"]):
-        logger.warning(
-            "Webhook %s resolves to a non-public address — delivery refused",
-            hook["id"],
-        )
-        return
     body = json.dumps(payload, default=str)
     sig = hmac.new(
         hook["secret"].encode(), body.encode(), hashlib.sha256
@@ -461,12 +463,25 @@ def _deliver_webhook(db, hook: dict, payload: dict):
     }
 
     for attempt in range(MAX_WEBHOOK_RETRIES):
+        # Re-validate immediately before EACH connect (not once up front): a
+        # webhook host whose DNS flips to an internal address between attempts
+        # (rebinding) is re-checked here, shrinking the TOCTOU window to a
+        # single getaddrinfo→connect. Redirects are disabled so a 30x cannot
+        # bounce the request to an internal target. (Full socket-level IP
+        # pinning would require a custom transport — tracked as hardening.)
+        if not _webhook_target_is_public(hook["url"]):
+            logger.warning(
+                "Webhook %s resolves to a non-public address — delivery refused",
+                hook["id"],
+            )
+            return
         try:
             resp = httpx.post(
                 hook["url"],
                 content=body,
                 headers=headers,
                 timeout=5.0,
+                follow_redirects=False,
             )
             if resp.status_code < 500:
                 db.table("webhooks").update(

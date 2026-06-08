@@ -1115,9 +1115,16 @@ async def policy_check(request: Request, body: dict):
             except ValueError:
                 reasons.append("unknown_tier")
 
-        md = trace.get("metadata") or {}
-        models = md.get("models") if isinstance(md, dict) else None
-        model_names = [m.get("name") for m in (models or []) if isinstance(m, dict) and m.get("name")]
+        # Prefer the cryptographically-signed model disclosure (bound into the
+        # cert payload + trace_hash). Fall back to the unsigned metadata column
+        # only for legacy traces signed before models were part of the payload.
+        cert = trace.get("certificate") or {}
+        signed_payload = cert.get("payload") if isinstance(cert, dict) else {}
+        signed_models = signed_payload.get("models") if isinstance(signed_payload, dict) else None
+        if signed_models is None:
+            md = trace.get("metadata") or {}
+            signed_models = md.get("models") if isinstance(md, dict) else None
+        model_names = [m.get("name") for m in (signed_models or []) if isinstance(m, dict) and m.get("name")]
 
         if require_disclosure and not model_names:
             reasons.append("no_model_disclosure")

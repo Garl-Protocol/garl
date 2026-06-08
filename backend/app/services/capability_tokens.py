@@ -381,11 +381,13 @@ def _is_revoked(token_hash: str) -> bool:
         .execute()
     )
     if not res.data:
-        # Token unknown to the registry. We fail open here so freshly-issued
-        # tokens that haven't yet been read back from the DB still verify.
-        # Production callers concerned about replay may pass check_revocation
-        # only after a small grace window.
-        return False
+        # Token unknown to the registry → treat as revoked (fail CLOSED).
+        # Issuance persists the row before the token is returned, so a
+        # legitimate token is always present here; an unknown token_hash means
+        # it was never issued (or was purged) and must not pass a revocation
+        # check. Failing open here would let a never-persisted (e.g. forged or
+        # offline-minted) token verify as not-revoked.
+        return True
     return res.data[0].get("revoked_at") is not None
 
 

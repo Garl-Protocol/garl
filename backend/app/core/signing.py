@@ -156,9 +156,15 @@ def verify_signature(certificate: dict) -> bool:
     proof = certificate.get("proof", {})
     payload = certificate.get("payload", {})
     try:
-        vk = VerifyingKey.from_string(
-            bytes.fromhex(proof["publicKey"]), curve=SECP256k1
-        )
+        pubkey_hex = proof["publicKey"]
+        # Only trust signatures from a key in the GARL registry (active or
+        # retired). Without this, a self-consistent (signature, publicKey) pair
+        # produced by an attacker-controlled key would verify as "valid" on
+        # /verify/check — proving only that *someone* signed it, not GARL.
+        known_keys = {k.get("public_key_hex") for k in get_key_registry().get("keys", [])}
+        if pubkey_hex not in known_keys:
+            return False
+        vk = VerifyingKey.from_string(bytes.fromhex(pubkey_hex), curve=SECP256k1)
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         digest = hashlib.sha256(canonical.encode()).digest()
         return vk.verify_digest(bytes.fromhex(proof["signature"]), digest)
