@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import SiteNav from "@/components/SiteNav";
+import { PostHogProvider } from "./providers";
 
 const description =
   "Cryptographic verification for AI agent actions, starting with code. Every AI-authored action — commits, tool calls, payments, browser actions — signed with ECDSA-secp256k1 (RFC 6979 deterministic), receipted in an immutable ledger, gated by capability tokens, undoable when reversible (UETA §10(b)).";
@@ -111,6 +112,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-garl-bg text-garl-text antialiased">
+        <PostHogProvider>
         <div className="flex min-h-screen flex-col">
           <SiteNav />
           <main className="flex-1">{children}</main>
@@ -164,6 +166,7 @@ export default function RootLayout({
             </div>
           </footer>
         </div>
+        </PostHogProvider>
       </body>
     </html>
   );

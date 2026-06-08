@@ -46,6 +46,15 @@ const nextConfig = {
       { source: "/code", destination: "/for-code", permanent: true },
     ];
   },
+  // PostHog reverse proxy: events/assets route through our own origin so ad
+  // blockers don't drop them and the strict same-origin CSP keeps covering
+  // analytics (no CSP loosening needed). US cloud.
+  async rewrites() {
+    return [
+      { source: "/ingest/static/:path*", destination: "https://us-assets.i.posthog.com/static/:path*" },
+      { source: "/ingest/:path*", destination: "https://us.i.posthog.com/:path*" },
+    ];
+  },
   async headers() {
     return [
       {
