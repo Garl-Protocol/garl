@@ -5,8 +5,11 @@ import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 
-// Public, build-time-inlined. Empty → analytics is a no-op (safe to ship).
-const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+// PostHog GARL project (454265) public/publishable key. phc_ keys are
+// client-side by design and safe in app code (env override wins if set).
+const KEY =
+  process.env.NEXT_PUBLIC_POSTHOG_KEY ||
+  "phc_vMqXQjidaEWRxNHrPQRatAfpxd9SkcEPD3rCvJYZESXb";
 
 if (typeof window !== "undefined" && KEY) {
   posthog.init(KEY, {
