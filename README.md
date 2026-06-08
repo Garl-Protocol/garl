@@ -12,7 +12,7 @@
 <p align="center"><strong>Cryptographic verification for AI systems. Starting with code.</strong></p>
 
 <p align="center">
-<em>Nearly half of all new code on GitHub is AI-touched (Octoverse 2025). Who wrote it? Which model?<br/>
+<em>A large and growing share of new code is written by AI. Who wrote it? Which model?<br/>
 GARL signs every AI commit with ECDSA-secp256k1 (RFC 6979 deterministic) and makes provenance verifiable.</em>
 </p>
 

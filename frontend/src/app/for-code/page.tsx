@@ -12,7 +12,7 @@ import {
 export const metadata: Metadata = {
   title: "GARL for Code — Cryptographic proof for every AI-generated commit",
   description:
-    "Nearly half of all new code on GitHub is AI-touched (Octoverse 2025). GARL for Code signs every AI-authored commit with ECDSA-secp256k1 (RFC 6979) and makes provenance verifiable via a 5-line GitHub Action or one-click GitHub App. Open source, Apache 2.0.",
+    "A large and growing share of new code is AI-written. GARL for Code signs every AI-authored commit with ECDSA-secp256k1 (RFC 6979) and makes provenance verifiable via a 5-line GitHub Action or one-click GitHub App. Open source, Apache 2.0.",
   alternates: { canonical: "https://garl.ai/for-code" },
   openGraph: {
     title: "GARL for Code — Cryptographic proof for AI-generated commits",
@@ -87,8 +87,7 @@ export default function ForCodePage() {
             </h1>
             <p className="mb-6 max-w-xl text-base leading-relaxed text-garl-muted sm:text-lg">
               <span className="font-semibold text-garl-text">
-                Nearly half of all new code on GitHub is AI-touched
-                (Octoverse 2025).
+                A large and growing share of new code is AI-written.
               </span>{" "}
               Who wrote it? Which model? Was it reviewed? GARL for Code signs
               every AI-authored commit with{" "}
