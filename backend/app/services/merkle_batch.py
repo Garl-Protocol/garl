@@ -164,19 +164,25 @@ def record_anchor_tx(
     chain_id: int,
     tx_hash: str,
     contract_address: str,
+    onchain_batch_id: int | None = None,
 ) -> dict:
     """Operator-driven: once the Base tx confirms, mark the batch anchored.
-    The receipts in the batch flip their anchored_at via a follow-up update."""
+    The receipts in the batch flip their anchored_at via a follow-up update.
+
+    `onchain_batch_id` is the batchId the contract assigned to anchor() — it
+    is what verifyProof expects. Persist it rather than assuming it equals the
+    DB batch_id (which only holds if every batch anchors in order)."""
     sb = _get_supabase()
     now_iso = _now_iso()
-    sb.table("merkle_batches").update(
-        {
-            "anchored_at": now_iso,
-            "chain_id": chain_id,
-            "tx_hash": tx_hash,
-            "contract_address": contract_address,
-        }
-    ).eq("batch_id", batch_id).execute()
+    update = {
+        "anchored_at": now_iso,
+        "chain_id": chain_id,
+        "tx_hash": tx_hash,
+        "contract_address": contract_address,
+    }
+    if onchain_batch_id is not None:
+        update["onchain_batch_id"] = onchain_batch_id
+    sb.table("merkle_batches").update(update).eq("batch_id", batch_id).execute()
 
     sb.table("receipts").update({"anchored_at": now_iso}).eq("merkle_batch_id", batch_id).execute()
 
@@ -187,3 +193,107 @@ def record_anchor_tx(
 def _now_iso() -> str:
     from datetime import datetime, timezone
     return datetime.now(timezone.utc).isoformat()
+
+
+def _batch_ordered_members(sb, batch_id: int) -> list[dict]:
+    """Receipts in a batch in the SAME order build_pending_batch used to build
+    the tree (created_at ASC, receipt_id ASC). Single source of truth for the
+    leaf ordering so the proof builder can never drift from the builder."""
+    return (
+        sb.table("receipts")
+        .select("receipt_id, output_hash, created_at")
+        .eq("merkle_batch_id", batch_id)
+        .order("created_at")
+        .order("receipt_id")
+        .execute()
+        .data
+        or []
+    )
+
+
+def build_inclusion_proof(receipt_id_or_hash: str) -> dict | None:
+    """Build an on-chain-verifiable Merkle inclusion proof for a receipt.
+
+    Returns None if the receipt is unknown, not yet batched, or its batch is
+    not yet anchored on-chain. The returned dict carries everything needed to
+    call MerkleAnchor.verifyProof(batchId, leaf, proofSiblings, proofPositions)
+    on Base, plus a human-readable proof form. The proof is re-verified
+    locally before return.
+    """
+    sb = _get_supabase()
+    rid = (receipt_id_or_hash or "").strip()
+    col = (
+        "output_hash"
+        if len(rid) == 64 and all(c in "0123456789abcdef" for c in rid.lower())
+        else "receipt_id"
+    )
+    val = rid.lower() if col == "output_hash" else rid
+
+    rec = (
+        sb.table("receipts")
+        .select("receipt_id, output_hash, merkle_batch_id, anchored_at")
+        .eq(col, val)
+        .limit(1)
+        .execute()
+        .data
+    )
+    if not rec:
+        return None
+    rec = rec[0]
+    batch_id = rec.get("merkle_batch_id")
+    if batch_id is None:
+        return None  # pending — not yet batched
+
+    batch = (
+        sb.table("merkle_batches")
+        .select("batch_id, onchain_batch_id, root, chain_id, tx_hash, contract_address, anchored_at, receipt_count")
+        .eq("batch_id", batch_id)
+        .limit(1)
+        .execute()
+        .data
+    )
+    if not batch or not batch[0].get("tx_hash") or not batch[0].get("anchored_at"):
+        return None  # not anchored on-chain yet
+    batch = batch[0]
+
+    members = _batch_ordered_members(sb, batch_id)
+    leaves = [_leaf(r["output_hash"]) for r in members]
+    target_receipt_id = rec["receipt_id"]
+    try:
+        target_index = next(i for i, r in enumerate(members) if r["receipt_id"] == target_receipt_id)
+    except StopIteration:
+        return None
+
+    leaf = leaves[target_index]
+    proof = merkle_proof(leaves, target_index)
+    if not verify_merkle_proof(leaf, proof, batch["root"]):
+        # The off-chain proof must reconstruct the anchored root; if not, the
+        # leaf ordering drifted — refuse to serve a proof that would fail
+        # on-chain rather than emit a wrong one.
+        return None
+
+    # The batchId verifyProof expects: the on-chain id if recorded, else the
+    # DB id (genesis: 1 == 1, verified on Base).
+    onchain_batch_id = batch.get("onchain_batch_id") or batch["batch_id"]
+    siblings = ["0x" + step["sibling"] for step in proof]
+    positions = [step["position"] == "right" for step in proof]  # right->true (MerkleAnchor.sol)
+
+    return {
+        "anchored": True,
+        "chain": "base-mainnet" if batch.get("chain_id") == 8453 else f"chain-{batch.get('chain_id')}",
+        "chain_id": batch.get("chain_id"),
+        "contract_address": batch.get("contract_address"),
+        "tx_hash": batch.get("tx_hash"),
+        "anchored_at": batch.get("anchored_at"),
+        "merkle_root": batch["root"],
+        "receipt_count": batch.get("receipt_count"),
+        "leaf": leaf,
+        "leaf_index": target_index,
+        "proof": proof,  # [{"sibling","position"}] — human/debug form
+        "verify_proof_args": {  # ready-to-use on-chain calldata
+            "batchId": onchain_batch_id,
+            "leaf": "0x" + leaf,
+            "proofSiblings": siblings,
+            "proofPositions": positions,
+        },
+    }

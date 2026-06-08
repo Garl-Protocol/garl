@@ -1226,6 +1226,30 @@ async def receipt_raw_certificate(trace_hash: str, request: Request, response: R
     return cert
 
 
+@router.get(
+    "/receipts/{receipt_id}/proof",
+    summary="On-chain anchor coordinates + Merkle inclusion proof",
+    tags=["Receipts"],
+)
+async def receipt_inclusion_proof(receipt_id: str, request: Request, response: Response):
+    """Return the receipt's Base-mainnet anchor coordinates and a Merkle
+    inclusion proof. The `verify_proof_args` block can be passed directly to
+    `MerkleAnchor.verifyProof(batchId, leaf, proofSiblings, proofPositions)` to
+    confirm — without trusting GARL — that the receipt is included in the
+    anchored on-chain root. 404 if the receipt is unknown or not yet anchored.
+    Accepts a receipt_id (UUID) or an output_hash (64-hex)."""
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    try:
+        from app.services.merkle_batch import build_inclusion_proof
+        proof = build_inclusion_proof((receipt_id or "").strip())
+    except Exception:
+        proof = None
+    if not proof:
+        raise HTTPException(status_code=404, detail="Receipt not anchored on-chain (or not found)")
+    response.headers["Cache-Control"] = "public, max-age=300, s-maxage=86400, immutable"
+    return proof
+
+
 @router.get("/keys", summary="Public signing key registry", tags=["Trust & Verification"])
 async def list_public_keys(response: Response):
     """Mirror of /.well-known/garl-keys.json for API-prefix consumers.

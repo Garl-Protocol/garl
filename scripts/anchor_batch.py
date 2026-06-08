@@ -73,10 +73,25 @@ def main() -> int:
     if status not in ("0x1", "1", 1):
         sys.exit(f"anchor tx reverted: {tx_hash} status={status}")
 
-    record_anchor_tx(
-        batch_id=batch_id, chain_id=chain_id, tx_hash=tx_hash, contract_address=contract
+    # Capture the batchId the contract actually assigned. anchor() increments
+    # nextBatchId, so the just-anchored id is nextBatchId-1. Safe to read here
+    # because the workflow's concurrency group serializes anchor runs.
+    onchain_batch_id = None
+    nb = subprocess.run(
+        ["cast", "call", contract, "nextBatchId()(uint256)", "--rpc-url", rpc],
+        capture_output=True, text=True,
     )
-    print(f"Anchored batch {batch_id} in tx {tx_hash} (chain {chain_id}).")
+    if nb.returncode == 0:
+        try:
+            onchain_batch_id = int(nb.stdout.strip().split()[0]) - 1
+        except (ValueError, IndexError):
+            onchain_batch_id = None
+
+    record_anchor_tx(
+        batch_id=batch_id, chain_id=chain_id, tx_hash=tx_hash,
+        contract_address=contract, onchain_batch_id=onchain_batch_id,
+    )
+    print(f"Anchored DB batch {batch_id} (on-chain {onchain_batch_id}) in tx {tx_hash} (chain {chain_id}).")
     return 0
 
 
