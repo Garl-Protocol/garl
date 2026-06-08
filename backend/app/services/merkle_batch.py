@@ -194,6 +194,11 @@ def record_anchor_tx(
     sb.table("merkle_batches").update(update).eq("batch_id", batch_id).execute()
 
     sb.table("receipts").update({"anchored_at": now_iso}).eq("merkle_batch_id", batch_id).execute()
+    try:
+        from app.core.analytics import capture as _ph
+        _ph("onchain_anchor_recorded", None, {"chain_id": chain_id, "batch_id": batch_id})
+    except Exception:
+        pass
 
     res = sb.table("merkle_batches").select("*").eq("batch_id", batch_id).limit(1).execute()
     return res.data[0] if res.data else {}

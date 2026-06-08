@@ -188,6 +188,11 @@ def issue_capability_token(
         expires_at_iso=expires_at_iso,
     )
 
+    try:
+        from app.core.analytics import capture as _ph
+        _ph("capability_issued", agent_id, {"side_effect_class": side_effect_class})
+    except Exception:
+        pass
     return {
         "token": jwt_form,
         "token_hash": token_hash,

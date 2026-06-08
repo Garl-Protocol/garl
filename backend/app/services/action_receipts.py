@@ -173,6 +173,11 @@ def submit_action_receipt(req: dict) -> dict:
         "envelope_json": envelope,
     }
     sb.table("receipts").insert(row).execute()
+    try:
+        from app.core.analytics import capture as _ph
+        _ph("receipt_submitted", agent_id, {"action_type": req.get("action_type"), "side_effect": req.get("side_effect")})
+    except Exception:
+        pass
     return envelope
 
 

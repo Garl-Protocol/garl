@@ -264,6 +264,12 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
         "created_at": now,
     }).execute()
 
+    try:
+        from app.core.analytics import capture as _ph
+        _ph("trace_verified", req.agent_id, {"status": req.status.value, "category": req.category.value})
+    except Exception:
+        pass
+
     # --- Agent update ---
     prev_total_cost = float(agent.get("total_cost_usd", 0) or 0)
     prev_avg_dur = int(agent.get("avg_duration_ms", 0) or 0)

@@ -157,6 +157,11 @@ def register_agent(req: AgentRegisterRequest, developer_id: str | None = None) -
     for k, v in full.items():
         if k not in response:
             response[k] = v
+    try:
+        from app.core.analytics import capture as _ph
+        _ph("agent_registered", agent_id, {"framework": getattr(req, "framework", None), "category": str(getattr(req, "category", "") or "")})
+    except Exception:
+        pass
     return response
 
 
