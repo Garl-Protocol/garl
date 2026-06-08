@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState, useCallback } from "react";
-import { Shield, CheckCircle, XCircle, Copy, Check, Search, ExternalLink } from "lucide-react";
+import { Shield, CheckCircle, XCircle, Copy, Check, Search, ExternalLink, Link2 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.garl.ai/api/v1";
 
@@ -26,6 +26,21 @@ interface VerifyResult {
     };
   };
   public_key: string;
+}
+
+interface AnchorResult {
+  chain: string;
+  chain_id: number;
+  contract_address: string;
+  tx_hash: string;
+  merkle_root: string;
+  anchored_at: string;
+  verify_proof_args: {
+    batchId: number;
+    leaf: string;
+    proofSiblings: string[];
+    proofPositions: boolean[];
+  };
 }
 
 function CopyField({ label, value }: { label: string; value: string }) {
@@ -59,6 +74,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
 export default function VerifyPage() {
   const [hash, setHash] = useState("");
   const [result, setResult] = useState<VerifyResult | null>(null);
+  const [anchor, setAnchor] = useState<AnchorResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -67,15 +83,33 @@ export default function VerifyPage() {
     if (!trimmed) return;
     setLoading(true);
     setResult(null);
+    setAnchor(null);
     setError(null);
+    // A trace hash resolves /verify; an Action Receipt id / output_hash resolves
+    // /receipts/{id}/proof (on-chain anchor). Try both — either or both may hit.
+    const [traceRes, proofRes] = await Promise.allSettled([
+      fetch(`${API_BASE}/verify/${trimmed}`),
+      fetch(`${API_BASE}/receipts/${trimmed}/proof`),
+    ]);
     try {
-      const res = await fetch(`${API_BASE}/verify/${trimmed}`);
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        setError(data?.detail || `HTTP ${res.status}`);
-        return;
+      let foundTrace = false;
+      let foundAnchor = false;
+      if (traceRes.status === "fulfilled" && traceRes.value.ok) {
+        setResult(await traceRes.value.json());
+        foundTrace = true;
       }
-      setResult(await res.json());
+      if (proofRes.status === "fulfilled" && proofRes.value.ok) {
+        setAnchor(await proofRes.value.json());
+        foundAnchor = true;
+      }
+      if (!foundTrace && !foundAnchor) {
+        if (traceRes.status === "fulfilled") {
+          const data = await traceRes.value.json().catch(() => null);
+          setError(data?.detail || `HTTP ${traceRes.value.status}`);
+        } else {
+          setError("Network error");
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
     } finally {
@@ -99,7 +133,7 @@ export default function VerifyPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-garl-muted" />
             <input
               type="text"
-              placeholder="Paste a 64-character SHA-256 trace hash..."
+              placeholder="Paste a trace hash, or an Action Receipt id / output hash..."
               value={hash}
               onChange={(e) => setHash(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleVerify()}
@@ -253,8 +287,52 @@ export default function VerifyPage() {
           </motion.div>
         )}
 
+        {/* On-chain anchor (Action Receipts anchored on Base mainnet) */}
+        {anchor && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-5 rounded-xl border border-garl-accent/30 bg-garl-accent/[0.05] p-5"
+          >
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <Link2 className="h-4 w-4 text-garl-accent" />
+              <h3 className="font-mono text-xs uppercase tracking-wider text-garl-muted">
+                On-Chain Anchor
+              </h3>
+              <span className="rounded border border-garl-accent/30 bg-garl-accent/10 px-2 py-0.5 font-mono text-[11px] text-garl-accent">
+                Base mainnet
+              </span>
+              <a
+                href={`https://basescan.org/tx/${anchor.tx_hash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 font-mono text-[11px] text-garl-accent hover:underline"
+              >
+                View transaction <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+            <p className="mb-4 font-mono text-[11px] leading-relaxed text-garl-muted">
+              This receipt&apos;s batch Merkle root is anchored on Base. Inclusion is
+              verifiable against the on-chain root via{" "}
+              <code className="text-garl-text">MerkleAnchor.verifyProof</code> — independently of GARL.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <CopyField label="Merkle Root" value={anchor.merkle_root} />
+              <CopyField label="Contract" value={anchor.contract_address} />
+            </div>
+            <details className="mt-4 rounded-lg border border-garl-border bg-garl-bg">
+              <summary className="cursor-pointer px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-garl-muted hover:text-garl-accent">
+                verifyProof args (paste into a Base call)
+              </summary>
+              <pre className="overflow-x-auto border-t border-garl-border px-4 py-3 font-mono text-[11px] leading-relaxed text-garl-text">
+                {JSON.stringify(anchor.verify_proof_args, null, 2)}
+              </pre>
+            </details>
+          </motion.div>
+        )}
+
         {/* Empty state */}
-        {!result && !error && !loading && (
+        {!result && !anchor && !error && !loading && (
           <div className="mt-12 text-center">
             <Shield className="mx-auto mb-4 h-12 w-12 text-garl-border" />
             <p className="font-mono text-sm text-garl-muted">

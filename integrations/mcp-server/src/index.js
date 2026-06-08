@@ -483,11 +483,40 @@ const TOOLS = [
     },
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
   },
+  {
+    name: "garl_get_anchor_proof",
+    description:
+      "Fetch a receipt's Base-mainnet on-chain anchor coordinates and Merkle inclusion proof. " +
+      "Returns the contract, transaction, root, and verify_proof_args (batchId, leaf, proofSiblings, " +
+      "proofPositions) ready to pass to MerkleAnchor.verifyProof so inclusion can be checked against " +
+      "Base, not GARL. Errors if the receipt is unknown or not yet anchored on-chain.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        receipt_id: { type: "string", description: "Receipt UUID or 64-hex output_hash" },
+      },
+      required: ["receipt_id"],
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  },
 ];
 
 // Handles tool call dispatch
 async function handleToolCall(name, args) {
   switch (name) {
+    case "garl_get_anchor_proof": {
+      if (!args.receipt_id) throw new Error("receipt_id required.");
+      const p = await garlFetch(`/receipts/${encodeURIComponent(args.receipt_id)}/proof`);
+      const a = p.verify_proof_args || {};
+      return { content: [{ type: "text", text: [
+        `On-chain anchor (chain ${p.chain_id}):`,
+        `Contract: ${p.contract_address}`,
+        `Tx: ${p.tx_hash}`,
+        `Merkle root: ${p.merkle_root}`,
+        `verifyProof args -> batchId=${a.batchId}, leaf=${a.leaf}, siblings=${JSON.stringify(a.proofSiblings)}, positions=${JSON.stringify(a.proofPositions)}`,
+      ].join("\n") }] };
+    }
+
     case "garl_verify": {
       if (!AGENT_ID) throw new Error("GARL_AGENT_ID not configured. Set it as an environment variable.");
       if (!API_KEY) throw new Error("GARL_API_KEY not configured. Set it as an environment variable.");
