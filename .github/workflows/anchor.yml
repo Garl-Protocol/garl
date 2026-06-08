@@ -1,0 +1,48 @@
+name: Weekly Merkle Anchor
+
+# Rolls up unanchored Action Receipts into a Merkle batch and anchors the root
+# on Base mainnet. Per-anchor cost is ~$0.01 and independent of batch size, so
+# a weekly cadence keeps on-chain cost trivial while bounding receipt latency.
+#
+# Requires repo secrets (Settings -> Secrets -> Actions):
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  - DB access
+#   DEPLOYER_PRIVATE_KEY                     - MerkleAnchor owner key
+#   BASE_RPC_URL                             - Base mainnet RPC (optional)
+# Until those are set the job no-ops (fail-closed); it never anchors without them.
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch: {}
+
+concurrency:
+  group: merkle-anchor
+  cancel-in-progress: false
+
+jobs:
+  anchor:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'Garl-Protocol/garl' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install backend deps
+        run: pip install -r backend/requirements.txt
+      - name: Install Foundry (cast)
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Anchor pending batch
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          GARL_MERKLE_ANCHOR_CONTRACT: "0xB8fd676A588C9935Fa6230610c6A924E34D5Ec17"
+          GARL_MERKLE_ANCHOR_CHAIN_ID: "8453"
+          BASE_RPC_URL: ${{ secrets.BASE_RPC_URL || 'https://mainnet.base.org' }}
+        run: |
+          if [ -z "$DEPLOYER_PRIVATE_KEY" ] || [ -z "$SUPABASE_URL" ]; then
+            echo "Anchor secrets not configured - skipping (fail-closed)."
+            exit 0
+          fi
+          python scripts/anchor_batch.py

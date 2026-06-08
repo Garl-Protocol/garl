@@ -171,6 +171,16 @@ def _get_client_ip(request: Request) -> str:
     )
 
 
+def _csv_safe(value: str) -> str:
+    """Neutralize CSV/formula injection: a cell that a spreadsheet would
+    interpret as a formula (leading = + - @, tab, or CR) is prefixed with a
+    single quote so it renders as literal text."""
+    s = str(value)
+    if s[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + s
+    return s
+
+
 def _verify_agent_ownership(agent_id: str, api_key: str) -> dict:
     """API key ownership verification."""
     db = _get_supabase()
@@ -448,7 +458,7 @@ async def agent_audit_export(
                 r.get("duration_ms", 0),
                 r.get("cost_usd", 0),
                 r.get("token_count", 0),
-                (r.get("task_description") or "").replace("\n", " "),
+                _csv_safe((r.get("task_description") or "").replace("\n", " ")),
                 proof.get("signature", ""),
                 pubkey,
             ])

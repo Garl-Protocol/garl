@@ -35,7 +35,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.get_cors_origins(),
-    allow_credentials=True,
+    # The API authenticates via the x-api-key header, never cookies, so
+    # credentialed CORS is unnecessary. Keeping it off removes the footgun
+    # where a future wildcard origin would become credential-exfiltratable.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
