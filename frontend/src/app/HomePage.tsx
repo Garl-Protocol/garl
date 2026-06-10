@@ -472,53 +472,33 @@ export default function HomePage({
       />
 
       {/* Hero */}
-      <section className="relative mx-auto max-w-7xl px-4 pb-20 pt-24">
-        <motion.div
-          className="text-center"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            visible: { transition: { staggerChildren: 0.1 } },
-          }}
-        >
-          <motion.div
-            variants={fadeUp}
-            custom={0}
-            className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-garl-accent/20 bg-garl-accent/5 px-4 py-1.5"
-          >
+      <section className="relative mx-auto max-w-7xl px-4 pb-12 pt-16">
+        {/* Static hero — critical content must never depend on a JS entrance
+            animation for visibility (a stagger bug previously left the H1 at
+            ~28% opacity and the subhead at 0%). Render at full opacity. */}
+        <div className="text-center">
+          <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-garl-accent/20 bg-garl-accent/5 px-4 py-1.5">
             <div className="h-1.5 w-1.5 rounded-full bg-garl-accent animate-pulse" />
             <span className="font-mono text-xs tracking-wider text-garl-accent">
               PROTOCOL — CRYPTOGRAPHIC VERIFICATION FOR AI AGENT ACTIONS
             </span>
-          </motion.div>
+          </div>
 
-          <motion.h1
-            variants={fadeUp}
-            custom={1}
-            className="mb-6 text-5xl font-bold tracking-tight sm:text-7xl"
-          >
+          <h1 className="mb-6 text-5xl font-bold tracking-tight sm:text-7xl">
             <span className="text-gradient">Signed receipts</span>
             <br />
             <span className="text-garl-text">for every AI commit</span>
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            variants={fadeUp}
-            custom={2}
-            className="mx-auto mb-10 max-w-2xl text-lg text-garl-muted leading-relaxed"
-          >
+          <p className="mx-auto mb-8 max-w-2xl text-lg text-garl-muted leading-relaxed">
             GARL signs every commit your AI assistant authors with
-            ECDSA-secp256k1 and anchors the receipt on an immutable ledger.
+            ECDSA-secp256k1 and anchors the receipt on Base mainnet.
             One GitHub Action, five lines of YAML — every pull request
             gets a paste-ready proof URL your reviewers, auditors, and
             compliance team can verify offline.
-          </motion.p>
+          </p>
 
-          <motion.div
-            variants={fadeUp}
-            custom={3}
-            className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
-          >
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
               href="/for-code"
               className="group inline-flex items-center gap-2 rounded-lg bg-garl-accent px-6 py-3 font-mono text-sm font-semibold text-garl-bg transition-all hover:glow-green-strong"
@@ -533,28 +513,16 @@ export default function HomePage({
               <Fingerprint className="h-4 w-4" />
               See a live receipt
             </a>
-            <a
-              href="/docs"
-              className="inline-flex items-center gap-2 rounded-lg border border-garl-border px-6 py-3 font-mono text-sm text-garl-text transition-all hover:border-garl-accent/40"
-            >
-              <Terminal className="h-4 w-4" />
-              API docs
-              <ArrowRight className="h-3 w-3" />
-            </a>
-          </motion.div>
+          </div>
 
           {/* Compliance triple badge */}
-          <motion.div
-            variants={fadeUp}
-            custom={4}
-            className="mx-auto mt-8 inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-garl-border bg-garl-surface/60 px-4 py-2 font-mono text-[11px] text-garl-muted"
-          >
+          <div className="mx-auto mt-8 inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-garl-border bg-garl-surface/60 px-4 py-2 font-mono text-[11px] text-garl-muted">
             Evidence-ready for
             <span className="rounded border border-garl-accent/30 bg-garl-accent/10 px-2 py-0.5 text-garl-accent">CA SB 942</span>
             <span className="rounded border border-garl-accent/30 bg-garl-accent/10 px-2 py-0.5 text-garl-accent">EU AI Act Code of Practice</span>
             <span className="rounded border border-garl-accent/30 bg-garl-accent/10 px-2 py-0.5 text-garl-accent">ISO 42001 Annex B</span>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
         {/* Agent Onboarding CTA */}
         <AgentOnboardingCTA />

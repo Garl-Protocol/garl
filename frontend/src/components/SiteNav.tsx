@@ -10,14 +10,9 @@ type Link = { href: string; label: string; accent?: boolean; external?: boolean 
 
 const LINKS: Link[] = [
   { href: "/for-code", label: "For Code", accent: true },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/leaderboard", label: "Leaderboard" },
-  { href: "/compare", label: "Compare" },
-  { href: "/compliance", label: "Compliance" },
-  { href: "/docs", label: "Docs" },
-  { href: "/simulator", label: "Simulator" },
-  { href: "/playground", label: "Try It" },
   { href: "/verify", label: "Verify" },
+  { href: "/docs", label: "Docs" },
+  { href: "/compliance", label: "Compliance" },
   { href: "mailto:contact@garl.ai", label: "Contact", external: true },
 ];
 
@@ -141,13 +136,12 @@ export default function SiteNav() {
           })}
           <div className="h-4 w-px bg-garl-border" />
           <a
-            href="/dashboard"
-            className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+            href="https://github.com/Garl-Protocol/garl"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-xs uppercase tracking-wider text-garl-muted transition-colors hover:text-garl-accent"
           >
-            <div className="h-2 w-2 rounded-full bg-garl-accent animate-pulse" />
-            <span className="font-mono text-[10px] uppercase tracking-wider text-garl-accent">
-              Live
-            </span>
+            GitHub
           </a>
         </nav>
 
@@ -268,12 +262,13 @@ export default function SiteNav() {
                       );
                     })}
                     <a
-                      href="/dashboard"
+                      href="https://github.com/Garl-Protocol/garl"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       onClick={() => setOpen(false)}
                       className="mt-3 flex min-h-11 items-center gap-2 rounded-lg border border-garl-accent/30 bg-garl-accent/10 px-3 py-3 font-mono text-xs uppercase tracking-wider text-garl-accent active:scale-[0.98]"
                     >
-                      <div className="h-2 w-2 rounded-full bg-garl-accent animate-pulse" />
-                      Live · Dashboard
+                      GitHub · Open source
                     </a>
                   </nav>
 
