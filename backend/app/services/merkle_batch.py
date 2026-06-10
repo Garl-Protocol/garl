@@ -9,12 +9,20 @@ key and a CLI/Foundry script that the operator runs.
 
 Design:
   - Stable ordering: receipts sorted by (created_at ASC, receipt_id ASC).
-  - Merkle leaves: SHA-256 of `output_hash` bytes (already 32 bytes, but
-    we re-hash to canonicalize against future leaf encoding changes).
-  - Pair hashing: parent = SHA-256(left || right). Odd nodes promoted up
-    (Bitcoin-style, NOT duplicated like some implementations) to avoid
-    second-preimage attacks where a duplicated leaf collides with a
-    non-leaf. This matches OpenZeppelin's MerkleProof verification.
+  - Leaf  = SHA-256(0x00 || output_hash bytes); node = SHA-256(0x01 || L || R).
+    The 0x00/0x01 domain separation is the RFC-6962 idea and is what prevents
+    second-preimage / type-confusion: an internal node value (0x01-prefixed)
+    can never be re-presented as a leaf (0x00-prefixed). This must stay
+    byte-identical to MerkleAnchor.verifyProof on-chain.
+  - Odd nodes are promoted unchanged (NOT duplicated), which avoids the
+    duplicated-last-leaf ambiguity (Bitcoin CVE-2012-2459).
+  - Caveat: we do NOT bind the tree size into the hashing, so unlike full
+    RFC 6962 the root is not a unique commitment to the tree *shape* — e.g. a
+    3-leaf tree and a 2-node tree whose first node already equals H(0x01||a||b)
+    can share a root. This is not exploitable to forge a receipt's inclusion
+    (leaves are domain-separated, so a prover cannot substitute an internal
+    node for a leaf), but the root should not be relied on as a commitment to
+    the exact leaf count.
   - Empty batches are not built (the contract requires receipt_count > 0).
 """
 
@@ -70,8 +78,9 @@ def compute_merkle_root(leaves: list[str]) -> str:
             next_layer.append(_hash_node(bytes.fromhex(layer[i]), bytes.fromhex(layer[i + 1])))
             i += 2
         if i < len(layer):
-            # Odd node: promote unchanged. Bitcoin-style would duplicate;
-            # we choose promotion to avoid the second-preimage attack class.
+            # Odd node: promote unchanged (duplicating the last leaf instead
+            # would reintroduce the Bitcoin CVE-2012-2459 ambiguity). Note this
+            # does not bind tree size into the root — see the module docstring.
             next_layer.append(layer[i])
         layer = next_layer
     return layer[0]
