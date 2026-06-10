@@ -132,6 +132,42 @@ class ModelAttestation(BaseModel):
     )
 
 
+class CommitAttestation(BaseModel):
+    """An independently-verifiable observation that the action actually
+    happened — e.g. a GitHub CI check-run for a commit. Unlike the self-reported
+    status/cost fields, this points at a PUBLIC fact anyone can re-check
+    (repo + commit_sha -> GitHub), so it upgrades a receipt from 'signed
+    self-report' to 'corroborated'. Bound into the signed payload."""
+    type: str = Field(..., max_length=40, description="e.g. 'github-check-run'")
+    repo: str | None = Field(default=None, max_length=140, description="owner/name")
+    commit_sha: str | None = Field(default=None, max_length=64)
+    conclusion: str | None = Field(
+        default=None, max_length=20,
+        description="success | failure | neutral | cancelled | timed_out | action_required | pending | none",
+    )
+    url: str | None = Field(default=None, max_length=300)
+
+    @field_validator("commit_sha")
+    @classmethod
+    def _valid_sha(cls, v):
+        if v is None:
+            return v
+        v = v.strip().lower()
+        if not (7 <= len(v) <= 64 and all(c in "0123456789abcdef" for c in v)):
+            raise ValueError("commit_sha must be 7-64 hex characters")
+        return v
+
+    @field_validator("repo")
+    @classmethod
+    def _valid_repo(cls, v):
+        if v is None:
+            return v
+        v = v.strip()
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", v):
+            raise ValueError("repo must be in 'owner/name' form")
+        return v
+
+
 class TraceSubmitRequest(BaseModel):
     agent_id: str
     task_description: str = Field(..., max_length=1000)
@@ -142,6 +178,11 @@ class TraceSubmitRequest(BaseModel):
     models: list[ModelAttestation] | None = Field(
         default=None,
         description="AI models that co-authored this execution (for multi-model PR attestation).",
+    )
+    attestations: list[CommitAttestation] | None = Field(
+        default=None,
+        max_length=20,
+        description="Independent, re-verifiable corroboration of the action (e.g. GitHub CI check-runs). Bound into the signed payload.",
     )
 
     @field_validator("task_description", "input_summary", "output_summary", mode="before")

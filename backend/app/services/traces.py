@@ -194,6 +194,20 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
     # Added conditionally so model-less traces keep their existing hash.
     if signed_models:
         trace_raw["models"] = signed_models
+
+    # Bind external corroboration (e.g. GitHub CI check-runs) into the SIGNED
+    # payload. Each attestation is independently re-checkable by anyone
+    # (repo + commit_sha -> GitHub); when ENABLE_GITHUB_ATTESTATION_CHECK is on
+    # the backend ALSO re-verifies and stamps `witnessed`. Conditional so traces
+    # without attestations keep their existing hash.
+    signed_attestations: list[dict] = []
+    if req.attestations:
+        from app.core import github_attest as _gha
+        for a in req.attestations:
+            signed_attestations.append(_gha.verify_check_run(a.model_dump(exclude_none=True)))
+    if signed_attestations:
+        trace_raw["attestations"] = signed_attestations
+
     trace_hash = _compute_trace_hash(trace_raw)
 
     dup_check = db.table("traces").select("id").eq("trace_hash", trace_hash).limit(1).execute()
