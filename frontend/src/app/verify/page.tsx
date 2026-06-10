@@ -79,8 +79,8 @@ export default function VerifyPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleVerify = useCallback(async () => {
-    const trimmed = hash.trim();
+  const handleVerify = useCallback(async (override?: string) => {
+    const trimmed = (override ?? hash).trim();
     if (!trimmed) return;
     setLoading(true);
     setResult(null);
@@ -152,6 +152,24 @@ export default function VerifyPage() {
             {loading ? "Verifying..." : "Verify"}
           </button>
         </div>
+
+        {/* One-click example so a cold visitor can verify without a hash */}
+        <p className="mb-8 -mt-4 font-mono text-xs text-garl-muted">
+          No hash handy?{" "}
+          <button
+            type="button"
+            onClick={() => {
+              const ex =
+                "e7eb3fee092b108ec66325bb67f74ce6c1a7bb60421ba4611119e7c3336f24f7";
+              setHash(ex);
+              handleVerify(ex);
+            }}
+            className="text-garl-accent underline-offset-2 hover:underline"
+          >
+            Verify the genesis receipt
+          </button>{" "}
+          — watch the signature and the Base-mainnet anchor check live.
+        </p>
 
         {/* Error */}
         {error && (
