@@ -229,7 +229,7 @@ export default function DashboardPage() {
               {feed.map((trace, i) => (
                 <motion.div
                   key={trace.id}
-                  initial={{ opacity: 0, x: -10 }}
+                  initial={false}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.02 }}
                   className="flex items-center gap-4 px-5 py-3 font-mono text-sm transition-colors hover:bg-garl-bg/50"

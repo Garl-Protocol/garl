@@ -231,7 +231,7 @@ function ComparePageInner() {
 
       {agents.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           className="overflow-x-auto rounded-xl border border-garl-border bg-garl-surface"
         >

@@ -115,7 +115,7 @@ function ComplianceContent() {
     return (
       <div className="mx-auto max-w-md px-4 py-20">
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-xl border border-garl-blue/30 bg-garl-surface p-8 text-center"
         >
@@ -164,7 +164,7 @@ function ComplianceContent() {
     );
     return (
       <div className="mx-auto max-w-3xl px-4 py-12">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={false} animate={{ opacity: 1, y: 0 }}>
           <div className="mb-8 text-center">
             <Shield className="mx-auto mb-4 h-10 w-10 text-garl-accent" />
             <h1 className="mb-2 font-mono text-2xl font-bold text-garl-text">
@@ -234,7 +234,7 @@ function ComplianceContent() {
     return (
       <div className="mx-auto max-w-7xl px-4 py-20">
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-xl border border-garl-danger/40 bg-garl-danger/5 p-6 text-center"
         >
@@ -280,7 +280,7 @@ function ComplianceContent() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         className="mb-8 rounded-xl border border-garl-border bg-garl-surface p-6"
       >
@@ -344,7 +344,7 @@ function ComplianceContent() {
 
       {/* Section 1: SLA Compliance Status */}
       <motion.section
-        initial={{ opacity: 0, y: 10 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
         className="mb-8"
@@ -414,7 +414,7 @@ function ComplianceContent() {
 
       {/* Section 2: Security Risk Analysis */}
       <motion.section
-        initial={{ opacity: 0, y: 10 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         className="mb-8"
@@ -507,7 +507,7 @@ function ComplianceContent() {
 
       {/* Section 3: 5-Dimensional Trust Analysis */}
       <motion.section
-        initial={{ opacity: 0, y: 10 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
         className="mb-8"
@@ -566,7 +566,7 @@ function ComplianceContent() {
 
       {/* Section 4: Anomaly History */}
       <motion.section
-        initial={{ opacity: 0, y: 10 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
         className="mb-8"
@@ -624,7 +624,7 @@ function ComplianceContent() {
 
       {/* Section 5: Endorsement Summary */}
       <motion.section
-        initial={{ opacity: 0, y: 10 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
       >

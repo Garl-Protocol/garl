@@ -122,7 +122,7 @@ export default function VerifyPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <motion.div initial={false} animate={{ opacity: 1, y: 0 }}>
         <h1 className="mb-2 font-mono text-2xl font-bold">
           <span className="text-garl-accent">$</span> verify
         </h1>
@@ -156,7 +156,7 @@ export default function VerifyPage() {
         {/* Error */}
         {error && (
           <motion.div
-            initial={{ opacity: 0, y: 5 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/[0.05] px-5 py-4"
           >
@@ -168,7 +168,7 @@ export default function VerifyPage() {
         {/* Result */}
         {result && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-5"
           >
@@ -293,7 +293,7 @@ export default function VerifyPage() {
         {/* On-chain anchor (Action Receipts anchored on Base mainnet) */}
         {anchor && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             className="mt-5 rounded-xl border border-garl-accent/30 bg-garl-accent/[0.05] p-5"
           >

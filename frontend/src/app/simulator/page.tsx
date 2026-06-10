@@ -67,7 +67,7 @@ export default function SimulatorPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <motion.div initial={false} animate={{ opacity: 1, y: 0 }}>
         <h1 className="mb-2 font-mono text-2xl font-bold">
           <span className="text-garl-accent">$</span> simulator
         </h1>
