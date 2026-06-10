@@ -24,9 +24,20 @@ _PH_KEY = os.environ.get(
 _PH_URL = "https://us.i.posthog.com/i/v0/e/"
 
 
+def _analytics_disabled() -> bool:
+    # Never emit analytics from tests or CI — otherwise fixture identifiers
+    # (e.g. 11111111-...) pollute the real PostHog project, which happened on
+    # 2026-06-09. Railway/prod sets none of these, so production is unaffected.
+    return bool(
+        os.environ.get("PYTEST_CURRENT_TEST")
+        or os.environ.get("CI")
+        or os.environ.get("GARL_DISABLE_ANALYTICS")
+    )
+
+
 def capture(event: str, distinct_id: str | None = None, properties: dict | None = None) -> None:
     """Best-effort PostHog capture. Never raises, never blocks the caller."""
-    if not _PH_KEY:
+    if not _PH_KEY or _analytics_disabled():
         return
 
     def _send() -> None:
