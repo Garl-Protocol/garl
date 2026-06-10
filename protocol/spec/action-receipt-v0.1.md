@@ -16,14 +16,31 @@ public key in `/.well-known/garl-keys.json`.
 
 ## 2. What this is, and is not
 
-A receipt **proves**: identity, authority, action shape, outcome shape,
-side-effect class, time, and (when present) the prior step in a chain.
+A receipt is a signature over what the **agent reported**. Precisely, it
+**proves**:
 
-A receipt **does not prove**: that the agent produced a *correct* answer.
-Receipts are evidence; correctness is judged by attestations layered on top
-(`attestations[]`) — tests passed, human review, third-party verifiers.
+- that this exact content (the `input_hash`/`output_hash` and envelope fields
+  the agent submitted) was received by the issuer and bound under its key;
+- that it is **tamper-evident** from that moment on — the stored record is
+  immutable and, via Merkle anchoring, carries a publicly verifiable timestamp;
+- the declared identity, authority, action/outcome *shape*, side-effect class,
+  time, and the prior step in a chain (when present).
 
-> Observability tells you what happened. GARL proves what happened.
+A receipt **does not prove**, on its own:
+
+- that the agent produced a *correct* answer;
+- that the reported metrics (duration, cost, success, the pre-image behind a
+  hash) are *truthful* — the issuer signs the agent's claims; it does not
+  independently re-execute or witness them.
+
+Both are established by **attestations layered on top** (`attestations[]`):
+tests passed (CI), human review, or a third party that *observed* the action
+(a GitHub check-run, a tool-server co-signature). Treat a bare receipt as a
+tamper-evident, time-stamped *notarization of a report*; treat its attestations
+as the independent corroboration.
+
+> Observability tells you what an agent says happened. GARL makes that report
+> signed, immutable, and anchored — so it cannot be altered after the fact.
 
 ## 3. Required envelope
 

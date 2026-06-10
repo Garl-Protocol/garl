@@ -238,8 +238,9 @@ async def well_known_agent_card():
     return {
         "name": "GARL Protocol",
         "description": (
-            "Proof-of-Trust oracle for autonomous AI agents. "
-            "Cryptographic trust scoring, verification, and smart routing."
+            "Tamper-evident action receipts and reputation for AI agents. "
+            "Signs and immutably records what an agent reports, with on-chain "
+            "anchoring and offline-verifiable receipts."
         ),
         "supportedInterfaces": [
             {
