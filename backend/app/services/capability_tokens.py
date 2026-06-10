@@ -52,6 +52,7 @@ from app.core.signing import (
     get_active_key_id,
     get_key_registry,
     get_public_key_hex,
+    to_low_s,
 )
 from app.core.supabase_client import get_supabase as _get_supabase
 
@@ -173,7 +174,7 @@ def issue_capability_token(
     payload_b64 = _b64url_encode(_canonical_json(payload).encode("utf-8"))
     signing_input = f"{header_b64}.{payload_b64}".encode("ascii")
     digest = hashlib.sha256(signing_input).digest()
-    signature_bytes = sk.sign_digest_deterministic(digest, hashfunc=hashlib.sha256)
+    signature_bytes = to_low_s(sk.sign_digest_deterministic(digest, hashfunc=hashlib.sha256))
     signature_b64 = _b64url_encode(signature_bytes)
     jwt_form = f"{header_b64}.{payload_b64}.{signature_b64}"
     token_hash = _hash_token(jwt_form)

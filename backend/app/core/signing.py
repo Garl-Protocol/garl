@@ -113,6 +113,28 @@ def get_key_registry() -> dict:
     }
 
 
+_SECP256K1_N = SECP256k1.order
+
+
+def to_low_s(sig: bytes) -> bytes:
+    """Normalize a 64-byte (r||s) ECDSA signature to canonical low-S form.
+
+    secp256k1 signatures are malleable: for any valid (r, s), the pair
+    (r, n - s) also verifies. Emitting only the low-S form (s <= n/2, the
+    BIP-62 / EIP-2 rule) means GARL never produces a malleable twin of its own
+    signatures. Verification still accepts high-S so that receipts signed
+    before this hardening (including the on-chain genesis receipt) keep
+    verifying.
+    """
+    if len(sig) != 64:
+        return sig
+    s = int.from_bytes(sig[32:], "big")
+    if s > _SECP256K1_N // 2:
+        s = _SECP256K1_N - s
+        sig = sig[:32] + s.to_bytes(32, "big")
+    return sig
+
+
 def sign_payload(payload: dict) -> tuple[str, str]:
     """Sign an arbitrary JSON payload; return (signature_hex, content_hash_hex).
 
@@ -123,7 +145,7 @@ def sign_payload(payload: dict) -> tuple[str, str]:
     sk = _get_signing_key()
     canonical = canonical_str(payload)
     digest = hashlib.sha256(canonical.encode()).digest()
-    signature = sk.sign_digest_deterministic(digest, hashfunc=hashlib.sha256).hex()
+    signature = to_low_s(sk.sign_digest_deterministic(digest, hashfunc=hashlib.sha256)).hex()
     return signature, digest.hex()
 
 
@@ -136,7 +158,7 @@ def sign_trace(trace_data: dict) -> dict:
     sk = _get_signing_key()
     canonical = canonical_str(trace_data)
     digest = hashlib.sha256(canonical.encode()).digest()
-    signature = sk.sign_digest_deterministic(digest, hashfunc=hashlib.sha256).hex()
+    signature = to_low_s(sk.sign_digest_deterministic(digest, hashfunc=hashlib.sha256)).hex()
     public_key_hex = get_public_key_hex()
 
     return {
