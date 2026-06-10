@@ -71,7 +71,7 @@ export default function RootLayout({
                 url: "https://garl.ai",
                 potentialAction: {
                   "@type": "SearchAction",
-                  target: "https://garl.ai/leaderboard?q={search_term_string}",
+                  target: "https://garl.ai/registry?q={search_term_string}",
                   "query-input": "required name=search_term_string",
                 },
               },

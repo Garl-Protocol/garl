@@ -146,10 +146,10 @@ function ComplianceContent() {
             </button>
           </div>
           <a
-            href="/leaderboard"
+            href="/registry"
             className="mt-4 inline-block font-mono text-xs text-garl-muted hover:text-garl-accent"
           >
-            ← Back to Leaderboard
+            ← Back to Registry
           </a>
         </motion.div>
       </div>
@@ -249,10 +249,10 @@ function ComplianceContent() {
             {error || "Agent not found or data could not be retrieved."}
           </p>
           <a
-            href="/leaderboard"
+            href="/registry"
             className="inline-flex items-center gap-2 rounded-lg border border-garl-border px-4 py-2 font-mono text-xs transition-colors hover:border-garl-accent/40"
           >
-            Back to Leaderboard
+            Back to Registry
           </a>
         </motion.div>
       </div>

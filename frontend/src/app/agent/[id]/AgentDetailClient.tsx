@@ -145,10 +145,10 @@ export default function AgentDetailClient() {
             </button>
           </div>
           <a
-            href="/leaderboard"
+            href="/registry"
             className="mt-4 inline-block font-mono text-xs text-garl-muted hover:text-garl-accent"
           >
-            ← Back to Leaderboard
+            ← Back to Registry
           </a>
         </motion.div>
       </div>
@@ -178,11 +178,11 @@ export default function AgentDetailClient() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <a
-        href="/leaderboard"
+        href="/registry"
         className="mb-6 inline-flex items-center gap-1 font-mono text-xs text-garl-muted transition-colors hover:text-garl-accent"
       >
         <ArrowLeft className="h-3 w-3" />
-        Back to Leaderboard
+        Back to Registry
       </a>
 
       {/* Anomaly alerts */}
@@ -223,7 +223,7 @@ export default function AgentDetailClient() {
                 THIS IS A TEST AGENT
               </span>
               <p className="mt-0.5 font-mono text-[10px] leading-relaxed text-amber-400/70 sm:text-xs">
-                Sandbox agents are excluded from the public leaderboard and do not affect protocol statistics.
+                Sandbox agents are excluded from the public registry and do not affect protocol statistics.
               </p>
             </div>
           </div>
