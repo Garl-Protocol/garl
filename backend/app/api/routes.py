@@ -1584,17 +1584,13 @@ async def daily_stats(request: Request, days: int = 30):
 
     db = _get_supabase()
     # Only count traces from real (non-sandbox) agents, consistent with the
-    # feed/leaderboard/stats which hide seed and test agents.
-    visible = (
-        db.table("agents").select("id").eq("is_deleted", False).eq("is_sandbox", False).execute()
-    )
-    visible_ids = [a["id"] for a in (visible.data or [])]
-    if not visible_ids:
-        return {"days": days, "data": []}
+    # feed/leaderboard/stats. Embedded inner join filters server-side (no
+    # client-side agent-ID list that PostgREST would cap at ~1000).
     res = (
         db.table("traces")
-        .select("created_at, trust_delta, status")
-        .in_("agent_id", visible_ids)
+        .select("created_at, trust_delta, status, agents!inner(is_sandbox)")
+        .eq("agents.is_deleted", False)
+        .eq("agents.is_sandbox", False)
         .gt("created_at", cutoff)
         .order("created_at", desc=False)
         .execute()

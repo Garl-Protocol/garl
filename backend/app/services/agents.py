@@ -406,32 +406,26 @@ def get_recent_traces(limit: int = 20, offset: int = 0) -> dict:
     # The public feed must only show traces from real (non-sandbox) agents —
     # otherwise deep pagination surfaces seed/sandbox agents' old traces and the
     # `total` overcounts, contradicting the leaderboard/stats which hide them.
-    visible = (
-        db.table("agents")
-        .select("id")
-        .eq("is_deleted", False)
-        .eq("is_sandbox", False)
-        .execute()
-    )
-    visible_ids = [a["id"] for a in (visible.data or [])]
-    if not visible_ids:
-        return {"data": [], "total": 0, "limit": limit, "offset": offset, "has_more": False}
-
+    # Filter via an embedded inner join (server-side), so it stays correct
+    # regardless of how many agents exist (no client-side ID list / row cap).
     res = (
         db.table("traces")
         .select(
-            "id, agent_id, task_description, status, duration_ms, trust_delta, category, cost_usd, trace_hash, created_at",
+            "id, agent_id, task_description, status, duration_ms, trust_delta, category, cost_usd, trace_hash, created_at, agents!inner(is_sandbox)",
             count="exact",
         )
-        .in_("agent_id", visible_ids)
+        .eq("agents.is_deleted", False)
+        .eq("agents.is_sandbox", False)
         .order("created_at", desc=True)
         .range(offset, offset + limit - 1)
         .execute()
     )
     total = res.count or 0
+    # Strip the join artifact so the response shape is unchanged.
+    rows = [{k: v for k, v in row.items() if k != "agents"} for row in (res.data or [])]
 
     return {
-        "data": res.data or [],
+        "data": rows,
         "total": total,
         "limit": limit,
         "offset": offset,
@@ -441,21 +435,31 @@ def get_recent_traces(limit: int = 20, offset: int = 0) -> dict:
 
 def get_stats() -> dict:
     db = get_supabase()
-    # Count only real agents (non-sandbox, non-deleted) AND their traces. The
-    # public trace total must use the same population as the agent count and the
-    # leaderboard — otherwise sandbox/seed agents inflate the headline number
-    # while being hidden everywhere else. agents.total_traces is maintained per
-    # trace insert and matches a JOIN count exactly (verified), so summing it is
-    # both correct and cheap.
-    real_agents = (
+    # Count only real agents (non-sandbox, non-deleted) AND their traces, so the
+    # public totals use the same population as the leaderboard (which hides
+    # sandbox/seed agents). Use server-side exact counts (count="exact",
+    # head=True) — NOT a Python len()/sum() over fetched rows, which PostgREST
+    # caps at db-max-rows (~1000) and would silently undercount past that.
+    total_agents = (
         db.table("agents")
-        .select("id, total_traces")
+        .select("id", count="exact", head=True)
         .eq("is_deleted", False)
         .eq("is_sandbox", False)
         .execute()
+        .count
+        or 0
     )
-    total_agents = len(real_agents.data or [])
-    total_traces = sum(int(a.get("total_traces", 0) or 0) for a in (real_agents.data or []))
+    # Traces whose agent is a real (non-sandbox) agent, via an embedded inner
+    # join — exact count, no row-cap issue.
+    total_traces = (
+        db.table("traces")
+        .select("id, agents!inner(is_sandbox)", count="exact", head=True)
+        .eq("agents.is_deleted", False)
+        .eq("agents.is_sandbox", False)
+        .execute()
+        .count
+        or 0
+    )
 
     top_agent_res = (
         db.table("agents")
