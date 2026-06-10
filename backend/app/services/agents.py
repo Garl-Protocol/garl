@@ -426,8 +426,21 @@ def get_recent_traces(limit: int = 20, offset: int = 0) -> dict:
 
 def get_stats() -> dict:
     db = get_supabase()
-    agents_res = db.table("agents").select("id", count="exact").eq("is_deleted", False).eq("is_sandbox", False).execute()
-    traces_res = db.table("traces").select("id", count="exact").execute()
+    # Count only real agents (non-sandbox, non-deleted) AND their traces. The
+    # public trace total must use the same population as the agent count and the
+    # leaderboard — otherwise sandbox/seed agents inflate the headline number
+    # while being hidden everywhere else. agents.total_traces is maintained per
+    # trace insert and matches a JOIN count exactly (verified), so summing it is
+    # both correct and cheap.
+    real_agents = (
+        db.table("agents")
+        .select("id, total_traces")
+        .eq("is_deleted", False)
+        .eq("is_sandbox", False)
+        .execute()
+    )
+    total_agents = len(real_agents.data or [])
+    total_traces = sum(int(a.get("total_traces", 0) or 0) for a in (real_agents.data or []))
 
     top_agent_res = (
         db.table("agents")
@@ -460,8 +473,8 @@ def get_stats() -> dict:
     compensations_total = _count("compensations")
 
     return {
-        "total_agents": agents_res.count or 0,
-        "total_traces": traces_res.count or 0,
+        "total_agents": total_agents,
+        "total_traces": total_traces,
         "top_agent": top_agent_res.data[0] if top_agent_res.data else None,
         "wave2": {
             "action_receipts": {
