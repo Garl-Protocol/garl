@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 import httpx
 
-from app.core.supabase_client import get_supabase
+from app.core.supabase_client import get_supabase, is_unique_violation
 from app.core.signing import sign_trace
 from app.core import rekor as _rekor
 from app.services.reputation import (
@@ -246,23 +246,31 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
     if req.proof_of_result:
         trace_metadata["proof_of_result"] = req.proof_of_result
 
-    db.table("traces").insert({
-        "id": trace_id,
-        "agent_id": req.agent_id,
-        "task_description": req.task_description,
-        "status": req.status.value,
-        "duration_ms": req.duration_ms,
-        "input_summary": input_summary,
-        "output_summary": output_summary,
-        "category": req.category.value,
-        "trust_delta": trust_delta,
-        "certificate": certificate,
-        "metadata": trace_metadata,
-        "cost_usd": cost,
-        "token_count": tokens,
-        "trace_hash": trace_hash,
-        "created_at": now,
-    }).execute()
+    try:
+        db.table("traces").insert({
+            "id": trace_id,
+            "agent_id": req.agent_id,
+            "task_description": req.task_description,
+            "status": req.status.value,
+            "duration_ms": req.duration_ms,
+            "input_summary": input_summary,
+            "output_summary": output_summary,
+            "category": req.category.value,
+            "trust_delta": trust_delta,
+            "certificate": certificate,
+            "metadata": trace_metadata,
+            "cost_usd": cost,
+            "token_count": tokens,
+            "trace_hash": trace_hash,
+            "created_at": now,
+        }).execute()
+    except Exception as e:
+        # A concurrent identical submit can slip past the dup-check above and
+        # collide on the UNIQUE(trace_hash) constraint. Fail closed with the
+        # same duplicate signal rather than a 500.
+        if is_unique_violation(e):
+            raise ValueError("Duplicate trace detected. This exact trace has already been submitted.")
+        raise
 
     try:
         from app.core.analytics import capture as _ph
