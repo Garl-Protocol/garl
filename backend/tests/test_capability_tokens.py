@@ -270,80 +270,68 @@ def _parent_claims(**overrides):
     return base
 
 
+def _child_claims(**overrides):
+    base = {
+        "exp": int(time.time()) + 600,
+        "side_effect_class": "reversible",
+        "spend_limit_usd": 10.0,
+        "merchant_allowlist": ["stripe.com"],
+    }
+    base.update(overrides)
+    return base
+
+
 def test_child_cannot_broaden_side_effect():
     parent = _parent_claims(side_effect_class="reversible")
-    with pytest.raises(ValueError, match="more dangerous"):
-        _enforce_attenuation(
-            parent_claims=parent,
-            child_side_effect="irreversible",
-            child_spend_limit=10.0,
-            child_merchant_allowlist=["stripe.com"],
-            child_expires_in=600,
-        )
+    with pytest.raises(ValueError, match="broader"):
+        _enforce_attenuation(parent, _child_claims(side_effect_class="irreversible"))
 
 
 def test_child_must_set_spend_limit_if_parent_did():
     parent = _parent_claims(spend_limit_usd=100.0)
     with pytest.raises(ValueError, match="spend_limit_usd"):
-        _enforce_attenuation(
-            parent_claims=parent,
-            child_side_effect="reversible",
-            child_spend_limit=None,
-            child_merchant_allowlist=["stripe.com"],
-            child_expires_in=600,
-        )
+        _enforce_attenuation(parent, _child_claims(spend_limit_usd=None))
 
 
 def test_child_spend_limit_must_be_at_or_below_parent():
     parent = _parent_claims(spend_limit_usd=100.0)
     with pytest.raises(ValueError, match="spend_limit_usd"):
-        _enforce_attenuation(
-            parent_claims=parent,
-            child_side_effect="reversible",
-            child_spend_limit=200.0,
-            child_merchant_allowlist=["stripe.com"],
-            child_expires_in=600,
-        )
-    # Equal is OK
-    _enforce_attenuation(
-        parent_claims=parent,
-        child_side_effect="reversible",
-        child_spend_limit=100.0,
-        child_merchant_allowlist=["stripe.com"],
-        child_expires_in=600,
-    )
-    # Strictly less is OK
-    _enforce_attenuation(
-        parent_claims=parent,
-        child_side_effect="reversible",
-        child_spend_limit=10.0,
-        child_merchant_allowlist=["stripe.com"],
-        child_expires_in=600,
-    )
+        _enforce_attenuation(parent, _child_claims(spend_limit_usd=200.0))
+    _enforce_attenuation(parent, _child_claims(spend_limit_usd=100.0))  # equal OK
+    _enforce_attenuation(parent, _child_claims(spend_limit_usd=10.0))   # less OK
 
 
 def test_child_merchant_allowlist_must_be_subset():
     parent = _parent_claims(merchant_allowlist=["stripe.com"])
-    with pytest.raises(ValueError, match="unauthorized merchants"):
-        _enforce_attenuation(
-            parent_claims=parent,
-            child_side_effect="reversible",
-            child_spend_limit=10.0,
-            child_merchant_allowlist=["stripe.com", "evil.com"],
-            child_expires_in=600,
-        )
+    with pytest.raises(ValueError, match="subset"):
+        _enforce_attenuation(parent, _child_claims(merchant_allowlist=["stripe.com", "evil.com"]))
 
 
 def test_child_cannot_outlive_parent():
     parent = _parent_claims(exp=int(time.time()) + 600)  # parent dies in 10m
     with pytest.raises(ValueError, match="outlive parent"):
-        _enforce_attenuation(
-            parent_claims=parent,
-            child_side_effect="reversible",
-            child_spend_limit=10.0,
-            child_merchant_allowlist=["stripe.com"],
-            child_expires_in=3600,  # child wants 1h
-        )
+        _enforce_attenuation(parent, _child_claims(exp=int(time.time()) + 3600))
+
+
+def test_child_scope_must_be_within_parent():
+    # parent restricts to a specific merchant; child cannot widen to wildcard.
+    parent = _parent_claims(scope="payment:stripe.com")
+    with pytest.raises(ValueError, match="not within parent scope"):
+        _enforce_attenuation(parent, _child_claims(scope="payment:*"))
+    # equal scope and a more-specific scope are both fine
+    _enforce_attenuation(parent, _child_claims(scope="payment:stripe.com"))
+    parent_wild = _parent_claims(scope="payment:*")
+    _enforce_attenuation(parent_wild, _child_claims(scope="payment:stripe.com"))
+
+
+def test_child_must_retain_parent_caveats():
+    parent = _parent_claims(caveats=[{"max_calls": 5}])
+    # dropping the parent caveat is a widening → rejected
+    with pytest.raises(ValueError, match="caveats only narrow"):
+        _enforce_attenuation(parent, _child_claims(caveats=[]))
+    # retaining it (and optionally adding more) is OK
+    _enforce_attenuation(parent, _child_claims(caveats=[{"max_calls": 5}]))
+    _enforce_attenuation(parent, _child_claims(caveats=[{"max_calls": 5}, {"region": "eu"}]))
 
 
 # ──────────────────────────────────────────────────────────────────────

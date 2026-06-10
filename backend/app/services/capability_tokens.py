@@ -21,9 +21,11 @@ Spec: protocol/spec/capability-token-v0.1.md (TODO).
 
 Attenuation:
   - Each child carries parent_token_hash = sha256(parent jwt_form).
-  - Child's caveats[] MUST be a strict superset of parent's caveats (i.e.
-    child can only narrow, never broaden). The verify step walks the
-    chain and intersects all constraints.
+  - A child may only NARROW its parent across side_effect_class, spend_limit,
+    merchant_allowlist, scope, caveats (child caveats must be a superset), and
+    exp. Enforced at issue time AND re-checked for every link at verify time
+    (see _enforce_attenuation), so the chain is a real guarantee, not issuer
+    goodwill.
 
 Revocation:
   - Single token: mark revoked_at + reason in capability_tokens row.
@@ -134,13 +136,6 @@ def issue_capability_token(
     parent_claims: dict | None = None
     if parent_token_hash:
         parent_claims = _load_parent_claims(parent_token_hash)
-        _enforce_attenuation(
-            parent_claims=parent_claims,
-            child_side_effect=side_effect_class,
-            child_spend_limit=spend_limit_usd,
-            child_merchant_allowlist=merchant_allowlist,
-            child_expires_in=expires_in_seconds,
-        )
 
     now = int(time.time())
     expires_at_ts = now + expires_in_seconds
@@ -168,6 +163,12 @@ def issue_capability_token(
         payload["parent"] = parent_token_hash
     if human_delegate:
         payload["delegate"] = human_delegate
+
+    # Enforce attenuation against the actual parent claims now that the full
+    # child payload (scope, caveats, exp, limits) exists. A child may only
+    # narrow its parent.
+    if parent_claims is not None:
+        _enforce_attenuation(parent_claims, payload)
 
     sk = _get_signing_key()
     header_b64 = _b64url_encode(_canonical_json(header).encode("utf-8"))
@@ -285,8 +286,11 @@ def verify_capability_token(jwt_form: str, *, check_revocation: bool = True) -> 
         token_hash = _hash_token(jwt_form)
         if _is_revoked(token_hash):
             raise CapabilityTokenInvalid("Token revoked")
-        # Walk the parent chain — if any ancestor is revoked, this token
-        # is dead too.
+        # Walk the parent chain: a revoked ancestor kills this token, AND each
+        # link must still be a valid attenuation of its parent. Re-checking here
+        # (not just trusting issue time) makes the attenuation chain a real
+        # verify-side guarantee — the docstring's promise.
+        child_claims = payload
         parent = payload.get("parent")
         while parent:
             parent_row = _load_parent_row(parent)
@@ -296,7 +300,14 @@ def verify_capability_token(jwt_form: str, *, check_revocation: bool = True) -> 
             if parent_row.get("revoked_at"):
                 raise CapabilityTokenInvalid("Ancestor token revoked")
             parent_payload = _decode_payload(parent_row["jwt_form"])
-            parent = parent_payload.get("parent") if parent_payload else None
+            if not parent_payload:
+                raise CapabilityTokenInvalid("Parent token undecodable")
+            try:
+                _enforce_attenuation(parent_payload, child_claims)
+            except ValueError as e:
+                raise CapabilityTokenInvalid(f"Attenuation violated in chain: {e}") from e
+            child_claims = parent_payload
+            parent = parent_payload.get("parent")
 
     return payload
 
@@ -435,47 +446,71 @@ def _load_parent_claims(parent_hash: str) -> dict:
     return parent_payload
 
 
-def _enforce_attenuation(
-    *,
-    parent_claims: dict,
-    child_side_effect: str,
-    child_spend_limit: float | None,
-    child_merchant_allowlist: list[str] | None,
-    child_expires_in: int,
-) -> None:
-    """Children can only narrow. If the parent says max-$50 then a child
-    saying max-$100 is rejected. If the parent allows ['stripe.com'] then a
-    child cannot allow ['stripe.com', 'paypal.com']."""
+def _scope_covers(parent_scope: str, child_scope: str) -> bool:
+    """True if parent_scope authorizes everything child_scope does. Scopes are
+    colon-delimited (e.g. 'payment:stripe.com'); a '*' whole-scope or a '*'
+    segment is a wildcard. A child may be equal or MORE specific, never broader:
+    parent 'payment:*' covers child 'payment:stripe.com', but parent
+    'payment:stripe.com' does NOT cover child 'payment:*'."""
+    if parent_scope == child_scope or parent_scope == "*":
+        return True
+    if not isinstance(parent_scope, str) or not isinstance(child_scope, str):
+        return False
+    p = parent_scope.split(":")
+    c = child_scope.split(":")
+    if len(c) < len(p):
+        return False
+    for i, seg in enumerate(p):
+        if seg == "*":
+            continue
+        if c[i] != seg:
+            return False
+    return True
+
+
+def _enforce_attenuation(parent_claims: dict, child_claims: dict) -> None:
+    """A child token may only NARROW its parent — across side-effect class,
+    spend limit, merchant allowlist, scope, caveats, and expiry. Runs at issue
+    time AND is re-checked for every link when a token is verified, so the
+    attenuation chain is a real guarantee rather than issuer goodwill.
+
+    Raises ValueError on any widening.
+    """
     parent_se = parent_claims.get("side_effect_class", "irreversible")
-    if SIDE_EFFECT_RANK[child_side_effect] > SIDE_EFFECT_RANK[parent_se]:
+    child_se = child_claims.get("side_effect_class", "irreversible")
+    if SIDE_EFFECT_RANK[child_se] > SIDE_EFFECT_RANK[parent_se]:
         raise ValueError(
-            f"Child side_effect_class={child_side_effect!r} is more dangerous "
-            f"than parent's {parent_se!r}; attenuation must narrow"
+            f"Child side_effect_class={child_se!r} is broader than parent's {parent_se!r}"
         )
 
     parent_spend = parent_claims.get("spend_limit_usd")
     if parent_spend is not None:
-        if child_spend_limit is None or child_spend_limit > parent_spend:
-            raise ValueError(
-                "Child spend_limit_usd must be set and ≤ parent's"
-            )
+        child_spend = child_claims.get("spend_limit_usd")
+        if child_spend is None or child_spend > parent_spend:
+            raise ValueError("Child spend_limit_usd must be set and <= parent's")
 
     parent_allowlist = parent_claims.get("merchant_allowlist")
     if parent_allowlist:
-        if not child_merchant_allowlist:
+        child_allowlist = child_claims.get("merchant_allowlist")
+        if not child_allowlist or not set(child_allowlist).issubset(set(parent_allowlist)):
+            extra = set(child_allowlist or []) - set(parent_allowlist)
             raise ValueError(
-                "Parent restricts merchant_allowlist; child must inherit or narrow"
-            )
-        parent_set = set(parent_allowlist)
-        child_set = set(child_merchant_allowlist)
-        if not child_set.issubset(parent_set):
-            extra = child_set - parent_set
-            raise ValueError(
-                f"Child merchant_allowlist introduces unauthorized merchants: {sorted(extra)}"
+                f"Child merchant_allowlist must be a subset of parent's; extra: {sorted(extra)}"
             )
 
+    parent_scope = parent_claims.get("scope")
+    if parent_scope and not _scope_covers(parent_scope, child_claims.get("scope") or ""):
+        raise ValueError(
+            f"Child scope={child_claims.get('scope')!r} is not within parent scope={parent_scope!r}"
+        )
+
+    parent_caveats = {canonical_str(c) for c in (parent_claims.get("caveats") or [])}
+    child_caveats = {canonical_str(c) for c in (child_claims.get("caveats") or [])}
+    if not parent_caveats.issubset(child_caveats):
+        raise ValueError("Child must retain all parent caveats (caveats only narrow)")
+
     parent_exp = parent_claims.get("exp", 0)
-    child_exp = int(time.time()) + child_expires_in
+    child_exp = child_claims.get("exp", 0)
     if child_exp > parent_exp:
         raise ValueError("Child token cannot outlive parent (exp)")
 
