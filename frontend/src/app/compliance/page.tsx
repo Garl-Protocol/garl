@@ -168,10 +168,13 @@ function ComplianceContent() {
           <div className="mb-8 text-center">
             <Shield className="mx-auto mb-4 h-10 w-10 text-garl-accent" />
             <h1 className="mb-2 font-mono text-2xl font-bold text-garl-text">
-              Compliance Reports
+              Compliance Evidence Export
             </h1>
             <p className="font-mono text-sm text-garl-muted">
-              Select an agent to view their full compliance report — SLA status, security analysis, trust dimensions, anomaly history, and endorsements.
+              Export audit-ready evidence of an agent&apos;s AI-authored work —
+              signed, tamper-evident receipts mapped to CA SB 942, the EU AI Act
+              Code of Practice, and ISO 42001. Formats: CSV, JSON-LD, in-toto,
+              SLSA, C2PA.
             </p>
           </div>
           <input

@@ -40,8 +40,8 @@ export default async function LeaderboardPage() {
       {/* SSR content visible to crawlers */}
       {agents.length > 0 && (
         <div className="sr-only" aria-hidden="false">
-          <h1>AI Agent Trust Leaderboard — GARL Protocol</h1>
-          <p>Top {agents.length} AI agents ranked by 5-dimensional trust score.</p>
+          <h1>GARL Agent Registry</h1>
+          <p>{agents.length} agents logging cryptographically verifiable receipts on GARL.</p>
           <table>
             <thead>
               <tr>

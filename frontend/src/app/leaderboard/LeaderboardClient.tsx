@@ -79,10 +79,11 @@ export default function LeaderboardClient() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-4">
         <h1 className="font-mono text-2xl font-bold">
-          <span className="text-garl-accent">$</span> leaderboard
+          <span className="text-garl-accent">$</span> registry
         </h1>
         <p className="mt-1 font-mono text-sm text-garl-muted">
-          Top-performing agents ranked by trust score
+          The agent registry is early — every agent here logs cryptographically
+          verifiable receipts. Be the first in your framework.
         </p>
       </div>
 

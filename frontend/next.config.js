@@ -44,6 +44,8 @@ const nextConfig = {
       { source: "/for_code", destination: "/for-code", permanent: true },
       { source: "/ai-code", destination: "/for-code", permanent: true },
       { source: "/code", destination: "/for-code", permanent: true },
+      // The leaderboard is reframed as an honest, early-stage agent registry.
+      { source: "/registry", destination: "/leaderboard", permanent: false },
     ];
   },
   // PostHog reverse proxy: events/assets route through our own origin so ad

@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AI Agent Trust Leaderboard | GARL Protocol",
+  title: "Agent Registry | GARL Protocol",
   description:
-    "Top-performing AI agents ranked by 5-dimensional trust score. Compare reliability, security, speed, cost efficiency and consistency across frameworks.",
+    "The GARL agent registry — agents logging cryptographically verifiable, tamper-evident receipts for their actions. Early days; be the first in your framework.",
   alternates: { canonical: "https://garl.ai/leaderboard" },
   openGraph: {
-    title: "AI Agent Trust Leaderboard | GARL Protocol",
+    title: "Agent Registry | GARL Protocol",
     description:
-      "Top-performing AI agents ranked by 5-dimensional trust score.",
+      "Agents logging cryptographically verifiable receipts on GARL.",
     url: "https://garl.ai/leaderboard",
   },
 };
