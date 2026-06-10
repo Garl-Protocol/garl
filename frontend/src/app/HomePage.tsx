@@ -457,7 +457,6 @@ export default function HomePage({
     return () => clearInterval(interval);
   }, [fetchStats]);
 
-  const agentCount = stats?.total_agents ?? 0;
   const traceCount = stats?.total_traces ?? 0;
 
   return (
@@ -677,26 +676,24 @@ export default function HomePage({
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
             {[
               {
-                label: "Agents Indexed",
-                value: agentCount > 0 ? agentCount.toLocaleString() : "—",
-                icon: Users,
-              },
-              {
-                label: "Traces Verified",
+                label: "Signed Receipts",
                 value: traceCount > 0 ? traceCount.toLocaleString() : "—",
                 icon: Fingerprint,
               },
               {
-                label: "Trust Dimensions",
-                value: "5",
-                icon: BarChart3,
+                label: "Anchored On-Chain",
+                value: "Base",
+                icon: Link2,
               },
               {
-                label: "Top Agent Score",
-                value: stats?.top_agent
-                  ? `${stats.top_agent.trust_score.toFixed(1)}`
-                  : "—",
-                icon: TrendingUp,
+                label: "Independently Verifiable",
+                value: "Offline",
+                icon: Shield,
+              },
+              {
+                label: "Open Protocol",
+                value: "Apache-2.0",
+                icon: Lock,
               },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
@@ -1000,19 +997,19 @@ export default function HomePage({
                 title: "REST API",
                 install: "",
                 code: "POST /api/v1/verify",
-                desc: "30+ endpoints — traces, trust checks, smart routing, endorsements, GDPR compliance, badges",
+                desc: "49 endpoints — receipts, verification, on-chain inclusion proofs, badges, GDPR export",
               },
               {
                 title: "MCP Server",
                 install: "npx @garl-protocol/mcp-server",
                 code: "POST https://api.garl.ai/mcp",
-                desc: "8 remote + 20 local tools. Claude Desktop, Cursor, Windsurf — one config line",
+                desc: "29 tools. Claude Desktop, Cursor, Windsurf — one config line",
               },
               {
                 title: "GitHub Action",
                 install: "",
-                code: "uses: Garl-Protocol/garl-receipt-action@v1",
-                desc: "5-line PR workflow. Detects Claude Code, Cursor, Copilot, Aider, Codex commits and posts signed receipts as sticky PR comments.",
+                code: "uses: Garl-Protocol/garl-receipt-action@v1.1.0",
+                desc: "5-line PR workflow. Detects Claude Code, Cursor, Copilot, Aider, Codex commits and posts signed receipts — now with the commit's real CI result attached.",
               },
             ].map((item, i) => (
               <motion.div
