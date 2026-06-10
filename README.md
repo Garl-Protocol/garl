@@ -3,7 +3,7 @@
   <img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge&labelColor=0a0a0a" alt="License" />
   <img src="https://img.shields.io/badge/GitHub_Action-Live-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="GitHub Action" />
   <img src="https://img.shields.io/badge/A2A_v1.0-Compliant-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="A2A v1.0" />
-  <img src="https://img.shields.io/badge/MCP-28_Tools-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="MCP" />
+  <img src="https://img.shields.io/badge/MCP-29_Tools-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="MCP" />
   <br/>
   <a href="https://github.com/Garl-Protocol/garl/actions/workflows/ci.yml"><img src="https://github.com/Garl-Protocol/garl/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
