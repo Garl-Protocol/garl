@@ -13,8 +13,6 @@ The legacy `traces` table stays the home for git-commit flavored traces
 
 from __future__ import annotations
 
-import hashlib
-import json
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -45,16 +43,6 @@ POLICY_DECISIONS = {"allowed", "denied", "requires_human"}
 
 class ActionReceiptValidationError(ValueError):
     """Caller-supplied input doesn't match the v0.1 envelope contract."""
-
-
-def _hash_canonical(obj: dict | str) -> str:
-    """SHA-256 of canonical JSON (sorted keys, no whitespace, UTF-8). For
-    string inputs this hashes the UTF-8 bytes directly — useful when the
-    caller already has a canonical body."""
-    if isinstance(obj, str):
-        return hashlib.sha256(obj.encode("utf-8")).hexdigest()
-    canonical = json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _validate_input(req: dict) -> None:

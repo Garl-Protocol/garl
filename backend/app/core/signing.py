@@ -6,6 +6,7 @@ import time
 from ecdsa import SigningKey, VerifyingKey, SECP256k1, BadSignatureError
 from ecdsa.errors import MalformedPointError
 
+from app.core.canonical import canonical_str
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -120,7 +121,7 @@ def sign_payload(payload: dict) -> tuple[str, str]:
     lets callers idempotently re-derive signatures for the same data.
     """
     sk = _get_signing_key()
-    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    canonical = canonical_str(payload)
     digest = hashlib.sha256(canonical.encode()).digest()
     signature = sk.sign_digest_deterministic(digest, hashfunc=hashlib.sha256).hex()
     return signature, digest.hex()
@@ -133,7 +134,7 @@ def sign_trace(trace_data: dict) -> dict:
     yields the identical signature bytes.
     """
     sk = _get_signing_key()
-    canonical = json.dumps(trace_data, sort_keys=True, separators=(",", ":"))
+    canonical = canonical_str(trace_data)
     digest = hashlib.sha256(canonical.encode()).digest()
     signature = sk.sign_digest_deterministic(digest, hashfunc=hashlib.sha256).hex()
     public_key_hex = get_public_key_hex()
@@ -165,7 +166,7 @@ def verify_signature(certificate: dict) -> bool:
         if pubkey_hex not in known_keys:
             return False
         vk = VerifyingKey.from_string(bytes.fromhex(pubkey_hex), curve=SECP256k1)
-        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        canonical = canonical_str(payload)
         digest = hashlib.sha256(canonical.encode()).digest()
         return vk.verify_digest(bytes.fromhex(proof["signature"]), digest)
     except (BadSignatureError, KeyError, ValueError, MalformedPointError, TypeError):

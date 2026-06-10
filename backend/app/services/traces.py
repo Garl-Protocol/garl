@@ -34,7 +34,12 @@ MAX_WEBHOOK_RETRIES = 3
 
 
 def _compute_trace_hash(trace_data: dict) -> str:
-    canonical = json.dumps(trace_data, sort_keys=True, separators=(",", ":"), default=str)
+    # default=str preserves the historical trace_hash form (datetimes etc. are
+    # str()'d); allow_nan=False rejects NaN/Infinity, which are invalid JSON and
+    # would otherwise be hashed as bytes no conformant parser can reproduce.
+    canonical = json.dumps(
+        trace_data, sort_keys=True, separators=(",", ":"), default=str, allow_nan=False
+    )
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 

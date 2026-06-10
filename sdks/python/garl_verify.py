@@ -102,7 +102,12 @@ def _fetch_key_registry(url: str) -> dict[str, str]:
 
 
 def _canonical_payload_bytes(payload: dict) -> bytes:
-    return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    # GARL canonical JSON (see protocol/spec/canonical-json-v0.1.md): sorted
+    # keys, tight separators, ensure_ascii=True, NaN/Infinity rejected. Must be
+    # byte-identical to the backend signer (app/core/canonical.py).
+    return json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False
+    ).encode("utf-8")
 
 
 def _verify_cert(cert: dict, pubkey_hex: str) -> bool:

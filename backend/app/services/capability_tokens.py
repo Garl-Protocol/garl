@@ -44,6 +44,8 @@ from typing import Any
 from ecdsa import BadSignatureError, SECP256k1, VerifyingKey
 from ecdsa.errors import MalformedPointError
 
+from app.core.canonical import canonical_str
+
 from app.core.signing import (
     _get_signing_key,
     derive_key_id,
@@ -78,8 +80,10 @@ def _b64url_decode(s: str) -> bytes:
 
 
 def _canonical_json(obj: dict) -> str:
-    """Canonical JSON for signing: sorted keys, no whitespace, RFC 7159 minimal."""
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    """Canonical JSON for signing — the single GARL canonical form (see
+    app.core.canonical). Verification reconstructs the signing input from the
+    raw base64 segments, so this only governs issue-time bytes."""
+    return canonical_str(obj)
 
 
 def _hash_token(jwt_form: str) -> str:
