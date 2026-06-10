@@ -1,9 +1,11 @@
 import logging
 import uuid as _uuid
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from app.core.config import get_settings
 from app.api.routes import router
@@ -178,6 +180,28 @@ async def well_known_garl_keys(response: Response):
     remain listed so old receipts stay verifiable after rotation."""
     response.headers["Cache-Control"] = "public, max-age=300, s-maxage=3600"
     return get_key_registry()
+
+
+@app.get("/.well-known/security.txt", include_in_schema=False)
+@app.get("/security.txt", include_in_schema=False)
+async def well_known_security_txt(response: Response):
+    """RFC 9116 security.txt — vulnerability disclosure contact.
+
+    A security researcher's first stop. Without it, a discovered issue is more
+    likely to be dropped publicly than reported. Expires is computed ~1 year
+    out on each request so it never goes stale."""
+    expires = (datetime.now(timezone.utc) + timedelta(days=365)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    body = (
+        "# GARL Protocol security contact (RFC 9116)\n"
+        "Contact: https://github.com/Garl-Protocol/garl/security/advisories/new\n"
+        "Contact: mailto:security@garl.ai\n"
+        f"Expires: {expires}\n"
+        "Preferred-Languages: en, tr\n"
+        "Canonical: https://api.garl.ai/.well-known/security.txt\n"
+        "Policy: https://github.com/Garl-Protocol/garl/blob/main/SECURITY.md\n"
+    )
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return PlainTextResponse(content=body, headers=response.headers)
 
 
 @app.get("/.well-known/agent-card.json")
