@@ -10,7 +10,12 @@ import os
 import time
 
 import pytest
-import requests
+
+# These tests are e2e-only (skipped in CI via `-m "not e2e"`) and depend on
+# `requests`, which is not a runtime dependency. Skip the whole module cleanly
+# at collection time when it is absent, instead of failing the entire run with
+# a ModuleNotFoundError before the e2e marker can take effect.
+requests = pytest.importorskip("requests")
 
 BASE_URL = os.environ.get("GARL_API_URL", "https://api.garl.ai").rstrip("/")
 API_V1 = f"{BASE_URL}/api/v1"
