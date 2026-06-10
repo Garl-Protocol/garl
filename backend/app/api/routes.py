@@ -1440,13 +1440,27 @@ async def check_certificate(certificate: dict):
         payload = certificate["passport"]
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         digest = hashlib.sha256(canonical.encode()).digest()
+        valid = False
         try:
-            from ecdsa import VerifyingKey, SECP256k1, BadSignatureError
-            vk = VerifyingKey.from_string(
-                bytes.fromhex(certificate.get("public_key", get_public_key_hex())),
-                curve=SECP256k1,
-            )
-            valid = vk.verify_digest(bytes.fromhex(certificate["signature"]), digest)
+            from ecdsa import VerifyingKey, SECP256k1
+            sig = bytes.fromhex(certificate["signature"])
+            # Only trust GARL's own registry keys (active + retired). The
+            # passport is signed by GARL's signing key at issue time, so a
+            # caller-supplied `public_key` must NEVER be trusted: otherwise
+            # anyone could sign a forged passport (any agent_id, any tier)
+            # with their own keypair and have /verify/check return valid=true.
+            # This mirrors verify_signature's registry gate (signing.py).
+            for k in get_key_registry().get("keys", []):
+                pk_hex = k.get("public_key_hex")
+                if not pk_hex:
+                    continue
+                try:
+                    vk = VerifyingKey.from_string(bytes.fromhex(pk_hex), curve=SECP256k1)
+                    if vk.verify_digest(sig, digest):
+                        valid = True
+                        break
+                except Exception:
+                    continue
         except Exception:
             valid = False
     else:

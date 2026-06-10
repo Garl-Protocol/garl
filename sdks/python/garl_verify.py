@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from typing import Any
 from urllib.parse import urlparse
@@ -47,7 +48,10 @@ def _extract_hash_or_url(arg: str) -> tuple[str, str]:
     arg = arg.strip()
     if arg.startswith(("http://", "https://")):
         return "url", arg
-    # Bare hex → assume hash
+    # Bare UUID → a receipt_id (the cert.json endpoint resolves it directly).
+    if re.fullmatch(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", arg):
+        return "hash", arg.lower()
+    # Bare hex → assume hash (trace_hash / output_hash prefix or full).
     if all(c in "0123456789abcdefABCDEF" for c in arg) and 8 <= len(arg) <= 64:
         return "hash", arg.lower()
     raise ValueError(f"Argument is neither a URL nor a valid GARL hash prefix: {arg!r}")
@@ -78,7 +82,7 @@ def _resolve_to_cert(arg: str, api_base: str) -> dict:
         )
     resp.raise_for_status()
     cert = resp.json()
-    if not isinstance(cert, dict) or not cert.get("proof"):
+    if not isinstance(cert, dict) or not (cert.get("proof") or _is_receipt_envelope(cert)):
         raise RuntimeError(f"Response at {cert_url} is not a GARL certificate")
     return cert
 
@@ -108,6 +112,42 @@ def _verify_cert(cert: dict, pubkey_hex: str) -> bool:
     try:
         vk = VerifyingKey.from_string(bytes.fromhex(pubkey_hex), curve=SECP256k1)
         digest = hashlib.sha256(_canonical_payload_bytes(payload)).digest()
+        vk.verify_digest(bytes.fromhex(sig_hex), digest)
+        return True
+    except (BadSignatureError, ValueError, TypeError):
+        return False
+
+
+def _is_receipt_envelope(cert: dict) -> bool:
+    """A v0.1 Action Receipt is a flat envelope (no proof/payload wrapper)
+    that carries its own ``signature`` + ``verification_key_id``, served at
+    ``/api/v1/receipts/{id}/cert.json``."""
+    return (
+        isinstance(cert, dict)
+        and "proof" not in cert
+        and isinstance(cert.get("signature"), str)
+        and isinstance(cert.get("verification_key_id"), str)
+        and str(cert.get("version", "")).startswith("garl/action-receipt/")
+    )
+
+
+def _verify_receipt_envelope(cert: dict, pubkey_hex: str) -> bool:
+    """Verify a v0.1 Action Receipt envelope.
+
+    The backend signs the envelope BEFORE attaching ``signature`` and
+    ``verification_key_id`` (see action_receipts.submit_action_receipt), so
+    the signed bytes are the envelope with exactly those two keys removed,
+    canonicalized the same way as every other GARL payload. ``pubkey_hex``
+    MUST come from the GARL key registry — never from the envelope itself.
+    """
+    signed_payload = {
+        k: v for k, v in cert.items()
+        if k not in ("signature", "verification_key_id")
+    }
+    sig_hex = cert.get("signature", "")
+    try:
+        vk = VerifyingKey.from_string(bytes.fromhex(pubkey_hex), curve=SECP256k1)
+        digest = hashlib.sha256(_canonical_payload_bytes(signed_payload)).digest()
         vk.verify_digest(bytes.fromhex(sig_hex), digest)
         return True
     except (BadSignatureError, ValueError, TypeError):
@@ -152,6 +192,28 @@ def _print_result(cert: dict, ok: bool, registry_url: str, args: argparse.Namesp
     return 0 if ok else 1
 
 
+def _print_receipt_result(cert: dict, ok: bool, key_id: str, registry_url: str, args: argparse.Namespace) -> int:
+    summary: dict[str, Any] = {
+        "verified": ok,
+        "key_id": key_id,
+        "registry": registry_url,
+        "receipt_id": cert.get("receipt_id"),
+        "agent_identity": cert.get("agent_identity"),
+        "action_type": cert.get("action_type"),
+        "side_effect": cert.get("side_effect"),
+        "output_hash": cert.get("output_hash"),
+    }
+    if args.json:
+        print(json.dumps(summary, indent=2 if args.pretty else None))
+    else:
+        icon = "✓" if ok else "✗"
+        print(f"{icon} verified={ok}  key_id={key_id}  receipt_id={cert.get('receipt_id')}")
+        print(f"  action_type={cert.get('action_type')}  side_effect={cert.get('side_effect')}")
+        if not ok:
+            print("  signature did NOT verify against the registry public key.")
+    return 0 if ok else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="garl-verify",
@@ -186,6 +248,23 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as e:  # noqa: BLE001
         print(f"garl-verify: could not load key registry {args.key_registry}: {e}", file=sys.stderr)
         return 2
+
+    # v0.1 Action Receipt envelope path — resolve the key from the registry
+    # by verification_key_id and verify the envelope-minus-signature. The
+    # registry lookup is the trust anchor; the envelope never vouches for
+    # its own key.
+    if _is_receipt_envelope(cert):
+        kid = cert.get("verification_key_id")
+        pk_hex = registry.get(kid)
+        if not pk_hex:
+            print(
+                "garl-verify: receipt's verification_key_id is not in the registry — "
+                "refusing to verify against an unknown key",
+                file=sys.stderr,
+            )
+            return 1
+        ok = _verify_receipt_envelope(cert, pk_hex)
+        return _print_receipt_result(cert, ok, kid, args.key_registry, args)
 
     proof = cert.get("proof") or {}
     key_id = proof.get("key_id")
