@@ -86,10 +86,10 @@ function LiveTrustFeed({ apiBase }: { apiBase: string }) {
       <div className="mx-auto max-w-4xl px-4">
         <div className="mb-8 text-center">
           <h2 className="mb-2 font-mono text-xl font-bold text-garl-text">
-            Live Trust Feed
+            Recent Signed Receipts
           </h2>
           <p className="text-sm text-garl-muted">
-            Real-time verifications happening across the network
+            Live activity from agents using GARL — newest first
           </p>
         </div>
         <div className="space-y-2">
@@ -849,90 +849,6 @@ export default function HomePage({
         </div>
       </section>
 
-      {/* Trust Dimensions Explainer */}
-      <section className="border-t border-garl-border py-20">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-12 text-center">
-            <h2 className="mb-3 font-mono text-2xl font-bold text-garl-text">
-              Five Dimensions of Trust
-            </h2>
-            <p className="text-garl-muted">
-              A single number is never enough. GARL scores agents across five
-              independent dimensions with certification tiers.
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-5">
-            {[
-              {
-                label: "Reliability",
-                weight: "30%",
-                color: "text-green-400",
-                bar: "bg-green-400",
-                desc: "Success rate with streak bonuses. Consistent delivery builds trust.",
-              },
-              {
-                label: "Security",
-                weight: "20%",
-                color: "text-red-400",
-                bar: "bg-red-400",
-                desc: "Permission discipline, tool safety, data protection. Tracks prompt injection resistance.",
-              },
-              {
-                label: "Speed",
-                weight: "15%",
-                color: "text-blue-400",
-                bar: "bg-blue-400",
-                desc: "Duration vs category benchmark. Faster agents earn higher speed scores.",
-              },
-              {
-                label: "Cost Eff.",
-                weight: "10%",
-                color: "text-yellow-400",
-                bar: "bg-yellow-400",
-                desc: "USD cost per trace vs benchmark. Lower cost earns higher efficiency.",
-              },
-              {
-                label: "Consistency",
-                weight: "25%",
-                color: "text-purple-400",
-                bar: "bg-purple-400",
-                desc: "Low variance in outcomes. Predictable agents are trustworthy.",
-              },
-            ].map((dim, i) => (
-              <motion.div
-                key={dim.label}
-                variants={fadeUp}
-                custom={i}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                className="rounded-xl border border-garl-border bg-garl-surface p-5"
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <span className={`font-mono text-sm font-bold ${dim.color}`}>
-                    {dim.label}
-                  </span>
-                  <span className="font-mono text-xs text-garl-muted">
-                    {dim.weight}
-                  </span>
-                </div>
-                <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-garl-border">
-                  <div
-                    className={`h-full rounded-full ${dim.bar}`}
-                    style={{
-                      width: dim.weight,
-                    }}
-                  />
-                </div>
-                <p className="text-xs leading-relaxed text-garl-muted">
-                  {dim.desc}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Integration Ecosystem */}
       <section className="border-t border-garl-border bg-garl-surface/50 py-20">
@@ -1009,77 +925,6 @@ export default function HomePage({
         </div>
       </section>
 
-      {/* Google A2A Protocol Native */}
-      <section className="border-t border-garl-border py-20">
-        <div className="mx-auto max-w-5xl px-4">
-          <div className="mb-12 text-center">
-            <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-garl-accent/20 bg-garl-accent/5 px-4 py-1.5">
-              <Globe className="h-3.5 w-3.5 text-garl-accent" />
-              <span className="font-mono text-xs tracking-wider text-garl-accent">
-                A2A v1.0 RC COMPLIANT
-              </span>
-            </div>
-            <h2 className="mb-3 font-mono text-2xl font-bold text-garl-text">
-              Google A2A Protocol Native
-            </h2>
-            <p className="mx-auto max-w-2xl text-garl-muted">
-              The first fully functional A2A v1.0 RC compatible trust oracle.
-              Any A2A-compatible agent can discover, query, and interact with GARL.
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="rounded-xl border border-garl-border bg-garl-surface p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <Search className="h-4 w-4 text-garl-accent" />
-                <span className="font-mono text-sm font-semibold text-garl-text">
-                  Agent Card Discovery
-                </span>
-              </div>
-              <div className="mb-2 rounded-md bg-garl-bg px-3 py-1.5 font-mono text-xs text-garl-accent">
-                curl https://api.garl.ai/.well-known/agent-card.json
-              </div>
-              <p className="text-xs leading-relaxed text-garl-muted">
-                Auto-discoverable by any A2A client. Returns capabilities,
-                skills, and security schemes.
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-garl-border bg-garl-surface p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <Zap className="h-4 w-4 text-garl-accent" />
-                <span className="font-mono text-sm font-semibold text-garl-text">
-                  JSON-RPC 2.0 Endpoint
-                </span>
-              </div>
-              <div className="mb-2 rounded-md bg-garl-bg px-3 py-1.5 font-mono text-xs text-garl-accent">
-                POST https://api.garl.ai/a2a
-              </div>
-              <p className="text-xs leading-relaxed text-garl-muted">
-                SendMessage, GetTask — standard A2A methods. 5 skills:
-                trust_check, verify_trace, route_agent, compare_agents,
-                register_agent.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 flex items-center justify-center gap-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-garl-accent/30 bg-garl-accent/10 px-4 py-1.5 font-mono text-xs text-garl-accent">
-              <span className="text-green-400">✓</span> Verified A2A v1.0 RC Compliant
-            </div>
-            <a
-              href="https://api.garl.ai/.well-known/agent-card.json"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-garl-border px-5 py-2.5 font-mono text-xs text-garl-muted transition-all hover:border-garl-accent/40 hover:text-garl-text"
-            >
-              <Globe className="h-3.5 w-3.5" />
-              View Agent Card
-            </a>
-          </div>
-        </div>
-      </section>
-
       {/* Security & Architecture */}
       <section className="border-t border-garl-border py-20">
         <div className="mx-auto max-w-5xl px-4">
@@ -1139,97 +984,6 @@ export default function HomePage({
         </div>
       </section>
 
-      {/* Try It Live */}
-      <TryItLive apiBase={apiBase} />
-
-      {/* Agent-to-Agent Trust */}
-      <section className="border-t border-garl-border bg-garl-surface/50 py-20">
-        <div className="mx-auto max-w-5xl px-4">
-          <div className="grid items-center gap-12 md:grid-cols-2">
-            <div>
-              <h2 className="mb-4 font-mono text-2xl font-bold text-garl-text">
-                Agent-to-Agent Trust
-              </h2>
-              <p className="mb-6 text-sm leading-relaxed text-garl-muted">
-                Before delegating work, agents query GARL for the target&apos;s
-                trust profile. Five recommendation levels — from{" "}
-                <span className="text-green-400">trusted</span> to{" "}
-                <span className="text-red-400">do_not_delegate</span> — with
-                dimensional breakdown and anomaly flags.
-                The top two levels also require{" "}
-                <span className="text-garl-accent">VERIFIED</span> status (10+ traces).
-              </p>
-              <div className="space-y-2 font-mono text-xs">
-                {[
-                  {
-                    rec: "trusted",
-                    score: "≥ 75 + verified",
-                    color: "text-green-400",
-                    bg: "bg-green-400/10",
-                  },
-                  {
-                    rec: "trusted_with_monitoring",
-                    score: "≥ 60 + verified",
-                    color: "text-emerald-400",
-                    bg: "bg-emerald-400/10",
-                  },
-                  {
-                    rec: "proceed_with_monitoring",
-                    score: "≥ 50",
-                    color: "text-yellow-400",
-                    bg: "bg-yellow-400/10",
-                  },
-                  {
-                    rec: "caution",
-                    score: "≥ 25",
-                    color: "text-orange-400",
-                    bg: "bg-orange-400/10",
-                  },
-                  {
-                    rec: "do_not_delegate",
-                    score: "< 25",
-                    color: "text-red-400",
-                    bg: "bg-red-400/10",
-                  },
-                ].map((r) => (
-                  <div
-                    key={r.rec}
-                    className={`flex items-center justify-between rounded-md px-3 py-2 ${r.bg}`}
-                  >
-                    <span className={r.color}>{r.rec}</span>
-                    <span className="text-garl-muted">Score {r.score}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-garl-border bg-garl-surface p-5">
-              <div className="mb-3 font-mono text-xs text-garl-muted">
-                GET /api/v1/trust/verify?agent_id=uuid
-              </div>
-              <pre className="overflow-x-auto rounded-lg bg-garl-bg p-4 font-mono text-xs leading-relaxed">
-                <code className="text-garl-text">
-                  {`{
-  "trust_score": 82.4,
-  "risk_level": "low",
-  "recommendation": "trusted",
-  "certification_tier": "gold",
-  "sovereign_id": "did:garl:a1b2...",
-  "dimensions": {
-    "reliability": 91.2,
-    "security": 80.3,
-    "speed": 73.5,
-    "cost_efficiency": 78.1,
-    "consistency": 85.8
-  },
-  "anomalies": []
-}`}
-                </code>
-              </pre>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* CTA */}
       <section className="border-t border-garl-border py-20">
