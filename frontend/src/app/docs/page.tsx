@@ -489,7 +489,7 @@ curl -X POST https://api.garl.ai/mcp \\
 curl -X POST https://api.garl.ai/api/v1/verify/check \\
   -H "Content-Type: application/json" \\
   -d '{
-    "@context": "https://garl.io/schema/v1",
+    "@context": "https://api.garl.ai/schema/v1",
     "@type": "CertifiedExecutionTrace",
     "payload": {
       "trace_id": "...",

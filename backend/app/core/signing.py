@@ -174,7 +174,7 @@ def sign_trace(trace_data: dict) -> dict:
     public_key_hex = get_public_key_hex()
 
     return {
-        "@context": "https://garl.io/schema/v1",
+        "@context": "https://api.garl.ai/schema/v1",
         "@type": "CertifiedExecutionTrace",
         "payload": trace_data,
         "proof": {

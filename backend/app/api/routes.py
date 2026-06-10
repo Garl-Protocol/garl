@@ -774,7 +774,7 @@ async def agent_audit_export(
             "certificate": cert,
         })
     return {
-        "@context": "https://garl.io/schema/v1",
+        "@context": "https://api.garl.ai/schema/v1",
         "@type": "AgentAuditReport",
         "agent_id": agent_id,
         "agent_name": agent.get("name"),
@@ -1337,7 +1337,7 @@ async def public_verify_trace(trace_hash: str, request: Request, response: Respo
         # raw payload without a fake signature so downstream consumers can
         # reason about chain-of-custody honestly via signing_epoch.
         certificate = {
-            "@context": "https://garl.io/schema/v1",
+            "@context": "https://api.garl.ai/schema/v1",
             "@type": "CertifiedExecutionTrace",
             "payload": {
                 "trace_id": trace["id"],

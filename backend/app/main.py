@@ -182,6 +182,34 @@ async def well_known_garl_keys(response: Response):
     return get_key_registry()
 
 
+@app.get("/schema/v1", include_in_schema=False)
+async def jsonld_schema_context(response: Response):
+    """JSON-LD @context for GARL certificates. Certs carry
+    ``"@context": "https://api.garl.ai/schema/v1"``; this serves a resolvable
+    context on a domain GARL actually owns (the old garl.io was not ours and a
+    404, so a JSON-LD processor would either fail or — worse, if someone
+    registered garl.io — fetch an attacker-served context)."""
+    response.headers["Cache-Control"] = "public, max-age=86400, s-maxage=86400"
+    return JSONResponse(
+        media_type="application/ld+json",
+        content={
+            "@context": {
+                "@version": 1.1,
+                "garl": "https://api.garl.ai/schema/v1#",
+                "CertifiedExecutionTrace": "garl:CertifiedExecutionTrace",
+                "payload": "garl:payload",
+                "proof": "garl:proof",
+                "signature": "garl:signature",
+                "publicKey": "garl:publicKey",
+                "key_id": "garl:key_id",
+                "agent_id": "garl:agent_id",
+                "trace_hash": "garl:trace_hash",
+                "status": "garl:status",
+            }
+        },
+    )
+
+
 @app.get("/.well-known/security.txt", include_in_schema=False)
 @app.get("/security.txt", include_in_schema=False)
 async def well_known_security_txt(response: Response):

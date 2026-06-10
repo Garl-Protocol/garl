@@ -356,7 +356,7 @@ class TestCryptographicIntegrity:
     def test_certificate_context_and_type(self):
         """Certificate must have correct @context and @type."""
         cert = sign_trace({"data": "test"})
-        assert cert["@context"] == "https://garl.io/schema/v1"
+        assert cert["@context"] == "https://api.garl.ai/schema/v1"
         assert cert["@type"] == "CertifiedExecutionTrace"
         assert cert["proof"]["type"] == "ECDSA-secp256k1"
 

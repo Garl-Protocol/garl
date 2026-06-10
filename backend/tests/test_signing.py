@@ -22,7 +22,7 @@ class TestSignTrace:
         cert = sign_trace(trace_data)
 
         assert "@context" in cert
-        assert cert["@context"] == "https://garl.io/schema/v1"
+        assert cert["@context"] == "https://api.garl.ai/schema/v1"
         assert cert["@type"] == "CertifiedExecutionTrace"
         assert cert["payload"] == trace_data
         assert "proof" in cert
