@@ -72,8 +72,43 @@ Every receipt MUST contain:
 | `policy_decision` | enum | `allowed`, `denied`, `requires_human`. Set when the issuer evaluated a policy at action time. |
 | `cost` | object | `{usd: number, tokens_in: int, tokens_out: int, duration_ms: int}` — partial OK; consumers tolerate missing keys. |
 | `previous_receipt_hash` | hex(64) \| null | The `output_hash` of the receipt this action followed. Builds a chain; sets up Merkle batching. |
-| `attestations` | string[] | Human-readable claims that have been independently verified, e.g. `tests_passed`, `human_reviewed`, `static_analysis_clean`, `coverage_threshold_met`. |
+| `attestations` | (string \| object)[] | Independent corroboration of the action — see §4.1. A bare string is a human-readable claim (`tests_passed`, `human_reviewed`); a structured object points at a re-verifiable external fact. |
 | `redaction_policy` | object | `{public_fields: [...], redacted_fields: [...]}` — which fields are exposed in the public receipt URL vs. only available to the agent's owner with API key. |
+
+### 4.1 Structured attestations (the corroboration layer)
+
+A receipt is a signature over what the agent *reported* (§2). A structured
+attestation upgrades it by pointing at a **public fact anyone can re-check**, so
+it is no longer a self-report. The first defined type:
+
+```json
+{
+  "type": "github-check-run",
+  "repo": "owner/name",
+  "commit_sha": "<7-64 hex>",
+  "conclusion": "success | failure | neutral | cancelled | timed_out | action_required | pending | none",
+  "url": "https://github.com/owner/name/commit/<sha>",
+  "witnessed": true,                 // OPTIONAL — set by an issuer that re-verified
+  "actual_conclusion": "success",    // OPTIONAL — present iff the issuer re-checked
+  "witness_reason": "conclusion-mismatch"  // OPTIONAL — present on a failed witness
+}
+```
+
+Trust model, by field:
+- `repo` + `commit_sha` + `conclusion` are **independently re-verifiable**: any
+  consumer can call the GitHub API and confirm the commit's real CI conclusion.
+  The issuer does not have to be trusted.
+- `witnessed` is set **only by an issuer that re-verified** the attestation
+  against the source (GitHub) at receipt time. `witnessed: true` means the
+  claimed `conclusion` matched the source; `false` (+ `witness_reason`) means it
+  did not, or the commit did not exist. Absence means "not issuer-verified —
+  re-check it yourself." Issuers MUST fail open (omit `witnessed`) rather than
+  block issuance when the source is unavailable.
+
+The GARL canonical issuer re-verifies when `ENABLE_GITHUB_ATTESTATION_CHECK` is
+configured, excluding its own check-run so it reads the repo's real CI. The
+GARL Receipt GitHub Action populates this attestation from the commit's actual
+check-runs (not a hardcoded status).
 
 ## 5. Side-effect classification
 
