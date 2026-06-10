@@ -542,7 +542,7 @@ export default function HomePage({
                 <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
                 <div className="h-3 w-3 rounded-full bg-green-500/60" />
                 <span className="ml-2 font-mono text-xs text-garl-muted">
-                  integrate.py — one line to build trust
+                  integrate.py — one line, one signed receipt
                 </span>
               </div>
               <div className="flex items-center gap-1.5 rounded-full border border-garl-accent/30 bg-garl-accent/5 px-2.5 py-0.5">
@@ -571,9 +571,11 @@ export default function HomePage({
                 <span className="text-garl-muted">)</span>
                 {"\n\n"}
                 <span className="text-garl-muted">
-                  # One line after any task — runs in background
+                  # One line after any action — returns a signed receipt
                 </span>
                 {"\n"}
+                <span className="text-white">receipt</span>
+                <span className="text-garl-muted"> = </span>
                 <span className="text-white">garl</span>
                 <span className="text-garl-muted">.</span>
                 <span className="text-blue-400">log_action</span>
@@ -588,50 +590,19 @@ export default function HomePage({
                 <span className="text-garl-muted">)</span>
                 {"\n"}
                 <span className="text-garl-muted">
-                  # → SHA-256 hashed, ECDSA signed, EMA scored ✓
+                  # → SHA-256 hashed, ECDSA-signed, anchored on Base ✓
                 </span>
                 {"\n\n"}
                 <span className="text-garl-muted">
-                  # Check trust before delegating (requires client)
+                  # Share it — anyone can verify the receipt offline
                 </span>
                 {"\n"}
-                <span className="text-purple-400">from</span>{" "}
-                <span className="text-garl-accent">garl</span>{" "}
-                <span className="text-purple-400">import</span>{" "}
-                <span className="text-white">GarlClient</span>
-                {"\n"}
-                <span className="text-white">client</span>
-                <span className="text-garl-muted"> = </span>
-                <span className="text-white">GarlClient</span>
+                <span className="text-white">print</span>
                 <span className="text-garl-muted">(</span>
-                <span className="text-yellow-300">&quot;garl_key&quot;</span>
-                <span className="text-garl-muted">,</span>{" "}
-                <span className="text-yellow-300">&quot;agent-uuid&quot;</span>
-                <span className="text-garl-muted">)</span>
-                {"\n"}
-                <span className="text-white">trust</span>
-                <span className="text-garl-muted"> = </span>
-                <span className="text-white">client</span>
-                <span className="text-garl-muted">.</span>
-                <span className="text-blue-400">check_trust</span>
-                <span className="text-garl-muted">(</span>
-                <span className="text-yellow-300">&quot;other-agent-uuid&quot;</span>
-                <span className="text-garl-muted">)</span>
-                {"\n"}
-                <span className="text-purple-400">if</span>{" "}
-                <span className="text-white">trust</span>
+                <span className="text-white">receipt</span>
                 <span className="text-garl-muted">[</span>
-                <span className="text-yellow-300">&quot;recommendation&quot;</span>
-                <span className="text-garl-muted">]</span>
-                <span className="text-garl-muted"> == </span>
-                <span className="text-yellow-300">&quot;trusted&quot;</span>
-                <span className="text-garl-muted">:</span>
-                {"\n"}
-                {"    "}
-                <span className="text-white">delegate_task</span>
-                <span className="text-garl-muted">(</span>
-                <span className="text-garl-muted">...</span>
-                <span className="text-garl-muted">)</span>
+                <span className="text-yellow-300">&quot;receipt_url&quot;</span>
+                <span className="text-garl-muted">])</span>
               </code>
             </pre>
           </div>
@@ -706,9 +677,9 @@ export default function HomePage({
                 desc: "Every execution is SHA-256 hashed and ECDSA signed. Immutable PostgreSQL ledger — traces can never be altered or deleted. Tamper-proof certificates.",
               },
               {
-                icon: TrendingUp,
-                title: "3. Build Trust",
-                desc: "EMA-weighted scoring across 5 dimensions: reliability, security, speed, cost efficiency, consistency. Certification tiers (Bronze→Enterprise) with smart routing.",
+                icon: Link2,
+                title: "3. Anchor & Prove",
+                desc: "Receipts are Merkle-batched and anchored on Base mainnet, and can carry the commit's real CI result. Anyone re-verifies the signature, the on-chain inclusion proof, and the CI attestation — no trust in GARL required.",
               },
             ].map((feature, i) => (
               <motion.div
@@ -738,28 +709,16 @@ export default function HomePage({
         <div className="mx-auto max-w-7xl px-4">
           <div className="mb-12 text-center">
             <h2 className="mb-3 font-mono text-2xl font-bold text-garl-text">
-              The Trust Infrastructure
+              The Verification Stack
             </h2>
             <p className="mx-auto max-w-xl text-garl-muted">
-              Every component designed for a world where agents autonomously
-              delegate, collaborate, and transact
+              Every receipt is signed, anchored on-chain, and independently
+              checkable — plus the integrations to produce them anywhere
             </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              {
-                icon: BarChart3,
-                title: "5D Trust Scoring",
-                desc: "Five dimensions — reliability, security, speed, cost efficiency, consistency — each independently tracked with EMA and certification tiers.",
-                accent: true,
-              },
-              {
-                icon: Lock,
-                title: "Immutable Ledger",
-                desc: "PostgreSQL triggers prevent any modification or deletion of execution traces. Every record is permanent and auditable.",
-                accent: true,
-              },
               {
                 icon: Shield,
                 title: "Cryptographic Certificates",
@@ -773,24 +732,15 @@ export default function HomePage({
                 accent: true,
               },
               {
-                icon: GitCompare,
-                title: "Agent-to-Agent Trust",
-                desc: "Agents query each other's trust before delegation. Risk levels, recommendations, and anomaly flags — all via REST API.",
-              },
-              {
-                icon: AlertTriangle,
-                title: "Anomaly Detection",
-                desc: "Automatic detection of unexpected failures, duration spikes, and cost spikes. Anomaly flags are public and affect A2A trust recommendations.",
-              },
-              {
-                icon: Zap,
-                title: "EMA Scoring",
-                desc: "Exponential Moving Average ensures recent performance weighs more. Improving agents climb faster; degrading agents fall quicker.",
+                icon: Lock,
+                title: "Immutable Ledger",
+                desc: "PostgreSQL triggers prevent any modification or deletion of execution traces. Every record is permanent and auditable.",
+                accent: true,
               },
               {
                 icon: Globe,
                 title: "MCP + A2A compatible",
-                desc: "MCP server with 29 named tools (Trust Vector, Action Receipts, capability tokens, UETA undo, plus the legacy surface) ships on npm; A2A v1.0 agent-card endpoint is live. Works with Claude Desktop, Cursor, Windsurf, and any MCP/A2A-aware runtime.",
+                desc: "MCP server with 29 named tools ships on npm; A2A v1.0 agent-card endpoint is live. Works with Claude Desktop, Cursor, Windsurf, and any MCP/A2A-aware runtime.",
               },
               {
                 icon: Bell,
@@ -798,25 +748,9 @@ export default function HomePage({
                 desc: "Full CRUD webhook management — create, list, update, deactivate, delete. HMAC-SHA256 signed payloads.",
               },
               {
-                icon: Search,
-                title: "Agent Discovery",
-                desc: "Search and compare agents across categories. Find the most trusted agent for any task type before delegating.",
-              },
-              {
-                icon: Users,
-                title: "Sybil-Resistant Endorsements",
-                desc: "A2A reputation transfer — agents vouch for each other. Bonus weighted by endorser's own trust, making fake accounts worthless.",
-                accent: true,
-              },
-              {
                 icon: Fingerprint,
                 title: "Enterprise PII Masking",
                 desc: "Optional SHA-256 hashing of input/output summaries. Prove execution happened without exposing sensitive data.",
-              },
-              {
-                icon: TrendingUp,
-                title: "Anomaly Auto-Recovery",
-                desc: "Warning-level anomaly flags automatically archive after 50 consecutive clean traces. Agents can rehabilitate their reputation.",
               },
             ].map((feature, i) => (
               <motion.div
@@ -989,14 +923,14 @@ export default function HomePage({
       <section className="border-t border-garl-border py-20">
         <div className="mx-auto max-w-2xl px-4 text-center">
           <h2 className="mb-4 text-3xl font-bold">
-            Sign every action.
+            Sign it.
             <br />
-            <span className="text-gradient">Verify every delegation. Gate the risky ones.</span>
+            <span className="text-gradient">Anchor it. Prove it.</span>
           </h2>
           <p className="mb-8 text-garl-muted">
-            Every autonomous action needs a verifiable receipt — signed,
-            scoped to a capability, undoable when reversible. GARL is the
-            open trust rail for the agent economy.
+            Every AI action deserves a receipt anyone can re-verify — signed,
+            anchored on Base, with the real CI result attached. GARL is the
+            open verification rail for AI-authored work.
           </p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
