@@ -144,7 +144,7 @@ export default function VerifyPage() {
             />
           </div>
           <button
-            onClick={handleVerify}
+            onClick={() => handleVerify()}
             disabled={loading || !hash.trim()}
             className="flex items-center gap-2 rounded-xl bg-garl-accent px-6 py-3 font-mono text-sm font-semibold text-garl-bg transition-opacity hover:opacity-90 disabled:opacity-40"
           >
