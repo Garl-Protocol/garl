@@ -14,6 +14,18 @@ logger = logging.getLogger(__name__)
 _signing_key: SigningKey | None = None
 
 
+# NOTE on the `ecdsa` library and the Minerva timing side-channel
+# (CVE-2024-23342): python-ecdsa is not constant-time and the maintainers will
+# not fix this. GARL signs server-side with one long-lived key, which is the
+# shape the advisory describes. We accept this risk deliberately, because:
+#   - exploitation needs precise per-signature timing of the EC scalar-mult;
+#     over the public internet behind Cloudflare that signal is buried under
+#     network jitter and request overhead — no remote PoC exists;
+#   - signatures are RFC 6979 deterministic and we emit only low-S (to_low_s),
+#     so we never leak nonce structure via malleable output;
+#   - verification (the bulk of ecdsa calls) is unaffected by this CVE.
+# The clean future fix is to move ONLY the signing path to `coincurve`
+# (libsecp256k1, constant-time); verification can stay on `ecdsa`.
 def _get_signing_key() -> SigningKey:
     global _signing_key
     if _signing_key is not None:

@@ -65,6 +65,28 @@ class TestRevocationFailClosed:
             assert capability_tokens._is_revoked("e" * 64) is False
 
 
+class TestClientIpForRateLimit:
+    """2026-06-10: rate-limit key must not honor a client-supplied
+    X-Forwarded-For (spoofable → fresh bucket per request)."""
+
+    def _req(self, headers: dict, peer: str = "10.0.0.1"):
+        from types import SimpleNamespace
+        return SimpleNamespace(headers=headers, client=SimpleNamespace(host=peer))
+
+    def test_ignores_spoofed_xff(self):
+        from app.api.routes import _get_client_ip
+        # An attacker rotating X-Forwarded-For must NOT change the key.
+        a = _get_client_ip(self._req({"X-Forwarded-For": "1.2.3.4"}))
+        b = _get_client_ip(self._req({"X-Forwarded-For": "9.9.9.9"}))
+        assert a == b == "10.0.0.1"  # both fall back to the real peer
+
+    def test_trusts_cf_connecting_ip(self):
+        from app.api.routes import _get_client_ip
+        ip = _get_client_ip(self._req({"CF-Connecting-IP": "203.0.113.7",
+                                       "X-Forwarded-For": "1.2.3.4"}))
+        assert ip == "203.0.113.7"
+
+
 class TestLowSSignatures:
     """2026-06-10: GARL must emit only canonical low-S signatures (no malleable
     twin of its own sigs), while verification still accepts pre-hardening

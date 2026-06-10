@@ -163,12 +163,23 @@ def _strip_html(text: str, max_length: int = 2000) -> str:
 
 
 def _get_client_ip(request: Request) -> str:
-    """Extract real client IP behind Cloudflare/proxy."""
-    return (
-        request.headers.get("CF-Connecting-IP")
-        or request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
-        or (request.client.host if request.client else "unknown")
-    )
+    """Best-effort real client IP for rate-limiting, behind Cloudflare.
+
+    Trust ONLY CF-Connecting-IP — Cloudflare sets and overwrites it on every
+    request, so a client cannot forge it when traffic arrives via Cloudflare.
+    We deliberately do NOT honor a client-supplied X-Forwarded-For: it is
+    append-only and attacker-controlled, so trusting its leftmost token would
+    let anyone land in a fresh rate-limit bucket per request by rotating the
+    header. If CF-Connecting-IP is absent, fall back to the direct peer.
+
+    Residual: an attacker who reaches the Railway origin directly (bypassing
+    Cloudflare) could forge CF-Connecting-IP. Locking the origin to Cloudflare
+    (Authenticated Origin Pulls / IP allowlist) closes that at the infra layer.
+    """
+    cf = request.headers.get("CF-Connecting-IP", "").strip()
+    if cf:
+        return cf
+    return request.client.host if request.client else "unknown"
 
 
 def _csv_safe(value: str) -> str:
@@ -189,7 +200,7 @@ def _verify_agent_ownership(agent_id: str, api_key: str) -> dict:
         raise HTTPException(status_code=404, detail="Agent not found")
     expected_hash = agent_res.data[0].get("api_key_hash", "")
     provided_hash = hashlib.sha256(api_key.encode()).hexdigest()
-    if expected_hash != provided_hash:
+    if not hmac.compare_digest(expected_hash, provided_hash):
         raise HTTPException(status_code=403, detail="API key does not belong to this agent")
     return agent_res.data[0]
 
