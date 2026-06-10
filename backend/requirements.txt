@@ -1,3 +1,10 @@
+# Transitive-CVE note (for SCA scanners): fastapi==0.115.6 pins starlette to the
+# 0.41.x line, which has DoS advisories (CVE-2025-62727 FileResponse Range,
+# CVE-2025-54121 multipart spool). GARL serves no FileResponse/StaticFiles/
+# StreamingResponse and parses no multipart/form-data, so neither path is
+# reachable. python-jose (via supabase) is never imported. These are tracked,
+# not exploitable. ecdsa==0.19.0: see app/core/signing.py for the accepted
+# Minerva (CVE-2024-23342) note.
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 pydantic==2.10.4
@@ -7,7 +14,7 @@ ecdsa==0.19.0
 httpx==0.28.1
 python-dotenv==1.0.1
 redis==5.2.1
-requests==2.32.3
+requests==2.32.4  # test-only (e2e); 2.32.4 fixes CVE-2024-47081 netrc leak
 pytest==8.3.4
 pytest-cov==6.0.0
 pytest-asyncio==0.24.0
