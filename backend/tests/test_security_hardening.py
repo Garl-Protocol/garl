@@ -65,6 +65,30 @@ class TestRevocationFailClosed:
             assert capability_tokens._is_revoked("e" * 64) is False
 
 
+class TestReservedNameGuard:
+    """2026-06-10: a public trust registry must not let an agent impersonate a
+    well-known AI brand (OpenAI, Anthropic Claude, ...)."""
+
+    def _blocked(self, name: str) -> bool:
+        from fastapi import HTTPException
+        from app.api.routes import _check_reserved_name
+        try:
+            _check_reserved_name(name)
+            return False
+        except HTTPException:
+            return True
+
+    def test_impersonations_blocked(self):
+        for n in ["OpenAI", "Open AI", "0penAI", "Anthropic Claude", "Claude",
+                  "GitHub Copilot", "Gemini", "anthropic", "ChatGPT"]:
+            assert self._blocked(n), f"{n!r} should be blocked"
+
+    def test_legitimate_names_allowed(self):
+        for n in ["MyHelperBot", "claude-helper", "research-agent", "Terminator2",
+                  "metadata-agent", "llama-index-tool", "gemini-bot", "meta-agent"]:
+            assert not self._blocked(n), f"{n!r} should be allowed"
+
+
 class TestClientIpForRateLimit:
     """2026-06-10: rate-limit key must not honor a client-supplied
     X-Forwarded-For (spoofable → fresh bucket per request)."""

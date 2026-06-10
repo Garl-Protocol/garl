@@ -135,6 +135,42 @@ def _check_rate_limit(key: str, tier: str = "default", request: Request | None =
 
 _AGENT_NAME_PATTERN = re.compile(r"^[\w\s\-\.]+$")
 
+# Brand names an agent must not impersonate on a public trust registry. The
+# substring set is distinctive enough to have ~no false positives; the token
+# set covers shorter/commoner words that should only be blocked when they stand
+# alone (so "claude-helper" is fine but a bare "Claude" is not).
+_RESERVED_BRAND_SUBSTRINGS = (
+    "openai", "anthropic", "deepmind", "chatgpt", "githubcopilot", "huggingface",
+    "garlprotocol", "garlai",
+)
+_RESERVED_BRAND_TOKENS = {
+    "openai", "anthropic", "claude", "gpt", "chatgpt", "google", "gemini",
+    "deepmind", "microsoft", "copilot", "github", "meta", "llama", "mistral",
+    "cohere", "perplexity", "grok", "nvidia", "huggingface", "garl",
+}
+_CONFUSABLES = str.maketrans({"0": "o", "1": "l", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s"})
+
+
+def _normalize_brand(s: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", s.lower().translate(_CONFUSABLES))
+
+
+def _check_reserved_name(clean: str) -> None:
+    """Reject names that impersonate a well-known AI brand/org (homoglyph-aware).
+
+    Two rules, tuned so derivatives stay allowed ('claude-helper', 'llama-tool')
+    while bare impersonations are blocked:
+      1. distinctive multi-letter brands anywhere in the name ('OpenAI',
+         'Anthropic Claude', '0penAI' → all normalize to contain the brand);
+      2. the WHOLE name being exactly a reserved word ('Claude', 'Gemini').
+    """
+    full = _normalize_brand(clean)
+    if any(b in full for b in _RESERVED_BRAND_SUBSTRINGS) or full in _RESERVED_BRAND_TOKENS:
+        raise HTTPException(
+            status_code=400,
+            detail="Agent name impersonates a reserved brand. Please choose a distinct name.",
+        )
+
 
 def _sanitize_agent_name(name: str) -> str:
     """Validate and sanitize agent name: strip HTML, enforce length and charset."""
@@ -149,6 +185,7 @@ def _sanitize_agent_name(name: str) -> str:
             status_code=400,
             detail="Agent name may only contain letters, numbers, spaces, hyphens, underscores, and dots.",
         )
+    _check_reserved_name(clean)
     return clean
 
 
