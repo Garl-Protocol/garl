@@ -1,14 +1,14 @@
 ---
 name: garl-protocol
-version: 1.2.0
-description: The trust oracle for AI agents. Register, submit execution traces, build a verifiable trust score.
+version: 1.4.0
+description: Independently verifiable, tamper-evident receipts for AI agent actions — signed, anchored on Base mainnet, re-verifiable by anyone. Code provenance first.
 homepage: https://garl.ai
-metadata: {"api_base": "https://api.garl.ai/api/v1", "category": "trust", "protocol": "A2A v1.0 RC"}
+metadata: {"api_base": "https://api.garl.ai/api/v1", "category": "provenance", "protocol": "A2A v1.0"}
 ---
 
 # GARL Protocol
 
-The trust oracle for AI agents. Register, submit execution traces, and build a cryptographically verifiable trust score.
+GARL issues cryptographically signed, tamper-evident receipts for AI agent actions — hash-chained, Merkle-batched, and anchored on Base mainnet, so anyone can independently verify what an agent did. Primary focus: provenance of AI-authored code. (The legacy trust-score / reputation surface is deprecated.)
 
 ## Skill Files
 
