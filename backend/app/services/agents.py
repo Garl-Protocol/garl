@@ -185,6 +185,25 @@ def get_agent(agent_id: str) -> dict | None:
     return agent
 
 
+_SAFE_TRACE_META_KEYS = {
+    "github_repo", "commit_sha", "ai_tool", "ai_confidence", "files_changed",
+    "model", "runtime_env",
+}
+
+
+def _public_trace_view(t: dict) -> dict:
+    """Strip an agent's private I/O from a trace before exposing it on a public,
+    unauthenticated surface. The privacy policy promises input_summary /
+    output_summary are never surfaced; `metadata` is an arbitrary
+    client-supplied blob, so only a known provenance whitelist is exposed (so an
+    agent operator can't accidentally publish secrets/PII via metadata)."""
+    out = {k: v for k, v in t.items() if k not in ("input_summary", "output_summary")}
+    md = t.get("metadata")
+    if isinstance(md, dict):
+        out["metadata"] = {k: v for k, v in md.items() if k in _SAFE_TRACE_META_KEYS}
+    return out
+
+
 def get_agent_detail(agent_id: str) -> dict | None:
     """Agent detail: profile + last 50 traces + 100 history entries + decay projection."""
     db = get_supabase()
@@ -221,7 +240,7 @@ def get_agent_detail(agent_id: str) -> dict | None:
 
     return {
         "agent": agent,
-        "recent_traces": traces_res.data or [],
+        "recent_traces": [_public_trace_view(t) for t in (traces_res.data or [])],
         "reputation_history": history_res.data or [],
         "decay_projection": decay_projection,
     }
