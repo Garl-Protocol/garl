@@ -403,12 +403,27 @@ def compare_agents(agent_ids: list[str]) -> list[dict]:
 
 def get_recent_traces(limit: int = 20, offset: int = 0) -> dict:
     db = get_supabase()
+    # The public feed must only show traces from real (non-sandbox) agents —
+    # otherwise deep pagination surfaces seed/sandbox agents' old traces and the
+    # `total` overcounts, contradicting the leaderboard/stats which hide them.
+    visible = (
+        db.table("agents")
+        .select("id")
+        .eq("is_deleted", False)
+        .eq("is_sandbox", False)
+        .execute()
+    )
+    visible_ids = [a["id"] for a in (visible.data or [])]
+    if not visible_ids:
+        return {"data": [], "total": 0, "limit": limit, "offset": offset, "has_more": False}
+
     res = (
         db.table("traces")
         .select(
             "id, agent_id, task_description, status, duration_ms, trust_delta, category, cost_usd, trace_hash, created_at",
             count="exact",
         )
+        .in_("agent_id", visible_ids)
         .order("created_at", desc=True)
         .range(offset, offset + limit - 1)
         .execute()
@@ -557,7 +572,7 @@ def search_agents(query: str = "", category: str | None = None, limit: int = 10,
         "score_reliability, score_speed, score_cost_efficiency, score_consistency, "
         "score_security, sovereign_id, certification_tier, is_sandbox",
         count="exact",
-    ).eq("is_deleted", False)
+    ).eq("is_deleted", False).eq("is_sandbox", False)
 
     if category and category != "all":
         q = q.eq("category", category)

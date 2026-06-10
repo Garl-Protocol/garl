@@ -1583,9 +1583,18 @@ async def daily_stats(request: Request, days: int = 30):
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
     db = _get_supabase()
+    # Only count traces from real (non-sandbox) agents, consistent with the
+    # feed/leaderboard/stats which hide seed and test agents.
+    visible = (
+        db.table("agents").select("id").eq("is_deleted", False).eq("is_sandbox", False).execute()
+    )
+    visible_ids = [a["id"] for a in (visible.data or [])]
+    if not visible_ids:
+        return {"days": days, "data": []}
     res = (
         db.table("traces")
         .select("created_at, trust_delta, status")
+        .in_("agent_id", visible_ids)
         .gt("created_at", cutoff)
         .order("created_at", desc=False)
         .execute()
