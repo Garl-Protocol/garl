@@ -10,6 +10,8 @@ metadata: {"api_base": "https://api.garl.ai/api/v1", "category": "provenance", "
 
 GARL issues cryptographically signed, tamper-evident receipts for AI agent actions — hash-chained, Merkle-batched, and anchored on Base mainnet, so anyone can independently verify what an agent did. Primary focus: provenance of AI-authored code. (The legacy trust-score / reputation surface is deprecated.)
 
+> **Privacy:** `task_description` is part of the signed, public receipt — never put secrets, credentials, customer data, or private infrastructure details in it. `input_summary` / `output_summary` are kept private (not exposed on public endpoints), but treat everything you submit as potentially public and omit anything sensitive.
+
 ## Skill Files
 
 | File | URL |
