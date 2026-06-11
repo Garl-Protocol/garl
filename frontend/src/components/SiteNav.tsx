@@ -5,6 +5,13 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+} from "@clerk/nextjs";
 
 type Link = { href: string; label: string; accent?: boolean; external?: boolean };
 
@@ -15,6 +22,11 @@ const LINKS: Link[] = [
   { href: "/for-code", label: "For Code" },
   { href: "/docs", label: "Docs" },
 ];
+
+// Auth UI engages only when Clerk is configured (publishable key inlined at
+// build time). Without it nothing Clerk renders and the nav is unchanged —
+// same gating as the middleware + the ClerkProvider in layout.
+const clerkConfigured = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 export default function SiteNav() {
   const [open, setOpen] = useState(false);
@@ -143,6 +155,32 @@ export default function SiteNav() {
           >
             GitHub
           </a>
+          {clerkConfigured && (
+            <>
+              <div className="h-4 w-px bg-garl-border" />
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button className="font-mono text-xs uppercase tracking-wider text-garl-muted transition-colors hover:text-garl-accent">
+                    Sign in
+                  </button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <button className="rounded-md border border-garl-accent/40 bg-garl-accent/10 px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-garl-accent transition-colors hover:bg-garl-accent/20">
+                    Sign up
+                  </button>
+                </SignUpButton>
+              </SignedOut>
+              <SignedIn>
+                <a
+                  href="/account"
+                  className="font-mono text-xs uppercase tracking-wider text-garl-muted transition-colors hover:text-garl-accent"
+                >
+                  My Account
+                </a>
+                <UserButton afterSignOutUrl="/" />
+              </SignedIn>
+            </>
+          )}
         </nav>
 
         {/* Mobile hamburger — 44x44 tap target (Apple HIG / WCAG 2.5.5) */}
@@ -270,6 +308,34 @@ export default function SiteNav() {
                     >
                       GitHub · Open source
                     </a>
+                    {clerkConfigured && (
+                      <div className="mt-3 border-t border-garl-border pt-3">
+                        <SignedOut>
+                          <SignInButton mode="modal">
+                            <button className="mb-2 flex min-h-11 w-full items-center rounded-lg px-3 py-3 font-mono text-sm uppercase tracking-wider text-garl-text transition-colors hover:bg-garl-surface">
+                              Sign in
+                            </button>
+                          </SignInButton>
+                          <SignUpButton mode="modal">
+                            <button className="flex min-h-11 w-full items-center rounded-lg border border-garl-accent/30 bg-garl-accent/10 px-3 py-3 font-mono text-sm uppercase tracking-wider text-garl-accent">
+                              Sign up
+                            </button>
+                          </SignUpButton>
+                        </SignedOut>
+                        <SignedIn>
+                          <a
+                            href="/account"
+                            onClick={() => setOpen(false)}
+                            className="mb-2 flex min-h-11 items-center rounded-lg px-3 py-3 font-mono text-sm uppercase tracking-wider text-garl-text transition-colors hover:bg-garl-surface"
+                          >
+                            My Account
+                          </a>
+                          <div className="px-3 py-1">
+                            <UserButton afterSignOutUrl="/" />
+                          </div>
+                        </SignedIn>
+                      </div>
+                    )}
                   </nav>
 
                   <div className="shrink-0 border-t border-garl-border px-4 py-3 font-mono text-[10px] text-garl-muted/70">

@@ -2,6 +2,20 @@ import type { Metadata } from "next";
 import "./globals.css";
 import SiteNav from "@/components/SiteNav";
 import { PostHogProvider } from "./providers";
+import { ClerkProvider } from "@clerk/nextjs";
+
+// Wrap the app in ClerkProvider only when Clerk is configured (publishable key
+// present at build time). Without keys this is a no-op fragment, so the public
+// site is completely unaffected — same gating as the middleware + PostHog.
+function ClerkGate({
+  enabled,
+  children,
+}: {
+  enabled: boolean;
+  children: React.ReactNode;
+}) {
+  return enabled ? <ClerkProvider>{children}</ClerkProvider> : <>{children}</>;
+}
 
 const description =
   "Cryptographic verification for AI agent actions, starting with code. Every AI-authored action — commits, tool calls, payments, browser actions — signed with ECDSA-secp256k1 (RFC 6979 deterministic), receipted in an immutable ledger, gated by capability tokens, undoable when reversible (UETA §10(b)).";
@@ -57,6 +71,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const clerkConfigured = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   return (
     <html lang="en" className="dark">
       <head>
@@ -112,6 +127,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-garl-bg text-garl-text antialiased">
+        <ClerkGate enabled={clerkConfigured}>
         <PostHogProvider>
         <div className="flex min-h-screen flex-col">
           <SiteNav />
@@ -167,6 +183,7 @@ export default function RootLayout({
           </footer>
         </div>
         </PostHogProvider>
+        </ClerkGate>
       </body>
     </html>
   );
