@@ -176,7 +176,7 @@ function AgentOnboardingCTA() {
         <div className="grid gap-4 md:grid-cols-2">
           {/* I'm a developer */}
           <a
-            href="/docs"
+            href="/connect"
             className="group flex items-start gap-4 rounded-lg border border-garl-border bg-garl-surface p-4 transition-all hover:border-garl-accent/30 hover:bg-garl-surface/80"
           >
             <div className="mt-0.5 rounded-lg bg-garl-accent/10 p-2.5">
@@ -187,10 +187,10 @@ function AgentOnboardingCTA() {
                 I&apos;m a developer
               </div>
               <p className="text-xs leading-relaxed text-garl-muted">
-                Python &amp; JS SDKs, REST API, MCP config — integrate trust scoring into your agent stack
+                Python &amp; JS SDKs, REST API, MCP config, GitHub Action — send your agent&apos;s activity, get signed receipts
               </p>
               <span className="mt-2 inline-flex items-center gap-1 font-mono text-xs text-garl-accent transition-all group-hover:gap-2">
-                View docs <ArrowRight className="h-3 w-3" />
+                Add your agent <ArrowRight className="h-3 w-3" />
               </span>
             </div>
           </a>
@@ -297,23 +297,23 @@ export default function HomePage({
           <h1 className="mb-6 text-5xl font-bold tracking-tight sm:text-7xl">
             <span className="text-gradient">Signed receipts</span>
             <br />
-            <span className="text-garl-text">for every AI commit</span>
+            <span className="text-garl-text">for everything your AI agents do</span>
           </h1>
 
           <p className="mx-auto mb-8 max-w-2xl text-lg text-garl-muted leading-relaxed">
-            GARL signs every commit your AI assistant authors with
-            ECDSA-secp256k1 and anchors the receipt on Base mainnet.
-            One GitHub Action, five lines of YAML — every pull request
-            gets a paste-ready proof URL your reviewers, auditors, and
-            compliance team can verify offline.
+            GARL gives every action your AI agents take — code commits, tool
+            calls, API calls, payments — a signed receipt anchored on Base
+            mainnet. Connect any agent with the SDK, MCP, REST, or a 5-line
+            GitHub Action, then let anyone verify what it did offline, without
+            trusting GARL.
           </p>
 
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
-              href="/for-code"
+              href="/connect"
               className="group inline-flex items-center gap-2 rounded-lg bg-garl-accent px-6 py-3 font-mono text-sm font-semibold text-garl-bg transition-all hover:glow-green-strong"
             >
-              Start with GARL for Code
+              Add your agent
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </a>
             <a
@@ -322,6 +322,13 @@ export default function HomePage({
             >
               <Fingerprint className="h-4 w-4" />
               See a live receipt
+            </a>
+            <a
+              href="/for-code"
+              className="inline-flex items-center gap-2 rounded-lg border border-garl-border px-6 py-3 font-mono text-sm text-garl-text transition-all hover:border-garl-accent/40"
+            >
+              <Code2 className="h-4 w-4" />
+              GARL for Code
             </a>
           </div>
 
@@ -417,6 +424,53 @@ export default function HomePage({
             </pre>
           </div>
         </motion.div>
+      </section>
+
+      {/* What you get */}
+      <section className="border-t border-garl-border py-20">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="mb-12 text-center">
+            <h2 className="mb-3 font-mono text-2xl font-bold text-garl-text">
+              What you get
+            </h2>
+            <p className="mx-auto max-w-xl text-garl-muted">
+              Connect an agent once. See what it does, catch what goes wrong,
+              and hold proof anyone can check.
+            </p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {[
+              {
+                icon: Activity,
+                title: "See every action",
+                desc: "A live feed of everything your agent does — task, status, latency, token cost — on a public profile you control.",
+              },
+              {
+                icon: AlertTriangle,
+                title: "Catch anomalies & cost",
+                desc: "Automatic flags for unexpected failures, latency spikes, and cost spikes, so a misbehaving agent surfaces fast.",
+              },
+              {
+                icon: Fingerprint,
+                title: "Prove it independently",
+                desc: "Every record is ECDSA-signed and anchored on Base. Reviewers, auditors, and customers verify it offline — no trust in GARL.",
+              },
+            ].map((f) => (
+              <div
+                key={f.title}
+                className="rounded-xl border border-garl-border bg-garl-surface p-6 transition-all hover:border-garl-accent/20"
+              >
+                <f.icon className="mb-4 h-8 w-8 text-garl-accent" />
+                <h3 className="mb-2 font-mono text-lg font-semibold text-garl-text">
+                  {f.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-garl-muted">
+                  {f.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Live Stats */}

@@ -9,11 +9,11 @@ import { Menu, X } from "lucide-react";
 type Link = { href: string; label: string; accent?: boolean; external?: boolean };
 
 const LINKS: Link[] = [
-  { href: "/for-code", label: "For Code", accent: true },
+  { href: "/connect", label: "Add Agent", accent: true },
+  { href: "/registry", label: "Registry" },
   { href: "/verify", label: "Verify" },
+  { href: "/for-code", label: "For Code" },
   { href: "/docs", label: "Docs" },
-  { href: "/compliance", label: "Compliance" },
-  { href: "mailto:contact@garl.ai", label: "Contact", external: true },
 ];
 
 export default function SiteNav() {
