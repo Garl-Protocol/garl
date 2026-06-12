@@ -2,6 +2,11 @@ import { currentUser } from "@clerk/nextjs/server";
 import { SignInButton, UserButton } from "@clerk/nextjs";
 import { ArrowRight } from "lucide-react";
 
+// Must render per-request: it reads the Clerk session (currentUser) and a
+// runtime-only secret (CLERK_SECRET_KEY isn't a build-time value on Railway),
+// so it must never be statically prerendered with a stale build-time gate.
+export const dynamic = "force-dynamic";
+
 // Gated: only touch Clerk when configured. Without keys this renders a neutral
 // placeholder and never calls Clerk, so the route is safe on a keyless deploy.
 const clerkConfigured =
