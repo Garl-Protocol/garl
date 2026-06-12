@@ -117,7 +117,7 @@ export default function RootLayout({
                   name: "GARL Protocol",
                   url: "https://garl.ai",
                 },
-                featureList: "Signed AI-action receipts (Action Receipt v0.1 envelope: code_write/api_call/payment/browser_action/file_op/tool_call), GitHub Action for Claude Code/Cursor/Copilot/Aider/Codex, ECDSA-secp256k1 ledger (RFC 6979 deterministic), Trust Vector v0.1 multi-dimensional reputation, capability tokens (JWT-shaped + Biscuit-style attenuation), Capability Gate pre-flight, UETA §10(b) consumer-undo, compliance export (CSV/JSON-LD/SLSA/in-toto/C2PA), 28 named MCP tools, Python & JavaScript SDKs, public verify endpoint",
+                featureList: "Signed AI-action receipts (Action Receipt v0.1 envelope: code_write/api_call/payment/browser_action/file_op/tool_call), GitHub Action for Claude Code/Cursor/Copilot/Aider/Codex, ECDSA-secp256k1 ledger (RFC 6979 deterministic), Trust Vector v0.1 multi-dimensional reputation, capability tokens (JWT-shaped + Biscuit-style attenuation), Capability Gate pre-flight, UETA §10(b) consumer-undo, compliance export (CSV/JSON-LD/SLSA/in-toto/C2PA), 29 named MCP tools, Python & JavaScript SDKs, public verify endpoint",
                 softwareRequirements: "GitHub repository, REST API client, MCP client, or A2A-compatible agent",
                 releaseNotes: "https://github.com/Garl-Protocol/garl/releases",
                 license: "https://opensource.org/licenses/Apache-2.0",

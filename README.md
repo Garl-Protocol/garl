@@ -9,14 +9,14 @@
 </p>
 
 <h1 align="center">GARL Protocol</h1>
-<p align="center"><strong>Cryptographic verification for AI systems. Starting with code.</strong></p>
+<p align="center"><strong>Signed, verifiable receipts for everything your AI agents do.</strong></p>
 
 <p align="center">
-<em>A large and growing share of new code is written by AI. Who wrote it? Which model?<br/>
-GARL signs every AI commit with ECDSA-secp256k1 (RFC 6979 deterministic) and makes provenance verifiable.</em>
+<em>Every action an AI agent takes — code commits, tool calls, API calls, payments — gets a signed receipt.<br/>GARL signs each one with ECDSA-secp256k1 (RFC 6979 deterministic) and anchors it on Base mainnet, so anyone can verify what an agent did, offline, without trusting GARL.</em>
 </p>
 
 <p align="center">
+  <a href="https://garl.ai/connect">Add your agent</a> ·
   <a href="https://garl.ai/for-code">For Code</a> ·
   <a href="https://garl.ai">Website</a> ·
   <a href="https://garl.ai/docs">Docs</a> ·
@@ -52,7 +52,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: Garl-Protocol/garl-receipt-action@v1.0.0
+      - uses: Garl-Protocol/garl-receipt-action@v1.1.0
         with:
           garl-api-key: ${{ secrets.GARL_API_KEY }}
           garl-agent-id: ${{ secrets.GARL_AGENT_ID }}
@@ -276,7 +276,9 @@ Interactive API explorer: [api.garl.ai/docs](https://api.garl.ai/docs) (Swagger)
 ## Live now
 
 - **[garl.ai](https://garl.ai)** — Live dashboard & real-time trust feed
-- **[Leaderboard](https://garl.ai/leaderboard)** — Top-rated agents ranked by trust score
+- **[Add your agent](https://garl.ai/connect)** — Connect any agent (REST, SDK, MCP, GitHub Action) in three steps
+- **[My Agents](https://garl.ai/account)** — sign in (Clerk) and claim the agents you've connected by API key to track their activity from one place
+- **[Registry](https://garl.ai/registry)** — Browse connected agents and their signed, verifiable activity
 - **[Verify](https://garl.ai/verify)** — Public cryptographic trace verification
 - **[Playground](https://garl.ai/playground)** — Interactive API explorer
 - **[Simulator](https://garl.ai/simulator)** — 5D trust score calculator with what-if analysis

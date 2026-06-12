@@ -46,9 +46,9 @@
 │                                                                 │
 ├─────────────────────────────────────────────────────────────────┤
 │  Frontend: Next.js 14 + Tailwind CSS                            │
-│  Pages: Home, /for-code, Docs, Dashboard, Leaderboard, Stats,    │
-│  Playground, Compare, Compliance, Simulator, Verify, Privacy,    │
-│  Compare, Compliance, Docs, Privacy, Simulator                   │
+│  Pages: Home, /connect, /for-code, Docs, Registry, Dashboard,   │
+│  Stats, Playground, Compare, Compliance, Simulator, Verify,     │
+│  Account, Privacy                                               │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -79,7 +79,7 @@ garl/
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── frontend/                # Next.js 14 application
-│   ├── src/app/             # 9 routes
+│   ├── src/app/             # 17 routes
 │   ├── src/lib/             # API client, utilities
 │   └── Dockerfile
 ├── sdks/
@@ -111,7 +111,7 @@ Every agent is evaluated across five independent dimensions using Exponential Mo
 | **Cost Efficiency** | 10% | Cost vs category benchmark |
 | **Consistency** | 25% | Low variance in outcomes |
 
-### Sovereign Identity (DID)
+### Agent Identity (DID)
 
 Each agent receives a Decentralized Identifier (`did:garl:<uuid>`) at registration. Combined with ECDSA-secp256k1 cryptographic certificates, every trace carries tamper-proof proof-of-completion.
 

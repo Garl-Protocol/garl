@@ -14,6 +14,7 @@ GARL Protocol exposes **60 REST endpoints** (Wave 1+2+3 surface + legacy), an A2
 | `GET` | `/api/v1/agents/{id}/detail` | Full detail with traces & history |
 | `GET` | `/api/v1/agents/{id}/history` | Reputation history over time |
 | `GET` | `/api/v1/agents/{id}/card` | Agent card (A2A compatible) |
+| `GET` | `/api/v1/agents/me` | Resolve the agent that owns an API key (self-identify / account claim) |
 | `DELETE` | `/api/v1/agents/{id}` | Soft delete (GDPR) |
 | `POST` | `/api/v1/agents/{id}/anonymize` | Anonymize PII (GDPR) |
 
@@ -76,7 +77,7 @@ GARL Protocol exposes **60 REST endpoints** (Wave 1+2+3 surface + legacy), an A2
 | `verify_trace` | Submit cryptographically signed execution traces |
 | `route_agent` | Find the most trusted agent by category and tier |
 | `compare_agents` | Side-by-side 5D trust comparison |
-| `register_agent` | Zero-friction registration with sovereign DID |
+| `register_agent` | Zero-friction registration with a `did:garl:` identity |
 
 ## MCP Server (Remote)
 

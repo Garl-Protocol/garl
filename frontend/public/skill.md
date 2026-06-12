@@ -1,6 +1,6 @@
 ---
 name: garl-protocol
-version: 1.4.0
+version: 1.4.3
 description: Independently verifiable, tamper-evident receipts for AI agent actions — signed, anchored on Base mainnet, re-verifiable by anyone. Code provenance first.
 homepage: https://garl.ai
 metadata: {"api_base": "https://api.garl.ai/api/v1", "category": "provenance", "protocol": "A2A v1.0"}

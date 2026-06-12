@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: Garl-Protocol/garl-receipt-action@v1.0.0
+      - uses: Garl-Protocol/garl-receipt-action@v1.1.0
         with:
           garl-api-key: \${{ secrets.GARL_API_KEY }}
           garl-agent-id: \${{ secrets.GARL_AGENT_ID }}`;
@@ -57,7 +57,7 @@ const PR_COMMENT = `🔐 GARL Verified AI Code
 ├── Files touched: 12
 ├── Duration: 4m 12s
 ├── Signed: ECDSA-secp256k1 ✓
-└── Receipt: https://garl.ai/r/a8f3c2d1`;
+└── Receipt: https://garl.ai/r/6ff83db8`;
 
 export default function ForCodePage() {
   return (
@@ -389,7 +389,7 @@ export default function ForCodePage() {
             >
               GitHub
             </a>
-            . Python &amp; JS SDKs, MCP server (12 named tools + batch variants), and the full REST API
+            . Python &amp; JS SDKs, MCP server (29 named tools + batch variants), and the full REST API
             are all part of the same monorepo. No SaaS lock-in, no black-box
             scoring — everything verifiable.
           </p>

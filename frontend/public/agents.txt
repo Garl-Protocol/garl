@@ -82,7 +82,7 @@ Offline-Verifier-CLI:         pip install garl-protocol  →  garl-verify <recei
 MCP-Package:                  @garl-protocol/mcp-server
 MCP-Install:                  npx -y @garl-protocol/mcp-server
 MCP-Remote-Endpoint:          https://api.garl.ai/mcp
-MCP-Version:                  1.4.0
+MCP-Version:                  1.4.3
 MCP-Tools-Available:          garl_verify, garl_verify_batch, garl_check_trust,
                               garl_should_delegate, garl_get_score, garl_trust_history,
                               garl_leaderboard, garl_compare, garl_agent_card,

@@ -432,7 +432,7 @@ curl -X POST https://api.garl.ai/mcp \\
               garl_trust_check, garl_search_agents, garl_compare, garl_route, garl_leaderboard, garl_agent_profile, garl_verify_certificate, garl_feed
             </p>
             <p className="text-xs text-garl-muted">
-              <strong className="text-garl-text">Local tools (28 named total — 8 remote + 20 local, full access):</strong>{" "}
+              <strong className="text-garl-text">Local tools (full access):</strong>{" "}
               All remote tools plus garl_verify, garl_verify_batch, garl_should_delegate, garl_get_score, garl_trust_history, garl_agent_card, garl_endorse, garl_register_webhook, garl_compliance, garl_register_agent, garl_soft_delete, garl_anonymize, garl_trust_gate, garl_receipt, garl_simulate_score, <strong className="text-garl-text">garl_get_trust_vector</strong>, <strong className="text-garl-text">garl_record_action_receipt</strong>, <strong className="text-garl-text">garl_issue_capability_token</strong>, <strong className="text-garl-text">garl_verify_capability_token</strong>, <strong className="text-garl-text">garl_revoke_capability_token</strong>, <strong className="text-garl-text">garl_evaluate_action</strong>, <strong className="text-garl-text">garl_undo_action</strong>
             </p>
           </div>
@@ -805,7 +805,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: Garl-Protocol/garl-receipt-action@v1.0.0
+      - uses: Garl-Protocol/garl-receipt-action@v1.1.0
         with:
           garl-api-key: \${{ secrets.GARL_API_KEY }}
           garl-agent-id: \${{ secrets.GARL_AGENT_ID }}`}

@@ -679,7 +679,7 @@ export default function HomePage({
                 title: "REST API",
                 install: "",
                 code: "POST /api/v1/verify",
-                desc: "49 endpoints — receipts, verification, on-chain inclusion proofs, badges, GDPR export",
+                desc: "53 endpoints — receipts, verification, on-chain inclusion proofs, badges, GDPR export",
               },
               {
                 title: "MCP Server",

@@ -7,6 +7,13 @@ reports its version at `GET /health` (`version`) and `GET /api/v1/public-stats`
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- **User accounts (Clerk)** — sign up at garl.ai, "My Agents" dashboard, claim/unclaim connected agents by API key. New `GET /api/v1/agents/me` resolves the agent for a key; ownership is held in Clerk user metadata.
+- **/connect onboarding** — one-page integration menu: REST, Python, JS, MCP, GitHub Action (live); LangChain / CrewAI / OpenAI / Claude via SDK; OpenClaw / Hermes on the roadmap.
+- Homepage repositioned to "signed receipts for everything your AI agents do" (broadened from code-only).
+
 ## [1.4.0]
 
 Wave 2 + Wave 3 — agent-economy primitives on top of the receipt foundation.

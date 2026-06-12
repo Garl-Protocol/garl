@@ -29,7 +29,7 @@ Base L2:
 - Anchor: ~$0.001 per `anchor()` call.
 - Weekly anchoring: ~$1-3/year ongoing.
 
-5–20× cheaper than the strategy doc's earlier $50–100/year estimate.
+5–20× cheaper than an earlier $50–100/year estimate.
 
 ## Setup
 
