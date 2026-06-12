@@ -1,6 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { SignInButton, UserButton } from "@clerk/nextjs";
 import { ArrowRight } from "lucide-react";
+import MyAgentsDashboard from "./MyAgentsDashboard";
 
 // Must render per-request: it reads the Clerk session (currentUser) and a
 // runtime-only secret (CLERK_SECRET_KEY isn't a build-time value on Railway),
@@ -67,34 +68,17 @@ export default async function AccountPage() {
     user.primaryEmailAddress?.emailAddress ?? user.username ?? "your account";
 
   return (
-    <Shell>
+    <div className="mx-auto max-w-3xl px-4 py-16">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="font-mono text-xl font-bold text-garl-text">
-            My Account
+            My Agents
           </h1>
           <p className="mt-1 font-mono text-xs text-garl-muted">{email}</p>
         </div>
         <UserButton afterSignOutUrl="/" />
       </div>
-
-      <div className="rounded-lg border border-garl-accent/20 bg-garl-accent/[0.03] p-5">
-        <h2 className="mb-1.5 font-mono text-sm font-semibold text-garl-text">
-          Link your agents — coming next
-        </h2>
-        <p className="text-xs leading-relaxed text-garl-muted">
-          You&apos;ll soon claim the agents you&apos;ve connected (with their API
-          key) to see all of their activity, anomaly flags, and token cost from
-          this account. For now, every connected agent has a public profile at{" "}
-          <code className="text-garl-accent">/agent/&lt;id&gt;</code>.
-        </p>
-        <a
-          href="/connect"
-          className="mt-3 inline-flex items-center gap-1 font-mono text-xs text-garl-accent transition-all hover:gap-2"
-        >
-          Add your agent <ArrowRight className="h-3 w-3" />
-        </a>
-      </div>
-    </Shell>
+      <MyAgentsDashboard />
+    </div>
   );
 }

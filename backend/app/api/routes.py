@@ -31,6 +31,7 @@ from app.models.schemas import (
 from app.services.agents import (
     register_agent,
     get_agent,
+    get_agent_by_api_key,
     get_agent_detail,
     get_leaderboard,
     get_recent_traces,
@@ -381,6 +382,20 @@ _PUBLIC_AGENT_FIELDS = (
     "last_trace_at",
     "created_at",
 )
+
+
+@router.get("/agents/me", summary="Resolve the agent for an API key", tags=["Agents"])
+async def read_own_agent(x_api_key: str | None = Header(default=None)):
+    """Return the agent that owns the supplied x-api-key (public projection).
+
+    Used for agent self-identification and for claiming an agent to a user
+    account. 401 if no key is supplied, 403 if the key matches no agent."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="API key required. Set the x-api-key header.")
+    agent = get_agent_by_api_key(x_api_key)
+    if not agent:
+        raise HTTPException(status_code=403, detail="No agent matches this API key.")
+    return agent
 
 
 @router.get("/agents/{agent_id}", summary="Get agent by ID", tags=["Agents"])

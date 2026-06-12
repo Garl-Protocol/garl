@@ -185,6 +185,27 @@ def get_agent(agent_id: str) -> dict | None:
     return agent
 
 
+def get_agent_by_api_key(api_key: str) -> dict | None:
+    """Resolve the agent that owns this API key (for self-identification and for
+    claiming an agent to a user account). Returns the same public projection as
+    get_agent, or None if the key matches no live agent. The key is never logged."""
+    if not api_key:
+        return None
+    key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+    db = get_supabase()
+    res = (
+        db.table("agents")
+        .select("id")
+        .eq("api_key_hash", key_hash)
+        .eq("is_deleted", False)
+        .limit(1)
+        .execute()
+    )
+    if not res.data:
+        return None
+    return get_agent(res.data[0]["id"])
+
+
 _SAFE_TRACE_META_KEYS = {
     "github_repo", "commit_sha", "ai_tool", "ai_confidence", "files_changed",
     "model", "runtime_env",
