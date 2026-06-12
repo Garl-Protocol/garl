@@ -41,6 +41,10 @@ htmlcov/
 *.swo
 *~
 
+# Agent skills / tooling (local dev, added by `npx skills add`)
+.agents/
+skills-lock.json
+
 # OS files
 .DS_Store
 Thumbs.db
