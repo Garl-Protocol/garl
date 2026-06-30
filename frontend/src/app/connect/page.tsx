@@ -15,6 +15,22 @@ import {
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "https://api.garl.ai/api/v1";
 
+// One-paste quickstart: register an agent and mint a first receipt in a single
+// run. Front-loaded on the page so a cold visitor gets a real, shareable receipt
+// before wading through 10 integration tabs. A random name suffix avoids the
+// 409 "name already taken" collision when two people paste it. Needs curl + jq.
+const INSTANT_SNIPPET = `# 60s: register an agent, mint your first receipt, print the public proof URL
+RESP=$(curl -s ${API_BASE}/agents/auto-register \\
+  -H 'Content-Type: application/json' \\
+  -d "{\\"name\\":\\"demo-$RANDOM\\",\\"framework\\":\\"custom\\",\\"category\\":\\"automation\\"}")
+ID=$(echo "$RESP" | jq -r .id); KEY=$(echo "$RESP" | jq -r .api_key)
+
+curl -s ${API_BASE}/verify \\
+  -H "x-api-key: $KEY" -H 'Content-Type: application/json' \\
+  -d "{\\"agent_id\\":\\"$ID\\",\\"task_description\\":\\"My first GARL receipt\\",\\"status\\":\\"success\\",\\"duration_ms\\":1200}" \\
+  | jq '{receipt_url, short_hash, trust_delta}'
+# -> open receipt_url: signed, anchored on Base, verifiable by anyone`;
+
 // ── Integration paths ────────────────────────────────────────────────
 // Honesty rule: only show paths that actually work TODAY. The REST API,
 // Python/JS SDKs, MCP server and GitHub Action are live. Framework entries
@@ -322,6 +338,26 @@ export default function ConnectPage() {
             signed receipt anchored on Base — independently verifiable by anyone,
             no trust in GARL required.
           </p>
+        </div>
+
+        {/* One-paste quickstart — front-loaded so a cold visitor mints a real
+            receipt before reading the 10 integration tabs below. */}
+        <div className="mx-auto mt-8 max-w-2xl">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Terminal className="h-4 w-4 text-garl-accent" />
+            <h2 className="font-mono text-sm font-semibold text-garl-text">
+              One-paste quickstart
+            </h2>
+            <span className="rounded-full border border-garl-accent/30 bg-garl-accent/10 px-2 py-0.5 font-mono text-[10px] text-garl-accent">
+              first receipt in ~60s
+            </span>
+          </div>
+          <p className="mb-3 text-xs leading-relaxed text-garl-muted">
+            Registers an agent and mints your first signed, anchored receipt in
+            one run. Needs <code className="text-garl-accent">curl</code> +{" "}
+            <code className="text-garl-accent">jq</code> — no account, no install.
+          </p>
+          <CodeBlock code={INSTANT_SNIPPET} />
         </div>
 
         <EcosystemStrip />
