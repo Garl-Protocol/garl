@@ -13,6 +13,7 @@ The legacy `traces` table stays the home for git-commit flavored traces
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -81,12 +82,15 @@ def _validate_input(req: dict) -> None:
             raise ActionReceiptValidationError("capability_token_hash must be 64 hex chars")
 
 
-def submit_action_receipt(req: dict) -> dict:
+def submit_action_receipt(req: dict, *, enforce_cap: bool = True) -> dict:
     """Submit a v0.1 Action Receipt.
 
     Required fields per the spec; optional fields are accepted and stored.
     Returns the canonical envelope (with signature + verification_key_id)
     as it will appear at /api/v1/receipts/{id}/cert.json.
+
+    ``enforce_cap`` is False only for the trace-mirror dual-write, where the
+    originating trace has already passed the per-agent monthly cap.
     """
     _validate_input(req)
 
@@ -95,8 +99,9 @@ def submit_action_receipt(req: dict) -> dict:
     # Silent abuse guard: per-agent monthly cap. Raises 429 with
     # Retry-After if exceeded. The cap is high enough (10K/month default)
     # that legitimate workflows never see this.
-    from app.services.monthly_cap import enforce_monthly_cap
-    enforce_monthly_cap(agent_id)
+    if enforce_cap:
+        from app.services.monthly_cap import enforce_monthly_cap
+        enforce_monthly_cap(agent_id)
 
     # The envelope is what we sign; the DB row mirrors it for indexing.
     envelope: dict[str, Any] = {
@@ -167,6 +172,92 @@ def submit_action_receipt(req: dict) -> dict:
     except Exception:
         pass
     return envelope
+
+
+# --- Trace -> Action Receipt v0.1 mirror (dual-write) --------------------- #
+# The legacy `traces` table drives the public profile / trust / feed, but is
+# never anchored on-chain. To make the differentiated receipt + Merkle-anchor
+# + /proof rail real for EVERY verified action (not just native /receipts
+# submits), the trace-submit path mirrors each trace here. output_hash is set
+# to the trace's trace_hash so both ledgers resolve to the same short hash —
+# that is what lights up the v0.1 enrichment card + on-chain proof on
+# /r/{short} with zero frontend changes.
+
+# category (legacy trace vocab) -> action_type / side_effect (v0.1 vocab).
+_CATEGORY_ACTION_TYPE = {"coding": "code_write"}          # else -> tool_call
+_CATEGORY_SIDE_EFFECT = {                                  # else -> none
+    "coding": "reversible",
+    "automation": "reversible",
+    "data": "reversible",
+}
+_RUNTIME_HINTS = (
+    ("claude", "claude-code"), ("cursor", "cursor"), ("copilot", "copilot"),
+    ("aider", "aider"), ("codex", "codex"), ("crew", "crewai"),
+    ("langchain", "langchain"), ("llamaindex", "llamaindex"),
+)
+
+
+def _runtime_for(runtime_env: str) -> str:
+    e = (runtime_env or "").lower()
+    for needle, rt in _RUNTIME_HINTS:
+        if needle in e:
+            return rt
+    return "custom"
+
+
+def _protocol_for(runtime_env: str) -> str:
+    e = (runtime_env or "").lower()
+    if "github" in e:
+        return "github"
+    if "mcp" in e:
+        return "mcp"
+    return "raw-http"
+
+
+def mint_receipt_for_trace(trace: dict) -> dict | None:
+    """Best-effort mirror of a legacy trace onto the Action Receipt v0.1 rail.
+
+    Called from submit_trace() after the trace is durably persisted. NEVER
+    raises — a receipt-rail hiccup must not affect an already-recorded trace.
+    Idempotent (one receipt per trace_hash). Returns the envelope or None.
+    """
+    try:
+        agent_id = trace.get("agent_id")
+        trace_hash = (trace.get("trace_hash") or "").lower()
+        if not agent_id or len(trace_hash) != 64:
+            return None
+
+        sb = _get_supabase()
+        existing = (
+            sb.table("receipts").select("receipt_id")
+            .eq("output_hash", trace_hash).limit(1).execute()
+        )
+        if existing.data:
+            return None  # already mirrored
+
+        category = (trace.get("category") or "other").lower()
+        runtime_env = trace.get("runtime_env") or ""
+        req = {
+            "agent_id": agent_id,
+            "runtime": _runtime_for(runtime_env),
+            "protocol": _protocol_for(runtime_env),
+            "action_type": _CATEGORY_ACTION_TYPE.get(category, "tool_call"),
+            # input_hash is a deterministic pre-state identity; output_hash IS
+            # the trace_hash so the two ledgers link on the same short prefix.
+            "input_hash": hashlib.sha256(
+                f"garl-trace-input:{agent_id}:{trace.get('id', '')}".encode()
+            ).hexdigest(),
+            "output_hash": trace_hash,
+            "side_effect": _CATEGORY_SIDE_EFFECT.get(category, "none"),
+            "attestations": [f"garl-trace:{trace.get('id', '')}"],
+        }
+        return submit_action_receipt(req, enforce_cap=False)
+    except Exception:
+        logger.warning(
+            "mint_receipt_for_trace skipped (trace_hash=%s)",
+            (trace.get("trace_hash") or "")[:12],
+        )
+        return None
 
 
 def get_action_receipt(receipt_id: str) -> dict | None:

@@ -404,6 +404,23 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
             "timestamp": now,
         })
 
+    # Dual-write: mirror this verified trace onto the Action Receipt v0.1 rail
+    # so every action also gets a signed, on-chain-anchorable receipt (feeds the
+    # Merkle anchor + /proof). The trace is already durably persisted above, so
+    # this is strictly best-effort and must never affect the trace response
+    # (mint_receipt_for_trace already swallows errors; wrapped again for safety).
+    try:
+        from app.services.action_receipts import mint_receipt_for_trace
+        mint_receipt_for_trace({
+            "agent_id": req.agent_id,
+            "trace_hash": trace_hash,
+            "id": trace_id,
+            "category": req.category.value,
+            "runtime_env": req.runtime_env,
+        })
+    except Exception:
+        pass
+
     from app.core.config import get_settings
     short = trace_hash[:8]
     frontend = get_settings().public_frontend_url.rstrip("/")
