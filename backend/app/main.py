@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from app.core.config import get_settings
+from app.core.errors import is_transient_upstream_error, bounded_error_text
 from app.api.routes import router
 from app.api.a2a import a2a_router
 from app.api.mcp import mcp_router
@@ -127,6 +128,27 @@ async def _unhandled_exception_handler(request: Request, exc: Exception):
     # Never leak exception repr to the client. Log full details server-side with
     # a correlation id the caller can quote when reporting an incident.
     correlation_id = str(_uuid.uuid4())
+    if is_transient_upstream_error(exc):
+        # Transient DB/CDN blip (e.g. a Supabase 522). Log ONE bounded line —
+        # the raw error can embed a multi-KB HTML body that otherwise floods the
+        # log pipeline and trips the platform log-rate limit — and return a
+        # retriable 503 instead of a misleading 500.
+        _log.warning(
+            "transient_upstream_error correlation_id=%s path=%s method=%s type=%s detail=%s",
+            correlation_id,
+            request.url.path,
+            request.method,
+            type(exc).__name__,
+            bounded_error_text(exc),
+        )
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": "Service temporarily unavailable, please retry.",
+                "correlation_id": correlation_id,
+            },
+            headers={"Retry-After": "5"},
+        )
     _log.exception(
         "unhandled_exception correlation_id=%s path=%s method=%s",
         correlation_id,

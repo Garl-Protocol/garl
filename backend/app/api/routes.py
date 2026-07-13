@@ -5,6 +5,7 @@ import hmac
 import hashlib
 import threading
 import contextvars
+import logging
 from collections import defaultdict
 from html import escape as html_escape
 
@@ -66,6 +67,8 @@ from app.core.signing import (
 from app.core.cache import cache_get, cache_set
 
 router = APIRouter(prefix="/api/v1", tags=["GARL Protocol"])
+
+_log = logging.getLogger("garl")
 
 
 def _validate_uuid(value: str, name: str = "ID"):
@@ -1405,11 +1408,22 @@ async def public_verify_trace(trace_hash: str, request: Request, response: Respo
 
     is_valid = bool(has_original and verify_signature(certificate))
 
-    # Enrich with agent summary for receipt cards / OG rendering
-    agent_row = db.table("agents").select(
-        "name,framework,certification_tier,trust_score"
-    ).eq("id", trace["agent_id"]).limit(1).execute()
-    agent = (agent_row.data or [{}])[0]
+    # Enrich with agent summary for receipt cards / OG rendering. This is
+    # decorative: a transient DB blip here must not fail an already-resolved,
+    # already-verified receipt (2026-07-07: a Supabase 522 on this very lookup
+    # 500'd the whole endpoint and flooded logs). Degrade to no summary instead.
+    try:
+        agent_row = db.table("agents").select(
+            "name,framework,certification_tier,trust_score"
+        ).eq("id", trace["agent_id"]).limit(1).execute()
+        agent = (agent_row.data or [{}])[0]
+    except Exception as exc:  # noqa: BLE001 — best-effort enrichment
+        _log.warning(
+            "verify_agent_enrichment_failed trace=%s type=%s",
+            (full_hash or hash_input)[:12],
+            type(exc).__name__,
+        )
+        agent = {}
 
     frontend_url = get_settings().public_frontend_url.rstrip("/")
     short = full_hash[:8] if full_hash else hash_input[:8]
