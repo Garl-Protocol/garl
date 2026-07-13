@@ -12,7 +12,6 @@ import {
   Lock,
   BarChart3,
   GitCompare,
-  AlertTriangle,
   Fingerprint,
   Bell,
   Search,
@@ -434,26 +433,21 @@ export default function HomePage({
               What you get
             </h2>
             <p className="mx-auto max-w-xl text-garl-muted">
-              Connect an agent once. See what it does, catch what goes wrong,
-              and hold proof anyone can check.
+              Connect an agent once. See what it does, and hold proof anyone
+              can check.
             </p>
           </div>
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
             {[
-              {
-                icon: Activity,
-                title: "See every action",
-                desc: "A live feed of everything your agent does — task, status, latency, token cost — on a public profile you control.",
-              },
-              {
-                icon: AlertTriangle,
-                title: "Catch anomalies & cost",
-                desc: "Automatic flags for unexpected failures, latency spikes, and cost spikes, so a misbehaving agent surfaces fast.",
-              },
               {
                 icon: Fingerprint,
                 title: "Prove it independently",
                 desc: "Every record is ECDSA-signed and anchored on Base. Reviewers, auditors, and customers verify it offline — no trust in GARL.",
+              },
+              {
+                icon: Activity,
+                title: "See every action",
+                desc: "A live feed of everything your agent does — task, status, latency, token cost — on a public profile you control.",
               },
             ].map((f) => (
               <div
