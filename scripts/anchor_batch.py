@@ -73,19 +73,36 @@ def main() -> int:
     if status not in ("0x1", "1", 1):
         sys.exit(f"anchor tx reverted: {tx_hash} status={status}")
 
-    # Capture the batchId the contract actually assigned. anchor() increments
-    # nextBatchId, so the just-anchored id is nextBatchId-1. Safe to read here
-    # because the workflow's concurrency group serializes anchor runs.
+    # Capture the batchId the contract actually assigned, from the Anchored
+    # event in THIS tx's logs — race-free by construction. (Reading
+    # nextBatchId()-1 after the send, as this script originally did, can
+    # return a stale value from a lagging RPC node: batch 3 was recorded as
+    # onchain id 2 that way on 2026-08-03, which would have made its proofs
+    # verify against the wrong root.)
     onchain_batch_id = None
-    nb = subprocess.run(
-        ["cast", "call", contract, "nextBatchId()(uint256)", "--rpc-url", rpc],
-        capture_output=True, text=True,
-    )
-    if nb.returncode == 0:
-        try:
-            onchain_batch_id = int(nb.stdout.strip().split()[0]) - 1
-        except (ValueError, IndexError):
-            onchain_batch_id = None
+    for log_entry in receipt.get("logs", []):
+        topics = log_entry.get("topics") or []
+        # Anchored(uint256 indexed batchId, bytes32 indexed root, ...):
+        # topics[1] = batchId, topics[2] = root. Identify the right event by
+        # matching our known root rather than the (keccak) event selector.
+        if len(topics) >= 3 and topics[2].lower().removeprefix("0x") == root.lower():
+            try:
+                onchain_batch_id = int(topics[1], 16)
+            except ValueError:
+                onchain_batch_id = None
+            break
+    if onchain_batch_id is None:
+        # Fallback: nextBatchId-1 via the same RPC (may lag; log loudly).
+        nb = subprocess.run(
+            ["cast", "call", contract, "nextBatchId()(uint256)", "--rpc-url", rpc],
+            capture_output=True, text=True,
+        )
+        if nb.returncode == 0:
+            try:
+                onchain_batch_id = int(nb.stdout.strip().split()[0]) - 1
+                print(f"WARNING: batchId from nextBatchId fallback ({onchain_batch_id}) — verify against the Anchored event on Basescan.")
+            except (ValueError, IndexError):
+                onchain_batch_id = None
 
     record_anchor_tx(
         batch_id=batch_id, chain_id=chain_id, tx_hash=tx_hash,
