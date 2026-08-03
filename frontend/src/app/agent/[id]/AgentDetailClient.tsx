@@ -300,6 +300,17 @@ export default function AgentDetailClient() {
               </div>
               <div className="mt-1 font-mono text-xs text-garl-muted">Traces</div>
             </div>
+            {(agent as any).evidence && (
+              <div>
+                <div className="font-mono text-3xl font-bold text-garl-text">
+                  {(agent as any).evidence.attested_traces}
+                  <span className="text-lg text-garl-muted">/{(agent as any).evidence.total_traces}</span>
+                </div>
+                <div className="mt-1 font-mono text-xs text-garl-muted">
+                  {(agent as any).evidence.self_reported_only ? "Attested (self-reported only)" : "Attested"}
+                </div>
+              </div>
+            )}
             {(agent.total_cost_usd ?? 0) > 0 && (
               <div>
                 <div className="font-mono text-3xl font-bold text-garl-blue">

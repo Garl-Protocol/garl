@@ -36,6 +36,14 @@ consumer pick the ones it needs.
     "verified_receipt_count":         <int>,
     "third_party_attestation_count":  <int>
   },
+  "evidence": {
+    "total_traces":         <int>,
+    "attested_traces":      <int>,
+    "attested_ratio":       <float 0..1>,
+    "qualified_endorsements": <int>,
+    "self_reported_only":   <bool>,
+    "effective_max_score":  <float 50..100>
+  },
   "legacy_composite": {
     "trust_score":         <float 0..100>,
     "certification_tier":  "bronze" | "silver" | "gold" | "enterprise"
@@ -47,7 +55,8 @@ consumer pick the ones it needs.
 
 ### `agent_identity_assurance`
 How verified is the identity itself? Blends:
-- Endorsement count (capped at 10).
+- Qualified endorsement count (bonus > 0 only; capped at 10). Raw
+  endorsement count is farmable and does not feed this dimension (§4a).
 - Agent age (asymptotic; saturates around 90 days).
 - Activity (total receipts; saturates at 100).
 
@@ -88,10 +97,78 @@ two years ago.
 | Field | Meaning |
 |---|---|
 | `verified_receipt_count` | Total signed receipts the agent has ever produced. Authoritative. |
-| `third_party_attestation_count` | Endorsements from other agents + external attestations. |
+| `third_party_attestation_count` | Qualified endorsements from other agents (bonus > 0) + receipts whose external attestation was re-verified (witnessed) by the backend. |
 
 These are reported raw because consumers want them raw — a scaled
 "endorsement quality score" hides the cardinality.
+
+**Semantics note (fixed 2026-08-04):** `third_party_attestation_count`
+previously projected the raw `endorsement_count`, which (a) omitted
+external attestations entirely and (b) counted zero-weight endorsements —
+exactly the farmable signal §4 was written to exclude. It is now
+`attested_trace_count + qualified_endorsement_count`. Raw endorsement
+cardinality remains available on the agent profile as `endorsement_count`.
+
+## 4a. Self-reported vs attested evidence
+
+**A bare self-reported receipt can never move an agent above neutral.**
+GARL receipts are signed and tamper-evident, but the *content* of an
+unattested receipt is still whatever the agent's operator chose to submit.
+Reputation registries that weight self-reports like independent evidence
+get farmed — ERC-8004's reputation registry saw a single client produce
+65.8% of all feedback. GARL therefore separates two classes of evidence:
+
+- **Self-reported:** a signed trace with no verified external
+  corroboration. Moves the score freely *downward* (failures, security
+  penalties, anomalies always count) but can lift the composite at most to
+  the neutral baseline **50.0**.
+- **Attested:** evidence that a third party corroborated —
+  1. traces whose attached attestation (e.g. a GitHub check-run) was
+     re-verified server-side and stamped `witnessed: true`;
+  2. receipts carrying structured attestations that were verified (same
+     counter — the witness stamp happens at ingest);
+  3. qualified endorsements: endorsements whose computed bonus was > 0
+     (endorser has ≥ 10 traces and score ≥ 60).
+
+### Headroom formula
+
+The composite score is clamped to an evidence-scaled ceiling whenever it
+would rise above the baseline:
+
+```
+evidence      = attested_trace_count + qualified_endorsement_count
+required      = max(5, ceil(total_traces * 0.10))
+uplift        = min(evidence / required, 1.0)
+effective_max = 50 + (100 - 50) * uplift
+score         = min(score, effective_max)   # only when score > 50
+```
+
+Properties:
+
+- **Zero evidence → hard cap at 50.** No volume of self-reported successes
+  moves an agent above neutral. Score clustering at ~50 is the honest
+  signal for "unverified".
+- **Small agents ramp fast:** with ≤ 50 total traces, 5 pieces of attested
+  evidence unlock the full 50–100 range; each piece before that unlocks
+  10 points of headroom (1 attested trace → cap 60, 3 → cap 80).
+- **Volume cannot dilute the requirement:** at 1,000 traces an agent needs
+  ~100 attested items for full headroom; 5 attested out of 1,000 caps at
+  52.5. Growing the denominator with junk traces *lowers* the ceiling.
+- **Below-baseline movement is never capped.** Failures, security
+  penalties and time decay apply identically to attested and self-reported
+  histories. Time decay (pull toward 50 at 0.1%/day) is unchanged.
+
+The cap is applied at score-write time (trace submission and endorsement)
+and to recomputed projections (scorecard). The `evidence` block in the
+wire shape exposes the inputs so any consumer can recompute the ceiling.
+
+### Endorsement anti-farming
+
+Endorsements are rate-limited at the write tier (20/60s per key), capped
+at **5 endorsements per endorser per rolling 24 hours across all targets**,
+and deduplicated per (endorser, target) pair. Only qualified endorsements
+(bonus > 0) count as attested evidence; the raw count is still published
+as `endorsement_count` for transparency.
 
 ## 5. `legacy_composite`
 

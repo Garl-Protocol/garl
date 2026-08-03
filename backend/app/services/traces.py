@@ -23,6 +23,7 @@ from app.services.reputation import (
     compute_certification_tier,
     detect_anomalies,
     auto_clear_anomalies,
+    apply_attestation_cap,
     clamp_score,
     BASELINE,
 )
@@ -160,6 +161,28 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
     if endorsement_aggregate > 0:
         new_composite = clamp_score(new_composite + endorsement_aggregate)
 
+    # Verify external attestations (e.g. GitHub CI check-runs) BEFORE the
+    # composite is finalized: attested evidence gates how far above the
+    # neutral baseline the score may rise. When the backend re-verification
+    # succeeds the attestation carries `witnessed: true`.
+    signed_attestations: list[dict] = []
+    if req.attestations:
+        from app.core import github_attest as _gha
+        for a in req.attestations:
+            signed_attestations.append(_gha.verify_check_run(a.model_dump(exclude_none=True)))
+    trace_witnessed = any(a.get("witnessed") is True for a in signed_attestations)
+
+    # Neutral cap: self-reported traces alone can never lift the composite
+    # above BASELINE (50). Headroom above the baseline scales with attested
+    # evidence (witnessed traces + qualified endorsements). The v23 counters
+    # may not exist pre-migration; default 0 keeps reads/writes safe and the
+    # cap fully engaged. Below-baseline movement is never capped.
+    new_attested_count = int(agent.get("attested_trace_count") or 0) + (1 if trace_witnessed else 0)
+    qualified_endorsement_count = int(agent.get("qualified_endorsement_count") or 0)
+    new_composite = apply_attestation_cap(
+        new_composite, new_attested_count, qualified_endorsement_count, total_traces
+    )
+
     trust_delta = rel_delta
 
     anomaly_flags_current = agent.get("anomaly_flags") or []
@@ -209,16 +232,10 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
     if signed_models:
         trace_raw["models"] = signed_models
 
-    # Bind external corroboration (e.g. GitHub CI check-runs) into the SIGNED
-    # payload. Each attestation is independently re-checkable by anyone
-    # (repo + commit_sha -> GitHub); when ENABLE_GITHUB_ATTESTATION_CHECK is on
-    # the backend ALSO re-verifies and stamps `witnessed`. Conditional so traces
-    # without attestations keep their existing hash.
-    signed_attestations: list[dict] = []
-    if req.attestations:
-        from app.core import github_attest as _gha
-        for a in req.attestations:
-            signed_attestations.append(_gha.verify_check_run(a.model_dump(exclude_none=True)))
+    # Bind external corroboration into the SIGNED payload. Each attestation is
+    # independently re-checkable by anyone (repo + commit_sha -> GitHub); the
+    # `witnessed` stamp was added during verification above. Conditional so
+    # traces without attestations keep their existing hash.
     if signed_attestations:
         trace_raw["attestations"] = signed_attestations
 
@@ -317,7 +334,7 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
     new_total_cost = prev_total_cost + cost
     new_avg_dur = int(((prev_avg_dur * (total_traces - 1)) + req.duration_ms) / total_traces)
 
-    db.table("agents").update({
+    agent_update = {
         "trust_score": new_composite,
         "total_traces": total_traces,
         "success_count": successes,
@@ -338,7 +355,13 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
         "certification_tier": new_tier,
         "last_trace_at": now,
         "updated_at": now,
-    }).eq("id", req.agent_id).execute()
+    }
+    # v23 counter — only written when the column exists on the row (the
+    # SELECT * above returns every column), so trace submission keeps
+    # working against a pre-migration database.
+    if "attested_trace_count" in agent:
+        agent_update["attested_trace_count"] = new_attested_count
+    db.table("agents").update(agent_update).eq("id", req.agent_id).execute()
 
     # --- Reputation history ---
     db.table("reputation_history").insert({

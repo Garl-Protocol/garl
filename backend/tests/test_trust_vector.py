@@ -26,6 +26,8 @@ def _agent(**overrides) -> dict:
         "ema_cost_efficiency": 50.0,
         "total_traces": 200,
         "endorsement_count": 3,
+        "qualified_endorsement_count": 3,
+        "attested_trace_count": 0,
         "created_at": (datetime.now(timezone.utc) - timedelta(days=120)).isoformat(),
     }
     base.update(overrides)
@@ -83,10 +85,22 @@ def test_unmeasurable_dimensions_are_null_not_zero():
     assert v["dimensions"]["reversible_action_success"] is None
 
 
-def test_identity_assurance_grows_with_endorsements():
-    base = compute_trust_vector(_agent(endorsement_count=0))
-    high = compute_trust_vector(_agent(endorsement_count=10))
+def test_identity_assurance_grows_with_qualified_endorsements():
+    # Identity assurance keys off QUALIFIED endorsements (bonus > 0), not the
+    # raw farmable endorsement_count (P2.8 anti-farming).
+    base = compute_trust_vector(_agent(qualified_endorsement_count=0))
+    high = compute_trust_vector(_agent(qualified_endorsement_count=10))
     assert high["dimensions"]["agent_identity_assurance"] > base["dimensions"]["agent_identity_assurance"]
+
+
+def test_identity_assurance_ignores_raw_endorsement_count():
+    # Piling up zero-weight endorsements must not move identity assurance.
+    base = compute_trust_vector(_agent(endorsement_count=0, qualified_endorsement_count=0))
+    spam = compute_trust_vector(_agent(endorsement_count=500, qualified_endorsement_count=0))
+    # approx: the age signal is computed from wall-clock time at call time
+    assert spam["dimensions"]["agent_identity_assurance"] == pytest.approx(
+        base["dimensions"]["agent_identity_assurance"], abs=1e-6
+    )
 
 
 def test_identity_assurance_grows_with_age():
@@ -116,9 +130,16 @@ def test_legacy_composite_preserved():
 
 
 def test_counters_are_integers():
-    v = compute_trust_vector(_agent(total_traces=200, endorsement_count=3))
+    # Spec §4 (fixed): third_party_attestation_count = witnessed traces +
+    # QUALIFIED endorsements — never the raw endorsement_count.
+    v = compute_trust_vector(_agent(
+        total_traces=200,
+        endorsement_count=9,
+        qualified_endorsement_count=3,
+        attested_trace_count=2,
+    ))
     assert v["counters"]["verified_receipt_count"] == 200
-    assert v["counters"]["third_party_attestation_count"] == 3
+    assert v["counters"]["third_party_attestation_count"] == 5
     assert isinstance(v["counters"]["verified_receipt_count"], int)
 
 

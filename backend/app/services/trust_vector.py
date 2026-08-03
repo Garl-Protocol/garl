@@ -23,6 +23,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from app.services.reputation import compute_evidence_summary
+
 # Vector schema version. Bumped when fields are added/renamed in a way that
 # changes the shape consumers see. Additive expansion (new optional fields)
 # does NOT bump the version; semver-style minor bumps for additions are
@@ -82,11 +84,14 @@ def _identity_assurance(agent: dict) -> float:
 
     DID stability is implicit (the row exists and the sovereign_id is
     immutable). We blend three signals:
-      1. Endorsement count, capped at 10 (each endorsement = +0.05).
+      1. QUALIFIED endorsement count (bonus > 0), capped at 10 (each = +0.05).
+         Raw endorsement_count is farmable — anyone can register throwaway
+         agents and endorse for free; only endorsements that carried weight
+         (credible endorser: >=10 traces, score >=60) count here.
       2. Age in days, asymptotic to 1.0 (saturates around 90 days).
       3. Total trace count (saturates at 100 traces).
     """
-    endorsements = _safe_float(agent.get("endorsement_count", 0))
+    endorsements = _safe_float(agent.get("qualified_endorsement_count") or 0)
     age_days = _agent_age_days(agent)
     traces = _safe_float(agent.get("total_traces", 0))
 
@@ -150,8 +155,15 @@ def compute_trust_vector(agent: dict) -> dict:
         },
         "counters": {
             "verified_receipt_count":         int(_safe_float(agent.get("total_traces", 0))),
-            "third_party_attestation_count":  int(_safe_float(agent.get("endorsement_count", 0))),
+            # Spec §4: endorsements from other agents + external attestations.
+            # Qualified endorsements only (bonus > 0) + traces whose external
+            # attestation the backend witnessed — NOT the raw endorsement count.
+            "third_party_attestation_count": (
+                int(_safe_float(agent.get("attested_trace_count") or 0))
+                + int(_safe_float(agent.get("qualified_endorsement_count") or 0))
+            ),
         },
+        "evidence": compute_evidence_summary(agent),
         "legacy_composite": {
             "trust_score": _safe_float(agent.get("trust_score", 50.0)),
             "certification_tier": agent.get("certification_tier", "bronze"),

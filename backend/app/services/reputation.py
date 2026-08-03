@@ -286,6 +286,91 @@ def compute_composite_score(dimensions: dict[str, float]) -> float:
     return round(clamp_score(total), 2)
 
 
+# --- Self-reported vs attested evidence (neutral cap) ---
+#
+# Bare self-reported traces must never lift an agent above the neutral
+# baseline (50). Reputation registries that weight self-reports like
+# independent evidence get farmed (ERC-8004: one client produced 65.8% of
+# all feedback). Attested evidence — traces whose external attestation was
+# re-verified/witnessed by the backend, plus qualified endorsements
+# (bonus > 0) — progressively unlocks the headroom above the baseline.
+# Below-baseline movement is NEVER capped: bad behavior always counts.
+#
+# Formula (documented in protocol/spec/trust-vector-v0.1.md):
+#   evidence  = attested_trace_count + qualified_endorsement_count
+#   required  = max(ATTESTED_MIN_EVIDENCE, ceil(total_traces * ATTESTED_SHARE_TARGET))
+#   uplift    = min(evidence / required, 1.0)
+#   effective_max = BASELINE + (MAX_SCORE - BASELINE) * uplift
+#
+# Behavior: 0 evidence -> hard cap at 50 regardless of trace volume.
+# A small agent (<= 50 traces) reaches full headroom with 5 pieces of
+# attested evidence; a large agent must keep ~10% of its volume attested
+# to hold full headroom (5 attested out of 1000 traces caps at 52.5 —
+# volume alone cannot buy trust).
+
+ATTESTED_MIN_EVIDENCE = 5
+ATTESTED_SHARE_TARGET = 0.10
+
+
+def compute_attested_uplift(
+    attested_traces: int, qualified_endorsements: int, total_traces: int
+) -> float:
+    """Fraction [0,1] of the above-baseline headroom this agent has unlocked."""
+    evidence = max(0, int(attested_traces or 0)) + max(0, int(qualified_endorsements or 0))
+    if evidence <= 0:
+        return 0.0
+    required = max(
+        ATTESTED_MIN_EVIDENCE,
+        math.ceil(max(0, int(total_traces or 0)) * ATTESTED_SHARE_TARGET),
+    )
+    return round(min(evidence / required, 1.0), 4)
+
+
+def compute_effective_max_score(
+    attested_traces: int, qualified_endorsements: int, total_traces: int
+) -> float:
+    """Highest composite score this agent's attested evidence allows."""
+    uplift = compute_attested_uplift(attested_traces, qualified_endorsements, total_traces)
+    return round(BASELINE + (MAX_SCORE - BASELINE) * uplift, 2)
+
+
+def apply_attestation_cap(
+    score: float,
+    attested_traces: int,
+    qualified_endorsements: int,
+    total_traces: int,
+) -> float:
+    """Clamp an above-baseline score to the attested-evidence headroom.
+
+    Scores at or below BASELINE pass through unchanged — the cap only limits
+    upward movement, never softens penalties.
+    """
+    if score <= BASELINE:
+        return clamp_score(score)
+    return clamp_score(
+        min(score, compute_effective_max_score(attested_traces, qualified_endorsements, total_traces))
+    )
+
+
+def compute_evidence_summary(agent: dict) -> dict:
+    """Public evidence block exposed on trust-vector / scorecard / profile.
+
+    Defaults to 0 when the v23 counters are missing (pre-migration rows) so
+    reads never crash — a missing counter just means the cap is fully engaged.
+    """
+    total = int(agent.get("total_traces") or 0)
+    attested = int(agent.get("attested_trace_count") or 0)
+    qualified = int(agent.get("qualified_endorsement_count") or 0)
+    return {
+        "total_traces": total,
+        "attested_traces": attested,
+        "attested_ratio": round(attested / total, 4) if total > 0 else 0.0,
+        "qualified_endorsements": qualified,
+        "self_reported_only": attested == 0 and qualified == 0,
+        "effective_max_score": compute_effective_max_score(attested, qualified, total),
+    }
+
+
 def compute_confidence(total_traces: int) -> tuple[float, float]:
     """
     Compute confidence level and score bounds based on trace count.

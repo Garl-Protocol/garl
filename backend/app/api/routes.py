@@ -380,6 +380,8 @@ _PUBLIC_AGENT_FIELDS = (
     "score_security",
     "endorsement_count",
     "endorsement_score",
+    "qualified_endorsement_count",
+    "attested_trace_count",
     "anomaly_flags",
     "sovereign_id",
     "last_trace_at",
@@ -436,7 +438,12 @@ async def read_agent(
         response.headers["Deprecation"] = "true"
         response.headers["Sunset"] = "Thu, 15 Oct 2026 00:00:00 GMT"
         response.headers["Link"] = '<https://garl.ai/docs#fields-full-auth>; rel="deprecation"'
-    return {k: agent.get(k) for k in _PUBLIC_AGENT_FIELDS if k in agent}
+    projection = {k: agent.get(k) for k in _PUBLIC_AGENT_FIELDS if k in agent}
+    # Attested vs self-reported split — consumers must be able to see how
+    # much of this agent's history is independently corroborated.
+    from app.services.reputation import compute_evidence_summary
+    projection["evidence"] = compute_evidence_summary(agent)
+    return projection
 
 
 @router.get(
@@ -2106,7 +2113,9 @@ async def remove_webhook(agent_id: str, webhook_id: str, x_api_key: str = Header
 
 @router.post("/endorse", summary="Endorse an agent", tags=["Endorsements"])
 async def endorse_agent(request: Request, req: EndorsementRequest, x_api_key: str = Header(...)):
-    _check_rate_limit(x_api_key[:16], "default", request)
+    # "write" tier (20/60s), not "default" (120/60s): endorsements move
+    # reputation and were the cheapest thing to farm at the default tier.
+    _check_rate_limit(x_api_key[:16], "write", request)
     _validate_uuid(req.target_agent_id, "target_agent_id")
 
     db = _get_supabase()

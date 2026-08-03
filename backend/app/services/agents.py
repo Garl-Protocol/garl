@@ -4,7 +4,7 @@ import secrets
 import hashlib
 import logging
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from app.core.supabase_client import get_supabase
 from app.core.signing import get_public_key_hex
@@ -13,6 +13,7 @@ from app.services.reputation import (
     project_decay, apply_time_decay, compute_endorsement_bonus,
     compute_certification_tier, compute_confidence, clamp_score, BASELINE,
     TIER_ENDORSEMENT_MULTIPLIER,
+    apply_attestation_cap, compute_evidence_summary,
 )
 
 logger = logging.getLogger(__name__)
@@ -766,6 +767,12 @@ def delete_webhook(webhook_id: str, agent_id: str) -> bool:
 
 # --- Endorsement (Sybil-Resistant Reputation Transfer) ---
 
+# Anti-farming: one endorser may create at most this many endorsements per
+# rolling 24h window, across ALL targets. Pairwise dedupe alone does not stop
+# a single credible agent from spraying endorsements over a Sybil farm.
+ENDORSEMENT_DAILY_CAP = 5
+
+
 def create_endorsement(endorser_id: str, target_id: str, context: str, api_key: str) -> dict:
     """A2A endorsement: Sybil protection with tier-based weighting."""
     db = get_supabase()
@@ -796,6 +803,21 @@ def create_endorsement(endorser_id: str, target_id: str, context: str, api_key: 
     )
     if existing.data:
         raise ValueError("Endorsement already exists between these agents")
+
+    # Per-source daily cap (anti-farming): count this endorser's endorsements
+    # across all targets in the trailing 24h.
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+    recent = (
+        db.table("endorsements")
+        .select("id")
+        .eq("endorser_id", endorser_id)
+        .gte("created_at", cutoff)
+        .execute()
+    )
+    if len(recent.data or []) >= ENDORSEMENT_DAILY_CAP:
+        raise ValueError(
+            f"Endorsement daily limit reached ({ENDORSEMENT_DAILY_CAP} per 24 hours per endorser)"
+        )
 
     endorser_tier = endorser.get("certification_tier", "bronze")
 
@@ -828,23 +850,46 @@ def create_endorsement(endorser_id: str, target_id: str, context: str, api_key: 
     new_endorsement_score = round(current_endorsement_score + bonus, 4)
     new_endorsement_count = current_endorsement_count + 1
 
+    # Split counters: raw endorsement_count counts every endorsement ever
+    # recorded; qualified_endorsement_count only those that carried weight
+    # (bonus > 0). Only the qualified count feeds identity assurance and the
+    # attested-evidence headroom.
+    qualified = bonus > 0
+    current_qualified = int(target.get("qualified_endorsement_count") or 0)
+    new_qualified_count = current_qualified + (1 if qualified else 0)
+
     current_trust = float(target.get("trust_score", BASELINE))
     new_trust = clamp_score(current_trust + bonus)
+    # Neutral cap: an endorsement is attested evidence, but it can only lift
+    # the score into the headroom the target's evidence (including this
+    # endorsement, if qualified) unlocks.
+    new_trust = apply_attestation_cap(
+        new_trust,
+        int(target.get("attested_trace_count") or 0),
+        new_qualified_count,
+        int(target.get("total_traces") or 0),
+    )
     new_tier = compute_certification_tier(new_trust, target.get("anomaly_flags"), int(target.get("total_traces", 0)))
 
-    db.table("agents").update({
+    target_update = {
         "endorsement_score": new_endorsement_score,
         "endorsement_count": new_endorsement_count,
         "trust_score": new_trust,
         "certification_tier": new_tier,
         "updated_at": now,
-    }).eq("id", target_id).execute()
+    }
+    # v23 counter — written only when the column exists on the row so the
+    # endpoint keeps working against a pre-migration database.
+    if "qualified_endorsement_count" in target:
+        target_update["qualified_endorsement_count"] = new_qualified_count
+    db.table("agents").update(target_update).eq("id", target_id).execute()
 
     return {
         "endorsement_id": endorsement_id,
         "endorser_id": endorser_id,
         "target_id": target_id,
         "bonus_applied": bonus,
+        "qualified": qualified,
         "endorser_tier": endorser_tier,
         "tier_multiplier": tier_multiplier,
         "target_new_trust_score": new_trust,
@@ -876,10 +921,15 @@ def get_endorsements(agent_id: str) -> dict:
         .execute()
     )
 
+    received_rows = received.data or []
     return {
-        "received": received.data or [],
+        "received": received_rows,
         "given": given.data or [],
-        "total_endorsement_bonus": round(sum(e["bonus_applied"] for e in (received.data or [])), 4),
+        "total_endorsement_bonus": round(sum(e["bonus_applied"] for e in received_rows), 4),
+        "endorsement_count": len(received_rows),
+        "qualified_endorsement_count": sum(
+            1 for e in received_rows if float(e.get("bonus_applied") or 0) > 0
+        ),
     }
 
 
@@ -1071,6 +1121,15 @@ def generate_scorecard(agent: dict) -> dict:
         float(dim["score"]) * float(dim["weight"].strip("%")) / 100
         for dim in dimensions.values()
     )
+    # Neutral cap: without attested evidence the displayed composite cannot
+    # exceed the neutral baseline (see reputation.apply_attestation_cap).
+    evidence = compute_evidence_summary(agent)
+    composite = apply_attestation_cap(
+        composite,
+        evidence["attested_traces"],
+        evidence["qualified_endorsements"],
+        evidence["total_traces"],
+    )
     tier = "enterprise" if composite >= 90 else "gold" if composite >= 70 else "silver" if composite >= 40 else "bronze"
     next_tier = {"bronze": ("silver", 40), "silver": ("gold", 70), "gold": ("enterprise", 90)}.get(tier)
 
@@ -1081,6 +1140,7 @@ def generate_scorecard(agent: dict) -> dict:
         "current_tier": tier,
         "total_traces": agent.get("total_traces", 0),
         "dimensions": recommendations,
+        "evidence": evidence,
     }
 
     if next_tier:
