@@ -16,7 +16,27 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   delegation) and the Capability Gate are the hero; code receipts are one
   integration among several.
 
+### Changed (Trust Vector honesty)
+- **Self-reported traces can no longer lift a score above neutral (50).**
+  Above-baseline headroom now scales with *attested* evidence — traces whose
+  external attestation (e.g. GitHub CI check-run) was re-verified
+  server-side, plus qualified endorsements: `effective_max = 50 + 50 ×
+  min(evidence / max(5, 10% of traces), 1)`. Below-baseline movement is
+  never capped. Existing evidence-less agents will show ≤50 — intended.
+- Endorsement anti-farming: `/endorse` moved to the write rate tier
+  (20/60s), max 5 endorsements per endorser per 24h, and identity assurance
+  now counts only *qualified* endorsements (bonus > 0) — spam endorsements
+  no longer move any dimension. `third_party_attestation_count` now equals
+  attested traces + qualified endorsements (spec §4 fix). Every agent
+  profile/trust-vector/scorecard exposes an `evidence` block
+  (attested vs self-reported ratio). Migration v23.
+
 ### Added
+- **Evidence Pack offline verifier** — `garl-verify --evidence-pack
+  pack.json [--keys keys.json] [--rpc]` (garl-protocol ≥ 1.4.0 on PyPI)
+  verifies the pack + receipt signatures, Merkle inclusion, the capability
+  chain, and (with `--rpc`) the anchored root on Base — one command, no
+  trust in GARL, network optional.
 - **Keyed content hashing (EDPB 02/2025 ¶52)** — `input_hash`/`output_hash`
   can now be HMAC-SHA-256 under a per-agent off-chain key
   (`agent_hash_keys`, v22 migration): GARL-computed hashes (trace-mirror

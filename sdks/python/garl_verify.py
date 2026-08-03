@@ -231,7 +231,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--key-registry", default=DEFAULT_KEY_REGISTRY, help="Public key registry URL (default: %(default)s)")
     parser.add_argument("--json", action="store_true", help="Machine-readable JSON output")
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON (requires --json)")
+    parser.add_argument("--evidence-pack", metavar="PACK",
+                        help="Path to an Evidence Pack JSON (or a receipt id/hash to fetch one) — full offline verification: pack + receipt signatures, Merkle inclusion, capability chain, optional on-chain root")
+    parser.add_argument("--keys", metavar="FILE",
+                        help="Local key-registry JSON file (offline trust anchor; beats fetching)")
+    parser.add_argument("--rpc", metavar="URL", nargs="?", const="https://mainnet.base.org",
+                        help="Check the anchored root on-chain via this JSON-RPC endpoint (default Base mainnet when flag given bare)")
+    parser.add_argument("--offline", action="store_true",
+                        help="Never touch the network (pack mode: uses --keys or the pack-embedded registry with a warning)")
     args = parser.parse_args(argv)
+
+    if args.evidence_pack:
+        return _run_evidence_pack_mode(args)
 
     try:
         if args.stdin:
@@ -297,6 +308,71 @@ def main(argv: list[str] | None = None) -> int:
 
     ok = _verify_cert(cert, pk_hex)
     return _print_result(cert, ok, args.key_registry, args)
+
+
+def _run_evidence_pack_mode(args: argparse.Namespace) -> int:
+    """`garl-verify --evidence-pack pack.json [--keys keys.json] [--rpc]` —
+    the whole evidence chain in one command, offline-capable."""
+    import os
+
+    from garl_evidence import verify_evidence_pack
+
+    src = args.evidence_pack
+    try:
+        if os.path.exists(src):
+            with open(src, "r", encoding="utf-8") as f:
+                pack = json.load(f)
+        elif args.offline:
+            print(f"garl-verify: {src} is not a local file and --offline is set", file=sys.stderr)
+            return 2
+        else:
+            url = f"{args.api_base}/api/v1/receipts/{src}/evidence-pack"
+            resp = httpx.get(url, timeout=15.0, headers={"User-Agent": "garl-verify/1.0"})
+            resp.raise_for_status()
+            pack = resp.json()
+    except Exception as e:  # noqa: BLE001
+        print(f"garl-verify: could not load evidence pack: {e}", file=sys.stderr)
+        return 2
+
+    keys_source = "registry"
+    if args.keys:
+        with open(args.keys, "r", encoding="utf-8") as f:
+            body = json.load(f)
+        keys = {k["key_id"]: k["public_key_hex"] for k in body.get("keys", []) if k.get("key_id")}
+        keys_source = "file"
+    elif not args.offline:
+        try:
+            keys = _fetch_key_registry(args.key_registry)
+        except Exception:
+            keys = {}
+        if not keys:
+            keys_source = "embedded"
+    else:
+        keys = {}
+        keys_source = "embedded"
+    if keys_source == "embedded":
+        embedded = pack.get("key_registry") or {}
+        keys = {k["key_id"]: k["public_key_hex"] for k in embedded.get("keys", []) if k.get("key_id")}
+
+    result = verify_evidence_pack(
+        pack, keys, rpc_url=(None if args.offline else args.rpc), keys_source=keys_source
+    )
+
+    if args.json:
+        out = {
+            "ok": result.ok,
+            "checks": [{"name": c.name, "ok": c.ok, "detail": c.detail} for c in result.checks],
+            "warnings": result.warnings,
+        }
+        print(json.dumps(out, indent=2 if args.pretty else None))
+    else:
+        for c in result.checks:
+            mark = "PASS" if c.ok else "FAIL"
+            print(f"[{mark}] {c.name}" + (f" — {c.detail}" if c.detail else ""))
+        for w in result.warnings:
+            print(f"[warn] {w}")
+        print("VERIFIED" if result.ok else "VERIFICATION FAILED")
+    return 0 if result.ok else 1
 
 
 if __name__ == "__main__":
