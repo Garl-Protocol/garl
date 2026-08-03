@@ -46,12 +46,45 @@ GARL Protocol exposes **60 REST endpoints** (Wave 1+2+3 surface + legacy), an A2
 | `GET` | `/api/v1/badge/svg/{id}` | Embeddable SVG badge |
 | `GET` | `/api/v1/badge/{id}` | Badge data |
 
+## Receipts, Anchors & Evidence
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/receipts` | Submit Action Receipt v0.1 (API key) |
+| `GET` | `/api/v1/receipts/{hash}/cert.json` | Immutable signed envelope |
+| `GET` | `/api/v1/receipts/{id}/proof` | Merkle inclusion proof + on-chain calldata |
+| `GET` | `/api/v1/receipts/{id}/evidence-pack` | Signed Evidence Pack (receipt + capability chain + proof + anchor + alerts) |
+| `GET` | `/api/v1/receipts/{id}/evidence-pack.pdf` | Same pack as a human-readable PDF |
+| `POST` | `/api/v1/receipts/{id}/undo` | UETA §10(b) undo trigger (owner key) |
+| `GET` | `/api/v1/anchors` | Every Merkle batch: root, count, Base tx |
+| `GET` | `/api/v1/keys` | Public signing-key registry |
+
+## Capability Tokens & Gate
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/capability/issue` | Issue a scoped token (owner key) |
+| `POST` | `/api/v1/capability/verify` | Verify a token (public) |
+| `POST` | `/api/v1/capability/revoke` | Revoke, cascades to descendants (owner key) |
+| `POST` | `/api/v1/capability/evaluate` | Capability Gate pre-flight (owner key) |
+| `GET` | `/api/v1/agents/{id}/hash-key` | Keyed-hash key for EDPB ¶52 hashing (owner key) |
+| `POST` | `/api/v1/agents/{id}/hash-key/rotate` | Rotate the hash key (owner key) |
+| `DELETE` | `/api/v1/agents/{id}/hash-key` | Destroy keys — GDPR erasure (owner key) |
+
+## Session Alerts
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/agents/{id}/alerts` | Signed behavioral alerts for one agent |
+| `GET` | `/api/v1/alerts` | Recent alerts across agents |
+| `POST` | `/api/v1/agents/{id}/scan` | Run the session scan now (owner key) |
+
 ## Endorsements
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/v1/endorse` | Create endorsement |
-| `GET` | `/api/v1/endorsements/{id}` | Get endorsements |
+| `POST` | `/api/v1/endorse` | Create endorsement (write tier, max 5/day per endorser) |
+| `GET` | `/api/v1/endorsements/{id}` | Get endorsements (raw + qualified counts) |
 
 ## Webhooks
 

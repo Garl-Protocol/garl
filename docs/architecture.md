@@ -16,7 +16,7 @@
 │       └──────────────┴──────────────┴──────────────┘            │
 │                          │                                      │
 │                    ┌─────▼─────┐                                │
-│                    │  FastAPI  │  50+ REST + A2A + MCP Streamable │
+│                    │  FastAPI  │  60+ REST + A2A + MCP Streamable │
 │                    │  Backend  │  Rate Limited + CORS            │
 │                    └─────┬─────┘                                │
 │                          │                                      │
@@ -70,7 +70,7 @@
 garl/
 ├── backend/                 # FastAPI application
 │   ├── app/
-│   │   ├── api/routes.py    # 50+ REST endpoints
+│   │   ├── api/routes.py    # 60+ REST endpoints
 │   │   ├── api/mcp.py       # Remote MCP endpoint
 │   │   ├── core/            # Config, signing, Supabase client
 │   │   ├── models/          # Pydantic schemas

@@ -291,7 +291,7 @@ GARL uses the same cryptographic curve as Ethereum (ECDSA-secp256k1), making tru
 | Capability Token wire format (spec) | [protocol/spec/capability-token-v0.1.md](./protocol/spec/capability-token-v0.1.md) |
 | Action Receipt wire format (spec) | [protocol/spec/action-receipt-v0.1.md](./protocol/spec/action-receipt-v0.1.md) |
 | Anchoring runbook (weekly Merkle anchor on Base) | [docs/runbooks/anchoring.md](./docs/runbooks/anchoring.md) |
-| Full API Reference (50+ REST endpoints + A2A + MCP) | [docs/api-reference.md](./docs/api-reference.md) |
+| Full API Reference (60+ REST endpoints + A2A + MCP) | [docs/api-reference.md](./docs/api-reference.md) |
 | MCP Server (29 named tools, including batch variants) | [garl.ai/docs#mcp-server](https://garl.ai/docs#mcp-server) |
 | A2A Protocol Integration | [garl.ai/docs#a2a](https://garl.ai/docs#a2a) |
 | ERC-8004 Compatibility | [garl.ai/docs#erc-8004](https://garl.ai/docs#erc-8004) |

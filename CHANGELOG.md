@@ -33,7 +33,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - **Evidence Pack offline verifier** — `garl-verify --evidence-pack
-  pack.json [--keys keys.json] [--rpc]` (garl-protocol ≥ 1.4.0 on PyPI)
+  pack.json [--keys keys.json] [--rpc]` (ships in garl-protocol 1.4.0)
   verifies the pack + receipt signatures, Merkle inclusion, the capability
   chain, and (with `--rpc`) the anchored root on Base — one command, no
   trust in GARL, network optional.
