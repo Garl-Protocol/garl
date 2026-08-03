@@ -1316,6 +1316,30 @@ async def receipt_inclusion_proof(receipt_id: str, request: Request, response: R
     return proof
 
 
+@router.get(
+    "/anchors",
+    summary="Every on-chain Merkle anchor batch (public)",
+    tags=["Receipts"],
+)
+async def list_anchors(
+    request: Request,
+    response: Response,
+    limit: int = 100,
+    offset: int = 0,
+):
+    """The living anchor chain: every Merkle batch of Action Receipts, newest
+    first, with its root, receipt count, and Base mainnet transaction. Cross-
+    check any row against the MerkleAnchor contract's `Anchored` events on
+    Basescan — the on-chain root must equal `merkle_root`. Batches with
+    `anchored: false` were built but not yet broadcast (a visible gap, never a
+    hidden one)."""
+    _check_rate_limit(_get_client_ip(request), "default", request)
+    from app.services.merkle_batch import list_anchor_batches
+    result = list_anchor_batches(limit=limit, offset=offset)
+    response.headers["Cache-Control"] = "public, max-age=60, s-maxage=300"
+    return result
+
+
 @router.get("/keys", summary="Public signing key registry", tags=["Trust & Verification"])
 async def list_public_keys(response: Response):
     """Mirror of /.well-known/garl-keys.json for API-prefix consumers.

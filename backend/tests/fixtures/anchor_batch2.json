@@ -1,0 +1,52 @@
+{
+  "description": "Batch 2 anchored on Base mainnet 2026-08-03 \u2014 real production data. Envelopes in tree order (created_at ASC, receipt_id ASC).",
+  "batch_id": 2,
+  "onchain_batch_id": 2,
+  "chain_id": 8453,
+  "contract_address": "0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2",
+  "tx_hash": "0x9adca64fc10a8bbe04d3284d95adf13658f8c24b6eae6c143a13335c91c9afec",
+  "merkle_root": "ebe6f1c8d8a8bb2bb30945053802721b28dcf6cfad849031fcc3a292506229ef",
+  "receipt_count": 2,
+  "envelopes": [
+    {
+      "issuer": "https://api.garl.ai",
+      "runtime": "claude-code",
+      "version": "garl/action-receipt/v0.1",
+      "protocol": "github",
+      "signature": "da04b6bd9fbca153f37dd0c78fae6902904adf25c46259510b032315218be6c977529b394211057d00e2626386bd9c055681027effea1e9d962253873579086e",
+      "timestamp": "2026-07-13T11:50:26.380410Z",
+      "input_hash": "c50e3899ff67a3d66375323cecd83efde8510a0d52f740f64fbc16e9662ba075",
+      "receipt_id": "0a4e3e31-efb5-46e3-a1f5-2ff8e9bb51b9",
+      "action_type": "code_write",
+      "output_hash": "8e22268fa126e72bea7431b11c89256f105df6befeecf15cd32847d56c822bfc",
+      "side_effect": "reversible",
+      "tool_server": null,
+      "attestations": [
+        "garl-trace:b4ed8ddd-40b0-4d50-aac0-055e3ae15494"
+      ],
+      "agent_identity": "did:garl:780e900c-f429-41ee-8c9b-078f6bc5153b",
+      "human_delegate": null,
+      "verification_key_id": "8c6e8f25ef3bf704"
+    },
+    {
+      "issuer": "https://api.garl.ai",
+      "runtime": "claude-code",
+      "version": "garl/action-receipt/v0.1",
+      "protocol": "github",
+      "signature": "2702c85aadc526bd8d391d679efda902e48670e9c93e4dc6e1fe9ba59a0334061748efb91adecb60bc3359872bc3328dd864b0a85a6b4c613524e46923e6a530",
+      "timestamp": "2026-07-13T12:26:14.326009Z",
+      "input_hash": "e91b1e744b62bbc7b9e5f28eb4501bfefc1dd9edc4f5383a026da0aa0a230d7e",
+      "receipt_id": "bedfd8a6-30a6-494f-a279-98f435067b11",
+      "action_type": "code_write",
+      "output_hash": "a0081253a5fe3605491f0307e115303eb3fa3ce62c529bc5d7132f0b0971e31d",
+      "side_effect": "reversible",
+      "tool_server": null,
+      "attestations": [
+        "garl-trace:0be7744f-a6dc-4786-8042-013ebd2f9c9c"
+      ],
+      "agent_identity": "did:garl:fac1597f-34d1-4ee3-ba8d-5805bc22b5ca",
+      "human_delegate": null,
+      "verification_key_id": "8c6e8f25ef3bf704"
+    }
+  ]
+}

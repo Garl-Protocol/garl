@@ -1,0 +1,1 @@
+{"protocol":"garl","algorithm":"ECDSA-secp256k1","hash_algorithm":"SHA-256","canonical_registry":"https://api.garl.ai","keys":[{"key_id":"8c6e8f25ef3bf704","public_key_hex":"b7c8a722a026fd417eea90cc2fe83a99c2db5376a87f4c1611fc641a643f7cc3a9c68eb1e5743a10677cbfd548dcedef5064bc845aadf7df1046eef4ac9a3e8f","status":"active","algorithm":"ECDSA-secp256k1"}],"generated_at":1785788661}

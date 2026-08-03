@@ -10,6 +10,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **Living anchor chain** — `GET /api/v1/anchors` + public `/anchors` page list
+  every Merkle batch (root, receipt count, Base tx, timestamp); built-but-
+  unbroadcast batches are shown as visible gaps, never hidden. The weekly
+  anchor workflow now **fails loudly** (job failure + auto-filed
+  `anchor-failure` issue) instead of silently no-opping when secrets are
+  missing; setup + recovery runbook at `docs/runbooks/anchoring.md`.
+- **Offline end-to-end anchor verification test**
+  (`backend/tests/test_e2e_offline_anchor.py`) — real production fixtures;
+  verifies envelope ECDSA signatures against the published key registry,
+  rebuilds the batch Merkle root, parses the raw signed Base transaction
+  (inline keccak-256 + RLP, zero new dependencies), and checks
+  `keccak256(raw_tx) == tx_hash` and that the `anchor()` calldata commits to
+  the exact root and count — no network, no trust in GARL.
 - **User accounts (Clerk)** — sign up at garl.ai, "My Agents" dashboard, claim/unclaim connected agents by API key. New `GET /api/v1/agents/me` resolves the agent for a key; ownership is held in Clerk user metadata.
 - **/connect onboarding** — one-page integration menu: REST, Python, JS, MCP, GitHub Action (live); LangChain / CrewAI / OpenAI / Claude via SDK; OpenClaw / Hermes on the roadmap.
 - Homepage repositioned to "signed receipts for everything your AI agents do" (broadened from code-only).

@@ -320,3 +320,54 @@ def build_inclusion_proof(receipt_id_or_hash: str) -> dict | None:
             "proofPositions": positions,
         },
     }
+
+
+def list_anchor_batches(*, limit: int = 100, offset: int = 0) -> dict:
+    """Public list of every Merkle batch, newest first — the living anchor
+    chain behind /anchors. Anchored batches carry their Base tx hash; a batch
+    that was built but whose broadcast failed shows anchored=False so the gap
+    is visible rather than hidden (see docs/runbooks/anchoring.md).
+    """
+    limit = max(1, min(int(limit), 200))
+    offset = max(0, int(offset))
+    sb = _get_supabase()
+    rows = (
+        sb.table("merkle_batches")
+        .select(
+            "batch_id, root, receipt_count, built_at, anchored_at,"
+            " chain_id, tx_hash, contract_address, onchain_batch_id",
+            count="exact",
+        )
+        .order("batch_id", desc=True)
+        .range(offset, offset + limit - 1)
+        .execute()
+    )
+    batches = []
+    for b in rows.data or []:
+        anchored = bool(b.get("tx_hash") and b.get("anchored_at"))
+        batches.append(
+            {
+                "batch_id": b["batch_id"],
+                "onchain_batch_id": b.get("onchain_batch_id") or b["batch_id"],
+                "merkle_root": b["root"],
+                "receipt_count": b.get("receipt_count"),
+                "built_at": b.get("built_at"),
+                "anchored": anchored,
+                "anchored_at": b.get("anchored_at"),
+                "chain": "base-mainnet" if b.get("chain_id") == 8453 else None,
+                "chain_id": b.get("chain_id"),
+                "contract_address": b.get("contract_address"),
+                "tx_hash": b.get("tx_hash"),
+                "explorer_url": (
+                    f"https://basescan.org/tx/{b['tx_hash']}"
+                    if b.get("chain_id") == 8453 and b.get("tx_hash")
+                    else None
+                ),
+            }
+        )
+    return {
+        "total": rows.count if rows.count is not None else len(batches),
+        "limit": limit,
+        "offset": offset,
+        "batches": batches,
+    }

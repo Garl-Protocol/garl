@@ -14,9 +14,17 @@ inclusion against an anchored root.
 
 ## Operating the anchor
 
-Batches are built off-chain by `backend/app/services/merkle_batch.py`
-(`build_batch()` rolls up unanchored receipts into a Merkle root, stored with
-`anchored_at = NULL`). To anchor a batch on-chain:
+Anchoring normally runs unattended: the **Weekly Merkle Anchor** workflow
+(`.github/workflows/anchor.yml`, Mondays 03:17 UTC) runs
+`scripts/anchor_batch.py` end-to-end and fails loudly (auto-filed
+`anchor-failure` issue) if anything breaks. Full runbook:
+`docs/runbooks/anchoring.md`. Every batch is public at
+[garl.ai/anchors](https://garl.ai/anchors) / `GET /api/v1/anchors`.
+
+Manual recovery path — batches are built off-chain by
+`backend/app/services/merkle_batch.py` (`build_pending_batch()` rolls up
+unanchored receipts into a Merkle root, stored with `anchored_at = NULL`).
+To anchor a batch on-chain by hand:
 
 ```bash
 cd contracts
@@ -28,7 +36,8 @@ cast send 0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2 \
   --rpc-url base --private-key "$DEPLOYER_PRIVATE_KEY"
 ```
 
-Then call `merkle_batch.record_anchor_tx(batch_id, tx_hash)` so the DB row and
+Then call `merkle_batch.record_anchor_tx(batch_id=..., chain_id=8453,
+tx_hash=..., contract_address=..., onchain_batch_id=...)` so the DB row and
 its receipts flip to `anchored_at = <now>`.
 
 Ownership uses a two-step transfer (`transferOwnership` → `acceptOwnership`) so

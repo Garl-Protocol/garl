@@ -19,6 +19,7 @@ const LINKS: Link[] = [
   { href: "/connect", label: "Add Agent", accent: true },
   { href: "/registry", label: "Registry" },
   { href: "/verify", label: "Verify" },
+  { href: "/anchors", label: "Anchors" },
   { href: "/for-code", label: "For Code" },
   { href: "/docs", label: "Docs" },
 ];

@@ -8,7 +8,9 @@ name: Weekly Merkle Anchor
 #   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  - DB access
 #   DEPLOYER_PRIVATE_KEY                     - MerkleAnchor owner key
 #   BASE_RPC_URL                             - Base mainnet RPC (optional)
-# Until those are set the job no-ops (fail-closed); it never anchors without them.
+# Missing secrets FAIL the job and open/update a "weekly anchor failed" issue —
+# a silent no-op here would break the living-anchor-chain guarantee that
+# /anchors and the README advertise. Setup runbook: docs/runbooks/anchoring.md
 
 on:
   schedule:
@@ -18,6 +20,10 @@ on:
 concurrency:
   group: merkle-anchor
   cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
 
 jobs:
   anchor:
@@ -41,8 +47,30 @@ jobs:
           GARL_MERKLE_ANCHOR_CHAIN_ID: "8453"
           BASE_RPC_URL: ${{ secrets.BASE_RPC_URL || 'https://mainnet.base.org' }}
         run: |
-          if [ -z "$DEPLOYER_PRIVATE_KEY" ] || [ -z "$SUPABASE_URL" ]; then
-            echo "Anchor secrets not configured - skipping (fail-closed)."
-            exit 0
+          missing=""
+          [ -z "$SUPABASE_URL" ] && missing="$missing SUPABASE_URL"
+          [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] && missing="$missing SUPABASE_SERVICE_ROLE_KEY"
+          [ -z "$DEPLOYER_PRIVATE_KEY" ] && missing="$missing DEPLOYER_PRIVATE_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Anchor secrets not configured:$missing — the weekly anchor DID NOT run. See docs/runbooks/anchoring.md"
+            exit 1
           fi
           python scripts/anchor_batch.py
+      - name: Alert on failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Weekly Merkle anchor FAILED"
+          body="The weekly anchor run failed — no batch was anchored on Base. Fix before the anchor chain gap grows.
+
+          Run: $RUN_URL
+          Runbook: docs/runbooks/anchoring.md"
+          existing=$(gh issue list -R "$GITHUB_REPOSITORY" --state open --label anchor-failure --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" -R "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create -R "$GITHUB_REPOSITORY" --title "$title" --body "$body" --label anchor-failure || \
+            gh issue create -R "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          fi
