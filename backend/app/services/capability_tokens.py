@@ -166,9 +166,29 @@ def issue_capability_token(
 
     # Enforce attenuation against the actual parent claims now that the full
     # child payload (scope, caveats, exp, limits) exists. A child may only
-    # narrow its parent.
+    # narrow its parent. A violation is rejected exactly as before (identical
+    # ValueError), but is ALSO recorded as a signed session alert
+    # (rule='scope_escalation_attempt') — the Grok/Bankr May-2026 incident
+    # showed that silently-rejected privilege escalations are a session-level
+    # signal worth keeping. The hook is best-effort and wrapped here at the
+    # ISSUE call site only; _enforce_attenuation itself stays pure because it
+    # is also used on the verify path.
     if parent_claims is not None:
-        _enforce_attenuation(parent_claims, payload)
+        try:
+            _enforce_attenuation(parent_claims, payload)
+        except ValueError as attenuation_error:
+            try:
+                from app.services.session_anomaly import record_escalation_attempt
+                record_escalation_attempt(
+                    agent_id=agent_id,
+                    parent_hash=parent_token_hash,
+                    reason=str(attenuation_error),
+                )
+            except Exception:
+                logger.warning(
+                    "scope-escalation alert hook failed for agent %s", agent_id
+                )
+            raise
 
     sk = _get_signing_key()
     header_b64 = _b64url_encode(_canonical_json(header).encode("utf-8"))
