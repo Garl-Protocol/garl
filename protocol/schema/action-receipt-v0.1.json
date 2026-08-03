@@ -41,7 +41,10 @@
       "description": "Decentralized identifier. did:garl:<uuid> initially; other DID methods reserved."
     },
     "human_delegate": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Stable opaque ID of the human under whose authority the agent acted, or null."
     },
     "runtime": {
@@ -81,14 +84,21 @@
       ]
     },
     "tool_server": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "uri"
     },
     "capability_request": {
       "$ref": "#/$defs/capability_request"
     },
     "policy_decision": {
-      "enum": ["allowed", "denied", "requires_human"]
+      "enum": [
+        "allowed",
+        "denied",
+        "requires_human"
+      ]
     },
     "input_hash": {
       "type": "string",
@@ -101,17 +111,33 @@
       "description": "SHA-256 of canonical JSON of the output payload."
     },
     "side_effect": {
-      "enum": ["none", "reversible", "irreversible"],
+      "enum": [
+        "none",
+        "reversible",
+        "irreversible"
+      ],
       "description": "Reversibility class. Issuers MUST classify conservatively (when in doubt, irreversible)."
     },
     "cost": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "usd": {"type": "number", "minimum": 0},
-        "tokens_in": {"type": "integer", "minimum": 0},
-        "tokens_out": {"type": "integer", "minimum": 0},
-        "duration_ms": {"type": "integer", "minimum": 0}
+        "usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "tokens_in": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tokens_out": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
     "timestamp": {
@@ -119,24 +145,36 @@
       "format": "date-time"
     },
     "previous_receipt_hash": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^[a-f0-9]{64}$"
     },
     "attestations": {
       "type": "array",
-      "items": {"type": "string"},
+      "items": {
+        "type": "string"
+      },
       "description": "Free-form claims independently verified. v1.0 may upgrade to a structured shape."
     },
     "redaction_policy": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "properties": {
         "public_fields": {
           "type": "array",
-          "items": {"type": "string"}
+          "items": {
+            "type": "string"
+          }
         },
         "redacted_fields": {
           "type": "array",
-          "items": {"type": "string"}
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -149,28 +187,82 @@
       "type": "string",
       "pattern": "^[a-f0-9]{16}$",
       "description": "First 16 hex of SHA-256 of the public key. Looked up in /.well-known/garl-keys.json."
+    },
+    "hash_scheme": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "How input_hash/output_hash were produced. 'hmac-sha256' = keyed hash under an off-chain per-agent key (EDPB Guidelines 02/2025 ¶52 alignment; key destruction = erasure). 'sha256' = plain hash, only for payloads declared non-personal. Absent on receipts issued before this field existed (treat as unspecified, not as plain).",
+      "properties": {
+        "input": {
+          "type": "string",
+          "enum": [
+            "hmac-sha256",
+            "sha256"
+          ]
+        },
+        "output": {
+          "type": "string",
+          "enum": [
+            "hmac-sha256",
+            "sha256"
+          ]
+        },
+        "input_key_id": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 32
+        },
+        "output_key_id": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 32
+        }
+      },
+      "additionalProperties": false
     }
   },
   "$defs": {
     "capability_request": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["token_hash", "side_effect_class"],
+      "required": [
+        "token_hash",
+        "side_effect_class"
+      ],
       "properties": {
         "token_hash": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
         },
-        "scope": {"type": "string"},
-        "issued_at": {"type": "string", "format": "date-time"},
-        "expires_at": {"type": "string", "format": "date-time"},
-        "spend_limit_usd": {"type": "number", "minimum": 0},
+        "scope": {
+          "type": "string"
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "spend_limit_usd": {
+          "type": "number",
+          "minimum": 0
+        },
         "merchant_allowlist": {
           "type": "array",
-          "items": {"type": "string"}
+          "items": {
+            "type": "string"
+          }
         },
         "side_effect_class": {
-          "enum": ["none", "reversible", "irreversible"]
+          "enum": [
+            "none",
+            "reversible",
+            "irreversible"
+          ]
         }
       }
     }

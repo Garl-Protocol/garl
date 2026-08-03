@@ -17,6 +17,24 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   integration among several.
 
 ### Added
+- **Keyed content hashing (EDPB 02/2025 ¶52)** — `input_hash`/`output_hash`
+  can now be HMAC-SHA-256 under a per-agent off-chain key
+  (`agent_hash_keys`, v22 migration): GARL-computed hashes (trace-mirror
+  receipts, PII masking) are keyed by default; caller-supplied plain
+  `sha256` requires an explicit `non_personal_payload: true` declaration;
+  key management at `GET|DELETE /api/v1/agents/{id}/hash-key` (+ `/rotate`)
+  — **key destruction is the sanctioned erasure mechanism**. New optional
+  `hash_scheme` field in the Action Receipt envelope (spec §4.2 + JSON
+  schema). Paragraph-by-paragraph mapping in `docs/compliance/edpb.md`.
+- **Session-level behavioral layer v0** — rules-based anomaly detection over
+  per-agent receipt streams (spend velocity vs capability limit, scope-
+  escalation attempts, delegation-depth spikes, novel irreversible targets,
+  receipt-rate bursts). Alerts are ECDSA-signed `garl/session-alert/v0.1`
+  envelopes (same pipeline as receipts), immutable in `session_alerts` (v21
+  migration), delivered via the existing per-agent webhooks (`anomaly`
+  event), and public at `GET /api/v1/agents/{id}/alerts` + `GET
+  /api/v1/alerts`; on-demand `POST /api/v1/agents/{id}/scan`; daily cron
+  (`session-scan.yml`, fails loudly). Docs: `docs/session-alerts.md`.
 - **`protocol/spec/capability-token-v0.1.md`** — full wire format for
   capability tokens (previously a TODO): claim semantics + scope grammar,
   normative attenuation rules, issuance/revocation semantics (cascade,

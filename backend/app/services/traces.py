@@ -43,6 +43,20 @@ def _compute_trace_hash(trace_data: dict) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
+def mask_summary(agent_id: str, text: str) -> str:
+    """PII-mask a summary field. Keyed by default: an unsalted hash of
+    personal data is itself personal data (EDPB 02/2025 ¶52), so the mask is
+    HMAC-SHA-256 under the agent's off-chain key — destroying the key later
+    turns it into an unlinkable commitment. Plain-sha256 fallback keeps
+    submission alive if the key infrastructure is unavailable."""
+    try:
+        from app.core.keyed_hash import keyed_hash
+        digest, key_id = keyed_hash(agent_id, text)
+        return f"hmac-sha256:{key_id}:{digest}"
+    except Exception:
+        return f"sha256:{hashlib.sha256(text.encode()).hexdigest()}"
+
+
 def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
     """Trace submission: 5-dimensional scoring, tier calculation, security analysis."""
     db = get_supabase()
@@ -157,9 +171,9 @@ def submit_trace(req: TraceSubmitRequest, api_key: str) -> dict:
     pii_masked = False
     if req.pii_mask and (input_summary or output_summary):
         if input_summary:
-            input_summary = f"sha256:{hashlib.sha256(input_summary.encode()).hexdigest()}"
+            input_summary = mask_summary(req.agent_id, input_summary)
         if output_summary:
-            output_summary = f"sha256:{hashlib.sha256(output_summary.encode()).hexdigest()}"
+            output_summary = mask_summary(req.agent_id, output_summary)
         pii_masked = True
 
     # --- Anomaly detection ---

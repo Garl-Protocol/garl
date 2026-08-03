@@ -80,6 +80,30 @@ def _validate_input(req: dict) -> None:
         h = req["capability_token_hash"]
         if not (isinstance(h, str) and len(h) == 64):
             raise ActionReceiptValidationError("capability_token_hash must be 64 hex chars")
+    if req.get("hash_scheme") is not None:
+        from app.core.keyed_hash import VALID_HASH_SCHEMES, HASH_SCHEME_PLAIN
+        hs = req["hash_scheme"]
+        if not isinstance(hs, dict) or not hs:
+            raise ActionReceiptValidationError("hash_scheme must be a non-empty object")
+        unknown = set(hs) - {"input", "output", "input_key_id", "output_key_id"}
+        if unknown:
+            raise ActionReceiptValidationError(f"Unknown hash_scheme keys: {sorted(unknown)}")
+        for side in ("input", "output"):
+            v = hs.get(side)
+            if v is not None and v not in VALID_HASH_SCHEMES:
+                raise ActionReceiptValidationError(
+                    f"hash_scheme.{side} must be one of {sorted(VALID_HASH_SCHEMES)}"
+                )
+            # EDPB 02/2025 ¶52: an unsalted hash of personal data is personal
+            # data. Plain sha256 is only accepted with an explicit declaration
+            # that the hashed payload contains no personal data.
+            if v == HASH_SCHEME_PLAIN and req.get("non_personal_payload") is not True:
+                raise ActionReceiptValidationError(
+                    f"hash_scheme.{side}='sha256' requires non_personal_payload=true "
+                    "— unsalted hashes of personal data are personal data "
+                    "(EDPB Guidelines 02/2025 ¶52). Use 'hmac-sha256' for "
+                    "personal payloads (see docs/compliance/edpb.md)."
+                )
 
 
 def submit_action_receipt(req: dict, *, enforce_cap: bool = True) -> dict:
@@ -135,6 +159,8 @@ def submit_action_receipt(req: dict, *, enforce_cap: bool = True) -> dict:
         envelope["attestations"] = list(req["attestations"])
     if req.get("redaction_policy") is not None:
         envelope["redaction_policy"] = req["redaction_policy"]
+    if req.get("hash_scheme") is not None:
+        envelope["hash_scheme"] = dict(req["hash_scheme"])
 
     # Sign the envelope-without-signature, then attach.
     signature, _digest = sign_payload(envelope)
@@ -237,20 +263,39 @@ def mint_receipt_for_trace(trace: dict) -> dict | None:
 
         category = (trace.get("category") or "other").lower()
         runtime_env = trace.get("runtime_env") or ""
+        # input_hash: keyed by default (EDPB 02/2025 ¶52 — destroying the
+        # agent's hash key later unlinks it). Plain-sha256 fallback keeps the
+        # never-raises contract if key infra is unavailable. output_hash IS
+        # the trace_hash so the two ledgers link on the same short prefix
+        # (declared as plain sha256 in hash_scheme; see docs/compliance/edpb.md
+        # for why the trace ledger's own hash stays unkeyed).
+        input_preimage = f"garl-trace-input:{agent_id}:{trace.get('id', '')}"
+        try:
+            from app.core.keyed_hash import keyed_hash
+            input_hash, input_key_id = keyed_hash(agent_id, input_preimage)
+            hash_scheme = {
+                "input": "hmac-sha256",
+                "input_key_id": input_key_id,
+                "output": "sha256",
+            }
+        except Exception:
+            input_hash = hashlib.sha256(input_preimage.encode()).hexdigest()
+            hash_scheme = None
         req = {
             "agent_id": agent_id,
             "runtime": _runtime_for(runtime_env),
             "protocol": _protocol_for(runtime_env),
             "action_type": _CATEGORY_ACTION_TYPE.get(category, "tool_call"),
-            # input_hash is a deterministic pre-state identity; output_hash IS
-            # the trace_hash so the two ledgers link on the same short prefix.
-            "input_hash": hashlib.sha256(
-                f"garl-trace-input:{agent_id}:{trace.get('id', '')}".encode()
-            ).hexdigest(),
+            "input_hash": input_hash,
             "output_hash": trace_hash,
             "side_effect": _CATEGORY_SIDE_EFFECT.get(category, "none"),
             "attestations": [f"garl-trace:{trace.get('id', '')}"],
+            # the mirrored preimage holds only identifiers, hence the
+            # explicit non-personal declaration for the plain output side
+            "non_personal_payload": True,
         }
+        if hash_scheme:
+            req["hash_scheme"] = hash_scheme
         return submit_action_receipt(req, enforce_cap=False)
     except Exception:
         logger.warning(
@@ -295,7 +340,7 @@ def build_envelope_for_signing(req: dict) -> dict:
     can hash it themselves."""
     _validate_input(req)
     agent_id = req["agent_id"]
-    return {
+    envelope = {
         "receipt_id": str(uuid.uuid4()),
         "version": ACTION_RECEIPT_VERSION,
         "issuer": "https://api.garl.ai",
@@ -310,3 +355,6 @@ def build_envelope_for_signing(req: dict) -> dict:
         "side_effect": req["side_effect"],
         "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
+    if req.get("hash_scheme") is not None:
+        envelope["hash_scheme"] = dict(req["hash_scheme"])
+    return envelope

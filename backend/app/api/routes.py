@@ -2326,6 +2326,65 @@ async def evaluate_capability(request: Request, body: dict, x_api_key: str = Hea
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get(
+    "/agents/{agent_id}/hash-key",
+    summary="Active keyed-hash key for the agent (owner only)",
+    tags=["Receipts"],
+)
+async def get_hash_key(agent_id: str, request: Request, x_api_key: str = Header(...)):
+    """Return the agent's active HMAC-SHA-256 content-hash key so the owner
+    can compute keyed `input_hash`/`output_hash` values client-side (EDPB
+    02/2025 ¶52 — see docs/compliance/edpb.md). Creates one on first call."""
+    from app.core.keyed_hash import get_active_hash_key
+
+    _check_rate_limit(_get_client_ip(request), "write", request)
+    _validate_uuid(agent_id, "agent_id")
+    _verify_agent_ownership(agent_id, x_api_key)
+    key = get_active_hash_key(agent_id)
+    return {
+        "key_id": key["key_id"],
+        "algorithm": "hmac-sha256",
+        "secret_hex": key["secret_hex"],
+        "usage": "input_hash = HMAC-SHA-256(secret, canonical_bytes(payload)) hex",
+    }
+
+
+@router.post(
+    "/agents/{agent_id}/hash-key/rotate",
+    summary="Rotate the agent's keyed-hash key (owner only)",
+    tags=["Receipts"],
+)
+async def rotate_hash_key_route(agent_id: str, request: Request, x_api_key: str = Header(...)):
+    """Retire the current key and mint a new generation. Old hashes remain
+    verifiable (retired keys keep their secret) until destroyed."""
+    from app.core.keyed_hash import rotate_hash_key
+
+    _check_rate_limit(_get_client_ip(request), "write", request)
+    _validate_uuid(agent_id, "agent_id")
+    _verify_agent_ownership(agent_id, x_api_key)
+    key = rotate_hash_key(agent_id)
+    return {"key_id": key["key_id"], "algorithm": "hmac-sha256", "secret_hex": key["secret_hex"]}
+
+
+@router.delete(
+    "/agents/{agent_id}/hash-key",
+    summary="DESTROY all keyed-hash keys for the agent (GDPR erasure)",
+    tags=["Receipts"],
+)
+async def destroy_hash_key_route(agent_id: str, request: Request, x_api_key: str = Header(...)):
+    """Irreversibly destroy every hash-key secret for this agent. All keyed
+    hashes in the ledger become unlinkable commitments (EDPB 02/2025 ¶52
+    erasure). This cannot be undone and keyed content verification for old
+    receipts becomes impossible."""
+    from app.core.keyed_hash import destroy_hash_keys
+
+    _check_rate_limit(_get_client_ip(request), "write", request)
+    _validate_uuid(agent_id, "agent_id")
+    _verify_agent_ownership(agent_id, x_api_key)
+    count = destroy_hash_keys(agent_id)
+    return {"destroyed": count, "erasure": "hash links irreversibly severed"}
+
+
 @router.post(
     "/receipts",
     summary="Submit Action Receipt v0.1 (generic, beyond commits)",

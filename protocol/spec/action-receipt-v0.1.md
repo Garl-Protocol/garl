@@ -57,8 +57,8 @@ Every receipt MUST contain:
 | `protocol` | enum | `github`, `mcp`, `a2a`, `acp`, `ap2`, `x402`, `raw-http`. |
 | `action_type` | enum | `code_write`, `api_call`, `payment`, `browser_action`, `file_op`, `tool_call`. |
 | `tool_server` | URI \| null | The endpoint the action targeted, if applicable. |
-| `input_hash` | hex(64) | SHA-256 of the canonical JSON of the input payload. |
-| `output_hash` | hex(64) | SHA-256 of the canonical JSON of the output payload. |
+| `input_hash` | hex(64) | Hash of the canonical JSON of the input payload — HMAC-SHA-256 under a per-agent key (default; see §4.2) or plain SHA-256 for declared-non-personal payloads. |
+| `output_hash` | hex(64) | Hash of the canonical JSON of the output payload — same scheme rules as `input_hash`. |
 | `side_effect` | enum | `none`, `reversible`, `irreversible`. |
 | `timestamp` | RFC 3339 | UTC. Issuer's clock at signing time. |
 | `signature` | hex | RFC 6979 deterministic ECDSA-secp256k1 over the canonical receipt minus the `signature` and `verification_key_id` fields. |
@@ -74,6 +74,7 @@ Every receipt MUST contain:
 | `previous_receipt_hash` | hex(64) \| null | The `output_hash` of the receipt this action followed. Builds a chain; sets up Merkle batching. |
 | `attestations` | (string \| object)[] | Independent corroboration of the action — see §4.1. A bare string is a human-readable claim (`tests_passed`, `human_reviewed`); a structured object points at a re-verifiable external fact. |
 | `redaction_policy` | object | `{public_fields: [...], redacted_fields: [...]}` — which fields are exposed in the public receipt URL vs. only available to the agent's owner with API key. |
+| `hash_scheme` | object | `{input, output, input_key_id?, output_key_id?}` with values `hmac-sha256` \| `sha256` — how the content hashes were produced. See §4.2. |
 
 ### 4.1 Structured attestations (the corroboration layer)
 
@@ -109,6 +110,36 @@ The GARL canonical issuer re-verifies when `ENABLE_GITHUB_ATTESTATION_CHECK` is
 configured, excluding its own check-run so it reads the repo's real CI. The
 GARL Receipt GitHub Action populates this attestation from the commit's actual
 check-runs (not a hardcoded status).
+
+### 4.2 Keyed content hashing (`hash_scheme`)
+
+EDPB Guidelines 02/2025 (adopted 7 July 2026) ¶52 holds that an **unsalted
+hash of personal data is itself personal data** — the hashing party can
+re-link it by re-hashing candidate inputs. ¶54 endorses putting "a pointer, a
+cryptographic commitment or a hash generated from a keyed hash function"
+on-chain, with verification data held off-chain.
+
+GARL's rules:
+
+- **`hmac-sha256` (default).** `input_hash`/`output_hash` = HMAC-SHA-256 of
+  `canonical_bytes(payload)` under a **per-agent key** held off-chain by the
+  issuer (`agent_hash_keys`). The key never appears in the envelope; the
+  `*_key_id` fields name which key generation was used. Destroying the key
+  (`DELETE /api/v1/agents/{id}/hash-key`) irreversibly severs the
+  hash↔content link — the ¶52-sanctioned erasure mechanism. The hash remains
+  in the immutable ledger and in Merkle batches as an opaque commitment.
+- **`sha256` (declared non-personal only).** Plain SHA-256 is accepted only
+  when the submitter also sends `non_personal_payload: true`. The issuer MUST
+  reject `sha256` without that declaration.
+- **Absent `hash_scheme`** means *unspecified* (receipts issued before this
+  field existed). Verifiers MUST NOT interpret absence as plain SHA-256.
+
+The keyed hash has the same 64-lowercase-hex shape as plain SHA-256, so
+Merkle leaves, inclusion proofs, and every downstream surface are unchanged.
+Content verification (`recomputed hash == envelope hash`) requires the key
+holder's cooperation for keyed hashes — that is the point: verification is a
+capability the data subject's processor can revoke, not an ambient property
+of the public record. Full mapping: `docs/compliance/edpb.md`.
 
 ## 5. Side-effect classification
 
