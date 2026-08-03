@@ -25,6 +25,8 @@ import {
   Copy,
   Check,
   Link2,
+  KeyRound,
+  Undo2,
 } from "lucide-react";
 
 const fadeUp = {
@@ -289,22 +291,22 @@ export default function HomePage({
           <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-garl-accent/20 bg-garl-accent/5 px-4 py-1.5">
             <div className="h-1.5 w-1.5 rounded-full bg-garl-accent animate-pulse" />
             <span className="font-mono text-xs tracking-wider text-garl-accent">
-              PROTOCOL — CRYPTOGRAPHIC VERIFICATION FOR AI AGENT ACTIONS
+              PROTOCOL — AUTHORIZATION & EVIDENCE LAYER FOR AI AGENTS
             </span>
           </div>
 
           <h1 className="mb-6 text-5xl font-bold tracking-tight sm:text-7xl">
-            <span className="text-gradient">Signed receipts</span>
+            <span className="text-gradient">Prove what your AI agent was authorized to do</span>
             <br />
-            <span className="text-garl-text">for everything your AI agents do</span>
+            <span className="text-garl-text">— and what it actually did</span>
           </h1>
 
           <p className="mx-auto mb-8 max-w-2xl text-lg text-garl-muted leading-relaxed">
-            GARL gives every action your AI agents take — code commits, tool
-            calls, API calls, payments — a signed receipt anchored on Base
-            mainnet. Connect any agent with the SDK, MCP, REST, or a 5-line
-            GitHub Action, then let anyone verify what it did offline, without
-            trusting GARL.
+            Capability tokens set hard limits — spend caps, merchant
+            allowlists, delegation chains that can only narrow. Every action
+            becomes a signed Action Receipt bound to the token that authorized
+            it, Merkle-anchored on Base mainnet, and verifiable offline
+            without trusting GARL.
           </p>
 
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
@@ -323,11 +325,11 @@ export default function HomePage({
               See a live receipt
             </a>
             <a
-              href="/for-code"
+              href="/anchors"
               className="inline-flex items-center gap-2 rounded-lg border border-garl-border px-6 py-3 font-mono text-sm text-garl-text transition-all hover:border-garl-accent/40"
             >
-              <Code2 className="h-4 w-4" />
-              GARL for Code
+              <Link2 className="h-4 w-4" />
+              See the anchor chain
             </a>
           </div>
 
@@ -433,21 +435,26 @@ export default function HomePage({
               What you get
             </h2>
             <p className="mx-auto max-w-xl text-garl-muted">
-              Connect an agent once. See what it does, and hold proof anyone
-              can check.
+              Connect an agent once. Hold proof of what it was allowed to do —
+              and what it did.
             </p>
           </div>
-          <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
+          <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
             {[
               {
-                icon: Fingerprint,
-                title: "Prove it independently",
-                desc: "Every record is ECDSA-signed and anchored on Base. Reviewers, auditors, and customers verify it offline — no trust in GARL.",
+                icon: KeyRound,
+                title: "Prove what was allowed",
+                desc: "Capability tokens carry scope, spend limit, merchant allowlist, and expiry. Delegated tokens can only narrow — every link in the chain is re-checked at verification.",
               },
               {
-                icon: Activity,
-                title: "See every action",
-                desc: "A live feed of everything your agent does — task, status, latency, token cost — on a public profile you control.",
+                icon: Fingerprint,
+                title: "Prove what was done",
+                desc: "Every action is an ECDSA-signed Action Receipt that references the token that authorized it. Immutable ledger — no edits, no deletes.",
+              },
+              {
+                icon: Shield,
+                title: "Verify it independently",
+                desc: "Receipts are Merkle-anchored on Base mainnet. Reviewers, auditors, and counterparties verify signature and inclusion offline — no trust in GARL.",
               },
             ].map((f) => (
               <div
@@ -518,21 +525,21 @@ export default function HomePage({
               How It Works
             </h2>
             <p className="text-garl-muted">
-              Three steps to verifiable AI code provenance
+              Three steps from authorization to independent proof
             </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
             {[
               {
-                icon: Terminal,
-                title: "1. Integrate",
-                desc: "5-line GitHub Action for PR receipts, plus Python / JS SDKs and an MCP server for agent runtimes. Works with Claude Code, Cursor, Copilot, Aider, Codex.",
+                icon: KeyRound,
+                title: "1. Authorize",
+                desc: "Issue a capability token: scope, spend limit, merchant allowlist, expiry. Delegation can only narrow it. The Capability Gate escalates low-trust irreversible actions to a human.",
               },
               {
                 icon: Fingerprint,
-                title: "2. Verify",
-                desc: "Every execution is SHA-256 hashed and ECDSA signed. Immutable PostgreSQL ledger — traces can never be altered or deleted. Tamper-proof certificates.",
+                title: "2. Record",
+                desc: "Every action becomes a SHA-256-hashed, ECDSA-signed Action Receipt bound to its capability token — via SDK, MCP, REST, or the GitHub Action. Immutable ledger; no edits, no deletes.",
               },
               {
                 icon: Link2,
@@ -570,13 +577,31 @@ export default function HomePage({
               The Verification Stack
             </h2>
             <p className="mx-auto max-w-xl text-garl-muted">
-              Every receipt is signed, anchored on-chain, and independently
-              checkable — plus the integrations to produce them anywhere
+              Authorization limits, signed evidence, on-chain anchoring — and
+              the integrations to produce them anywhere
             </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
+              {
+                icon: KeyRound,
+                title: "Capability Tokens",
+                desc: "ES256K-signed authorization with spend_limit_usd, merchant_allowlist, side_effect_class, and expiry. Biscuit-style attenuation: a delegated token can only narrow its parent, enforced at issue and re-checked link-by-link at verify.",
+                accent: true,
+              },
+              {
+                icon: Lock,
+                title: "Capability Gate",
+                desc: "Pre-flight check before risky actions: below-threshold irreversible requests return requires_human instead of a token. Decisions land in the receipt as policy_decision.",
+                accent: true,
+              },
+              {
+                icon: Undo2,
+                title: "UETA §10(b) Undo",
+                desc: "Reversible receipts carry a recorded compensation path. POST /receipts/{id}/undo triggers it — refused for irreversible actions, owner-key required.",
+                accent: true,
+              },
               {
                 icon: Shield,
                 title: "Cryptographic Certificates",
@@ -786,9 +811,10 @@ export default function HomePage({
             <span className="text-gradient">Anchor it. Prove it.</span>
           </h2>
           <p className="mb-8 text-garl-muted">
-            Every AI action deserves a receipt anyone can re-verify — signed,
-            anchored on Base, with the real CI result attached. GARL is the
-            open verification rail for AI-authored work.
+            Every agent action gets two proofs: the capability token that
+            allowed it, and the signed receipt that recorded it — anchored on
+            Base, verifiable offline. GARL is the open authorization-and-
+            evidence rail for AI agents.
           </p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a

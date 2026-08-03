@@ -18,12 +18,16 @@ function ClerkGate({
 }
 
 const description =
-  "Cryptographic verification for AI agent actions, starting with code. Every AI-authored action — commits, tool calls, payments, browser actions — signed with ECDSA-secp256k1 (RFC 6979 deterministic), receipted in an immutable ledger, gated by capability tokens, undoable when reversible (UETA §10(b)).";
+  "Authorization and evidence layer for AI agents. Capability tokens set hard limits — spend caps, merchant allowlists, attenuating delegation — and every action becomes an ECDSA-secp256k1-signed Action Receipt bound to its token, Merkle-anchored on Base mainnet, verifiable offline (UETA §10(b) undo for reversible actions).";
 
 export const metadata: Metadata = {
-  title: "GARL Protocol — Cryptographic verification for AI code",
+  title: "GARL Protocol — Prove what your AI agent was authorized to do",
   description,
   keywords: [
+    "AI agent authorization",
+    "capability tokens",
+    "agent authority evidence",
+    "AI agent audit trail",
     "AI code provenance",
     "AI commit signing",
     "AI-generated code verification",
@@ -44,17 +48,17 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://garl.ai"),
   alternates: { canonical: "/" },
   openGraph: {
-    title: "GARL Protocol — Cryptographic verification for AI code",
+    title: "GARL Protocol — Prove what your AI agent was authorized to do",
     description,
     url: "https://garl.ai",
     siteName: "GARL Protocol",
     type: "website",
     locale: "en_US",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "GARL Protocol — signed receipts for AI-authored commits" }],
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "GARL Protocol — capability tokens and signed Action Receipts for AI agents" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "GARL Protocol — Cryptographic verification for AI code",
+    title: "GARL Protocol — Prove what your AI agent was authorized to do",
     description,
     images: ["/og-image.png"],
   },
@@ -106,11 +110,11 @@ export default function RootLayout({
                 "@type": "SoftwareApplication",
                 name: "GARL Protocol",
                 applicationCategory: "DeveloperApplication",
-                applicationSubCategory: "AI Code Provenance",
+                applicationSubCategory: "AI Agent Authorization & Evidence",
                 operatingSystem: "Any",
                 url: "https://garl.ai",
                 description:
-                  "Cryptographic verification for AI-authored code. Every commit from Claude Code, Cursor, Copilot, Aider, and Codex gets an ECDSA-secp256k1 signed receipt anchored on an immutable ledger — provenance evidence for EU AI Act, California SB 942, and ISO 42001 Annex B audits.",
+                  "Authorization and evidence layer for AI agents. Capability tokens with spend limits, merchant allowlists, and attenuating delegation; every action recorded as an ECDSA-secp256k1-signed Action Receipt bound to its token and Merkle-anchored on Base mainnet — audit evidence for EU AI Act, California SB 942, and ISO 42001 Annex B.",
                 offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
                 author: {
                   "@type": "Organization",

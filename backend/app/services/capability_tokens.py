@@ -17,7 +17,7 @@ Format:
   - Signature: ECDSA-secp256k1 over header.payload (RFC 6979)
   - Wire:      base64url(header) + "." + base64url(payload) + "." + base64url(sig)
 
-Spec: protocol/spec/capability-token-v0.1.md (TODO).
+Spec: protocol/spec/capability-token-v0.1.md.
 
 Attenuation:
   - Each child carries parent_token_hash = sha256(parent jwt_form).

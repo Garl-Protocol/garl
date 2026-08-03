@@ -9,7 +9,20 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- **Repositioned to agent authority evidence** — homepage + README now lead
+  with "Prove what your AI agent was authorized to do — and what it actually
+  did": capability tokens (spend limits, merchant allowlists, attenuating
+  delegation) and the Capability Gate are the hero; code receipts are one
+  integration among several.
+
 ### Added
+- **`protocol/spec/capability-token-v0.1.md`** — full wire format for
+  capability tokens (previously a TODO): claim semantics + scope grammar,
+  normative attenuation rules, issuance/revocation semantics (cascade,
+  fail-closed unknown-hash), 10-step verification algorithm with the offline
+  `check_revocation` trade-off documented, receipt linkage via
+  `capability_request.token_hash`, AP2/x402 mapping sketches (non-normative).
 - **Living anchor chain** — `GET /api/v1/anchors` + public `/anchors` page list
   every Merkle batch (root, receipt count, Base tx, timestamp); built-but-
   unbroadcast batches are shown as visible gaps, never hidden. The weekly

@@ -9,15 +9,15 @@
 </p>
 
 <h1 align="center">GARL Protocol</h1>
-<p align="center"><strong>Signed, verifiable receipts for everything your AI agents do.</strong></p>
+<p align="center"><strong>Prove what your AI agent was authorized to do — and what it actually did.</strong></p>
 
 <p align="center">
-<em>Every action an AI agent takes — code commits, tool calls, API calls, payments — gets a signed receipt.<br/>GARL signs each one with ECDSA-secp256k1 (RFC 6979 deterministic) and anchors it on Base mainnet, so anyone can verify what an agent did, offline, without trusting GARL.</em>
+<em>Capability tokens set hard limits on an agent — spend caps, merchant allowlists, side-effect class, expiry — and a delegated token can only narrow its parent, never widen it.<br/>Every action becomes an ECDSA-secp256k1-signed Action Receipt bound to the token that authorized it, Merkle-anchored on Base mainnet, and verifiable offline without trusting GARL.</em>
 </p>
 
 <p align="center">
   <a href="https://garl.ai/connect">Add your agent</a> ·
-  <a href="https://garl.ai/for-code">For Code</a> ·
+  <a href="https://garl.ai/anchors">Anchor chain</a> ·
   <a href="https://garl.ai">Website</a> ·
   <a href="https://garl.ai/docs">Docs</a> ·
   <a href="https://garl.ai/r/6ff83db8">Live receipt</a> ·
@@ -35,45 +35,7 @@
 
 ## Try it now
 
-### Path A — For Code (GitHub Action, 5 lines of YAML)
-
-Sign every AI-authored commit in your pull requests.
-
-```yaml
-# .github/workflows/garl-receipt.yml
-name: GARL Receipt
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-jobs:
-  sign:
-    runs-on: ubuntu-latest
-    permissions: { contents: read, pull-requests: write, checks: write }
-    steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - uses: Garl-Protocol/garl-receipt-action@v1.1.0
-        with:
-          garl-api-key: ${{ secrets.GARL_API_KEY }}
-          garl-agent-id: ${{ secrets.GARL_AGENT_ID }}
-```
-
-Every PR gets a rolling GARL Receipt comment + informational check:
-
-```
-🔐 GARL Verified AI Code
-├── Model: claude-opus-4-6
-├── Tool: Claude Code
-├── Files touched: 12
-├── Duration: 4m 12s
-├── Signed: ECDSA-secp256k1 ✓
-└── Receipt: https://garl.ai/r/a8f3c2d1
-```
-
-Setup guide: [`Garl-Protocol/garl-receipt-action`](https://github.com/Garl-Protocol/garl-receipt-action) ·
-Live landing page: [garl.ai/for-code](https://garl.ai/for-code).
-
-### Path B — For Agents (SDK / MCP)
+### Path A — For Agents (SDK / MCP)
 
 ### With Claude Desktop or Cursor (MCP)
 
@@ -140,6 +102,70 @@ if (result.trusted) {
 }
 ```
 
+### Capability tokens — authorization with hard limits
+
+```bash
+# Issue a scoped token for your agent (owner API key required)
+curl -s -X POST https://api.garl.ai/api/v1/capability/issue \
+  -H "x-api-key: $GARL_API_KEY" -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "your-agent-uuid",
+    "scope": "payment:stripe.com",
+    "side_effect_class": "reversible",
+    "spend_limit_usd": 50,
+    "merchant_allowlist": ["stripe.com"],
+    "expires_in_seconds": 3600
+  }' | python3 -m json.tool
+
+# Anyone can verify a token — no auth, no account
+curl -s -X POST https://api.garl.ai/api/v1/capability/verify \
+  -H "Content-Type: application/json" \
+  -d '{"token": "<the JWT-form token>"}' | python3 -m json.tool
+```
+
+A delegated child token can only *narrow* its parent (lower spend limit,
+subset allowlist, equal-or-narrower scope, same-or-earlier expiry) — enforced
+at issue time and re-checked link-by-link at verification. Full wire format:
+[`protocol/spec/capability-token-v0.1.md`](./protocol/spec/capability-token-v0.1.md).
+
+### Path B — For Code (GitHub Action, 5 lines of YAML)
+
+Sign every AI-authored commit in your pull requests.
+
+```yaml
+# .github/workflows/garl-receipt.yml
+name: GARL Receipt
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    permissions: { contents: read, pull-requests: write, checks: write }
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: Garl-Protocol/garl-receipt-action@v1.1.0
+        with:
+          garl-api-key: ${{ secrets.GARL_API_KEY }}
+          garl-agent-id: ${{ secrets.GARL_AGENT_ID }}
+```
+
+Every PR gets a rolling GARL Receipt comment + informational check:
+
+```
+🔐 GARL Verified AI Code
+├── Model: claude-opus-4-6
+├── Tool: Claude Code
+├── Files touched: 12
+├── Duration: 4m 12s
+├── Signed: ECDSA-secp256k1 ✓
+└── Receipt: https://garl.ai/r/a8f3c2d1
+```
+
+Setup guide: [`Garl-Protocol/garl-receipt-action`](https://github.com/Garl-Protocol/garl-receipt-action) ·
+Live landing page: [garl.ai/for-code](https://garl.ai/for-code).
+
 ---
 
 ## Receipts — a paste-ready proof for every trace
@@ -179,6 +205,8 @@ Only metadata is uploaded — never diffs or source.
 
 | Problem | GARL's Answer |
 |---------|---------------|
+| "What was this agent *allowed* to do?" | Capability tokens: `spend_limit_usd`, `merchant_allowlist`, `side_effect_class`, expiry — with Biscuit-style attenuation (delegation can only narrow, re-checked link-by-link at verify) |
+| "Did it stay inside those limits?" | Every Action Receipt binds `capability_request.token_hash` + `policy_decision` into the signed envelope; the Capability Gate escalates low-trust irreversible actions to a human |
 | "Is this agent reliable?" | 5-dimensional trust scoring with Exponential Moving Average |
 | "Which agent should I pick?" | Smart routing by category + minimum certification tier |
 | "Can I verify its track record?" | Immutable ledger with ECDSA-signed execution traces + shareable Receipt URLs |
@@ -260,6 +288,9 @@ GARL uses the same cryptographic curve as Ethereum (ECDSA-secp256k1), making tru
 
 | Topic | Link |
 |-------|------|
+| Capability Token wire format (spec) | [protocol/spec/capability-token-v0.1.md](./protocol/spec/capability-token-v0.1.md) |
+| Action Receipt wire format (spec) | [protocol/spec/action-receipt-v0.1.md](./protocol/spec/action-receipt-v0.1.md) |
+| Anchoring runbook (weekly Merkle anchor on Base) | [docs/runbooks/anchoring.md](./docs/runbooks/anchoring.md) |
 | Full API Reference (50+ REST endpoints + A2A + MCP) | [docs/api-reference.md](./docs/api-reference.md) |
 | MCP Server (29 named tools, including batch variants) | [garl.ai/docs#mcp-server](https://garl.ai/docs#mcp-server) |
 | A2A Protocol Integration | [garl.ai/docs#a2a](https://garl.ai/docs#a2a) |
@@ -284,6 +315,7 @@ Interactive API explorer: [api.garl.ai/docs](https://api.garl.ai/docs) (Swagger)
 - **[Simulator](https://garl.ai/simulator)** — 5D trust score calculator with what-if analysis
 - **[Compare](https://garl.ai/compare)** — Side-by-side agent comparison with radar overlay
 - **[Swagger](https://api.garl.ai/docs)** — Full OpenAPI documentation
+- **[Anchors](https://garl.ai/anchors)** — every Merkle batch with its root, receipt count, and Base tx (`GET /api/v1/anchors`)
 - **[MerkleAnchor on Base](https://basescan.org/address/0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2)** — Receipt-batch Merkle roots anchored on Base mainnet (chain 8453)
 - **[MCP Registry](https://registry.modelcontextprotocol.io/)** — Listed as `io.github.Garl-Protocol/agent-trust`
 
