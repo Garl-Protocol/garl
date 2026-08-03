@@ -1,0 +1,18 @@
+{
+  "_comment": "Simplified AP2-style Intent Mandate + user-approved Cart Mandate (non-normative sample for the mapping demo).",
+  "intent_mandate": {
+    "natural_language_description": "Buy me a pair of running shoes",
+    "user_cart_confirmation_required": true,
+    "merchants": ["nike.com", "adidas.com"],
+    "price_ceiling_usd": 120.0,
+    "intent_expiry": "2026-08-05T20:00:00Z"
+  },
+  "cart_mandate": {
+    "merchant": "nike.com",
+    "cart_total_usd": 89.99,
+    "items": [{"sku": "NIKE-PEG-41", "qty": 1, "unit_price_usd": 89.99}],
+    "cart_expiry": "2026-08-04T21:15:00Z",
+    "user_approved": true,
+    "user_ref": "user-7f3a"
+  }
+}
