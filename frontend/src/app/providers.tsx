@@ -11,7 +11,13 @@ const KEY =
   process.env.NEXT_PUBLIC_POSTHOG_KEY ||
   "phc_vMqXQjidaEWRxNHrPQRatAfpxd9SkcEPD3rCvJYZESXb";
 
-if (typeof window !== "undefined" && KEY) {
+// Nightly Lighthouse CI (workflows/lighthouse.yml) hits 5 pages x 3 runs a day;
+// without this guard it was ~90% of recorded pageviews. Keep analytics honest.
+const IS_SYNTHETIC =
+  typeof navigator !== "undefined" &&
+  /Lighthouse|HeadlessChrome|PageSpeed/i.test(navigator.userAgent);
+
+if (typeof window !== "undefined" && KEY && !IS_SYNTHETIC) {
   posthog.init(KEY, {
     // Reverse-proxied through /ingest (see next.config.js) so ad blockers
     // don't drop events and the strict same-origin CSP keeps covering it.
@@ -29,7 +35,7 @@ function PageviewTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   useEffect(() => {
-    if (!KEY || typeof window === "undefined") return;
+    if (!KEY || typeof window === "undefined" || IS_SYNTHETIC) return;
     let url = window.location.origin + pathname;
     const qs = searchParams?.toString();
     if (qs) url += `?${qs}`;
