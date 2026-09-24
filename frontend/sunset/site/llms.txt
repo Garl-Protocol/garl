@@ -1,0 +1,9 @@
+# GARL Protocol
+
+> Archived on 2026-09-24. The hosted service (garl.ai, api.garl.ai) no longer accepts agents, traces or receipts.
+
+- Anchored receipts (read-only, verifiable on Base mainnet): https://garl.ai/anchors
+- MerkleAnchor contract: 0xBeD7EdeFbEb02be9682bCdeC5fb5D7DA28b1b6F2 (Base, chain 8453)
+- Signing public key: https://api.garl.ai/.well-known/garl-keys.json
+- Source (archived, Apache-2.0): https://github.com/Garl-Protocol/garl
+- Contact: contact@garl.ai

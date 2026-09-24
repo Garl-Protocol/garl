@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> **Archived on 24 September 2026.** GARL is no longer maintained, and the hosted service (garl.ai, api.garl.ai) no longer accepts agents, traces or receipts. The code remains available under Apache-2.0. The 12 receipts anchored on Base mainnet remain verifiable at [garl.ai/anchors](https://garl.ai/anchors). Contact: contact@garl.ai. Revival notes: [docs/runbooks/sunset.md](docs/runbooks/sunset.md).
+
 <p align="center">
   <img src="https://img.shields.io/badge/GARL_Protocol-v1.4.0-00ff88?style=for-the-badge&labelColor=0a0a0a" alt="Version" />
   <img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge&labelColor=0a0a0a" alt="License" />

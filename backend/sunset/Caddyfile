@@ -1,0 +1,39 @@
+# api.garl.ai — archived (2026-09-24).
+# Serves a read-only snapshot of the public verification surface (signing
+# key, anchor batches, per-receipt Merkle proofs + certificates) and answers
+# 410 for everything else. Revival: see docs/runbooks/sunset.md.
+{
+	admin off
+	auto_https off
+}
+
+:8000 {
+	root * /srv
+	header Access-Control-Allow-Origin "*"
+	header X-GARL-Status "archived"
+
+	handle /health {
+		header Content-Type "application/json"
+		respond `{"status":"archived","archived_on":"2026-09-24","source":"https://github.com/Garl-Protocol/garl"}` 200
+	}
+
+	handle /.well-known/security.txt {
+		header Content-Type "text/plain; charset=utf-8"
+		file_server
+	}
+
+	@snapshot file {
+		try_files {path} {path}.json
+	}
+	handle @snapshot {
+		rewrite * {file_match.relative}
+		header Content-Type "application/json"
+		header Cache-Control "public, max-age=86400"
+		file_server
+	}
+
+	handle {
+		header Content-Type "application/json"
+		respond `{"error":"archived","detail":"GARL was archived on 2026-09-24. The hosted API no longer accepts or serves live data. Anchored receipts remain verifiable: https://garl.ai/anchors","source":"https://github.com/Garl-Protocol/garl"}` 410
+	}
+}

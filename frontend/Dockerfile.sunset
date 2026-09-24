@@ -1,0 +1,6 @@
+# Archived-mode image for garl.ai (see docs/runbooks/sunset.md).
+# The application image is still ./Dockerfile; railway.toml selects which one builds.
+FROM caddy:2.10-alpine
+COPY sunset/Caddyfile /etc/caddy/Caddyfile
+COPY sunset/site /srv
+EXPOSE 3000
